@@ -122,7 +122,7 @@ a { color: var(--primary); text-decoration: none; }
   position: sticky;
   top: 0;
   z-index: 30;
-  padding: calc(var(--safe-t) + 10px) 14px 8px;
+  padding: calc(var(--safe-t) + 6px) 14px 4px;
   background: var(--glass-bg);
   backdrop-filter: blur(22px) saturate(1.8);
   -webkit-backdrop-filter: blur(22px) saturate(1.8);
@@ -1845,7 +1845,7 @@ a { color: var(--primary); text-decoration: none; }
   top: var(--safe-t);
   z-index: 25;
   border-radius: 22px;
-  padding: 10px 14px 12px;
+  padding: 8px 14px 8px;
   margin: 0 0 10px;
 }
 .cal-titlebar { display: flex; align-items: center; gap: 4px; min-height: 34px; }
@@ -1875,6 +1875,7 @@ a { color: var(--primary); text-decoration: none; }
 .cal-totals .out { color: var(--danger); }
 
 .calendar-grid-card {
+  touch-action: pan-y;
   background: var(--surface);
   border-radius: 20px;
   box-shadow: var(--shadow-sm);
@@ -2372,11 +2373,11 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
 .stats-summary.open .ss-foot { padding-bottom: 2px; }
 
 /* 年度热力图 */
-.heat-year-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 10px; margin: 6px 0 10px; }
+.heat-year-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 8px; margin: 6px 0 10px; }
 .heat-month { min-width: 0; overflow: hidden; }
 .heat-month-label { font-size: 10px; color: var(--text-3); margin-bottom: 4px; }
 .heat-mini { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; min-width: 0; justify-items: center; }
-.heat-dot { width: 6px; height: 6px; min-width: 0; border-radius: 50%; background: var(--surface-3); display: block; justify-self: center; }
+.heat-dot { width: 5px; height: 5px; min-width: 0; border-radius: 50%; background: var(--surface-3); display: block; justify-self: center; }
 .heat-dot.empty { background: transparent; }
 .heat-expand { width: 100%; height: 30px; border-radius: 9px; background: var(--surface-2); color: var(--text-3); font-size: 10.5px; }
 .heat-expand span { color: var(--primary); margin-left: 3px; }
@@ -2396,5 +2397,11 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
 .heat-full-cell i { font-style: normal; font-size: 8px; color: var(--text-2); }
 @media (max-width: 360px) {
   .stats-chart-controls { width: 100%; justify-content: flex-end; }
-  .heat-year-grid { gap: 9px 7px; }
+  .heat-year-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px 7px; }
 }
+
+.bill-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 4px 0 12px; }
+.bill-summary > div { background: var(--surface-2); border-radius: 12px; padding: 10px 8px; text-align: center; }
+.bill-summary span { display: block; font-size: 9.5px; color: var(--text-3); }
+.bill-summary b { display: block; margin-top: 3px; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.bill-sheet .tx-list { margin: 0 -2px; }

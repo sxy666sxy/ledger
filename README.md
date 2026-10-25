@@ -5,7 +5,7 @@
 
 - 仓库：<https://github.com/sxy666sxy/ledger>
 - APK 下载：<https://github.com/sxy666sxy/ledger/releases/latest>
-- 直链（v2.1.3）：<https://github.com/sxy666sxy/ledger/releases/download/v2.1.3/xingkong-ledger-v2.1.3.apk>
+- 直链（v2.1.4）：<https://github.com/sxy666sxy/ledger/releases/download/v2.1.4/xingkong-ledger-v2.1.4.apk>
 
 ## 预览
 
@@ -19,7 +19,7 @@
 
 ## 下载与安装（Android）
 
-1. 打开 [Releases](https://github.com/sxy666sxy/ledger/releases/latest)，下载 `xingkong-ledger-v2.1.3.apk`。
+1. 打开 [Releases](https://github.com/sxy666sxy/ledger/releases/latest)，下载 `xingkong-ledger-v2.1.4.apk`。
 2. 在手机上点击 APK，允许「安装未知来源应用」，安装完成即可使用。
 3. 首次打开会生成近 3 个月的示例账单，可在「我的 → 数据与备份」清空。
 
@@ -27,8 +27,8 @@
 
 - APK 是 **WebView 封装版**，不申请网络权限，完全离线。
 - v2.0.0 起更名为 **星空记账**，包名改为 `com.xingkong.ledger`，并使用新的 release 签名密钥；与 v1.x 不能覆盖升级。
-- v2.1.3 沿用同一包名与签名密钥，v2.0.0 可直接覆盖升级。
-- 从旧版升级：先在旧版「数据与备份」导出 JSON，卸载旧版，再安装 v2.1.3，最后导入 JSON。
+- v2.1.4 沿用同一包名与签名密钥，v2.0.0 可直接覆盖升级。
+- 从旧版升级：先在旧版「数据与备份」导出 JSON，卸载旧版，再安装 v2.1.4，最后导入 JSON。
 - 数据保存在 App 的 WebView `localStorage` 中，卸载会清除；重要数据请定期导出 JSON。
 - 导出 JSON / Excel / CSV 时会调用系统文件选择器（SAF）。
 
@@ -237,10 +237,10 @@ ledger/
 
 ## 测试
 
-共 58 项：
+共 61 项：
 
 - 数据层 18 项
-- jsdom 界面 29 项
+- jsdom 界面 32 项
 - Excel 6 项（23 列表头、xlsx 构建/解析、openpyxl 文件导入、CSV 往返、旧表头兼容）
 - PWA 4 项
 - 单文件构建 1 项
@@ -260,10 +260,20 @@ npm test
 - 年汇总框增加「更多数据」展开：月均、转账、报销、退款、优惠等
 - 年度资产走势、收支对比、支出占比、支出数据、支出排行、报表统计
 
+## v2.1.4 统计体验
+
+- 月统计汇总框也支持「更多数据」展开，和年统计一致
+- 年度月度热力图改为 4 列 × 5 行统一紧凑布局，12 个月高度一致
+- 单年统计改回 12 个月单位；所有年份统计才使用 10 年单位
+- 年统计报表、图表和点击单位跟随月份 / 年份切换
+- 点击柱状图或曲线上的单位，直接打开该月/该年/该日的账单列表
+- 日历页支持左右滑动切换月份
+- 顶部透明栏底部上移，减少顶部占用
+
 ## 更新记录
 
-- v2.1.3：修复 v2.1.0 启动退出；并修正全面屏安全区把物理像素当 CSS px 使用的问题，顶部/底部间距恢复正常
-- v2.1.3 沿用同一包名与签名，可直接覆盖 v2.1.1
+- v2.1.4：修复 v2.1.0 启动退出；并修正全面屏安全区把物理像素当 CSS px 使用的问题，顶部/底部间距恢复正常
+- v2.1.4 沿用同一包名与签名，可直接覆盖 v2.1.1
 
 ## 设计说明
 

@@ -8,7 +8,7 @@
   const C = window.LedgerCore;
   const CH = window.LedgerCharts;
   const STORAGE_KEY = 'xingkong.ledger.v4';
-  const VERSION_TEXT = '2.1.3';
+  const VERSION_TEXT = '2.1.4';
   const THEMES = [
     { id: 'auto', name: '跟随系统', desc: '自动切换浅色 / 深色', emoji: '🌓', sw: 'auto' },
     { id: 'light', name: '星空浅色', desc: '靛蓝星夜', emoji: '✦', sw: 'light' },
@@ -400,7 +400,7 @@
 
   function renderView() {
     if (state.route === 'home') viewEl.innerHTML = homeHTML();
-    else if (state.route === 'calendar') viewEl.innerHTML = calendarHTML();
+    else if (state.route === 'calendar') { viewEl.innerHTML = calendarHTML(); wireCalendarSwipe(); }
     else if (state.route === 'stats') { viewEl.innerHTML = statsHTML(); mountStatsCharts(); }
     else if (state.route === 'assets') viewEl.innerHTML = assetsHTML();
     else viewEl.innerHTML = profileHTML();
@@ -798,6 +798,36 @@
     window.scrollTo(0, 0);
   }
 
+  function wireCalendarSwipe() {
+    const grid = document.querySelector('.calendar-grid-card');
+    if (!grid || grid.dataset.swiped === '1') return;
+    grid.dataset.swiped = '1';
+    let sx = null, sy = null, horizontal = false;
+    grid.addEventListener('touchstart', (e) => {
+      sx = e.touches[0].clientX; sy = e.touches[0].clientY; horizontal = false;
+    }, { passive: true });
+    grid.addEventListener('touchmove', (e) => {
+      if (sx == null) return;
+      const dx = e.touches[0].clientX - sx;
+      const dy = e.touches[0].clientY - sy;
+      if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) {
+        horizontal = true;
+        if (e.cancelable) e.preventDefault();
+      }
+    }, { passive: false });
+    grid.addEventListener('touchend', (e) => {
+      if (sx == null) return;
+      const dx = e.changedTouches[0].clientX - sx;
+      const dy = e.changedTouches[0].clientY - sy;
+      sx = null; sy = null;
+      if (horizontal && Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+        state.suppressClickUntil = Date.now() + 350;
+        calendarStep(dx < 0 ? 1 : -1);
+      }
+      horizontal = false;
+    }, { passive: true });
+  }
+
   function daysBetweenInclusive(from, to) {
     return Math.max(1, Math.round((C.parseISO(to) - C.parseISO(from)) / 86400000) + 1);
   }
@@ -916,28 +946,52 @@
         ];
       }
     } else if (mode === 'year') {
-      const currentYear = Number(currentMonth.slice(0, 4));
-      const reportRows = C.yearRows(data, book.id, currentYear - 9, currentYear);
-      labels = reportRows.map((r) => String(r.year));
-      const expValues = reportRows.map((r) => r.expense);
-      const incValues = reportRows.map((r) => r.income);
-      const balValues = reportRows.map((r) => r.balance);
-      if (state.statsType === 'all') {
-        values = expValues;
-        series = [
-          { values: expValues, color: '#ef6c5a', name: '支出' },
-          { values: incValues, color: '#0e9f6e', name: '收入' }
-        ];
+      if (yearAll) {
+        const currentYear = Number(currentMonth.slice(0, 4));
+        const reportRows = C.yearRows(data, book.id, currentYear - 9, currentYear);
+        labels = reportRows.map((r) => String(r.year));
+        const expValues = reportRows.map((r) => r.expense);
+        const incValues = reportRows.map((r) => r.income);
+        const balValues = reportRows.map((r) => r.balance);
+        if (state.statsType === 'all') {
+          values = expValues;
+          series = [
+            { values: expValues, color: '#ef6c5a', name: '支出' },
+            { values: incValues, color: '#0e9f6e', name: '收入' }
+          ];
+        } else {
+          values = state.statsType === 'income' ? incValues : state.statsType === 'balance' ? balValues : expValues;
+        }
+        tableRows = reportRows.map((r) => ({
+          label: r.year + '年', year: r.year, income: r.income, expense: r.expense,
+          balance: r.balance, count: r.count
+        }));
+        tableLabel = '年份';
+        showValues = state.statsType !== 'all';
+        highlight = -1;
       } else {
-        values = state.statsType === 'income' ? incValues : state.statsType === 'balance' ? balValues : expValues;
+        const ms = C.yearMonths(data, book.id, year);
+        labels = ms.map((m) => m.month + '月');
+        const expValues = ms.map((m) => m.expense);
+        const incValues = ms.map((m) => m.income);
+        const balValues = ms.map((m) => m.balance);
+        if (state.statsType === 'all') {
+          values = expValues;
+          series = [
+            { values: expValues, color: '#ef6c5a', name: '支出' },
+            { values: incValues, color: '#0e9f6e', name: '收入' }
+          ];
+        } else {
+          values = state.statsType === 'income' ? incValues : state.statsType === 'balance' ? balValues : expValues;
+        }
+        tableRows = ms.map((m) => ({
+          label: m.month + '月', month: m.month, income: m.income, expense: m.expense,
+          balance: m.balance, count: m.count
+        }));
+        tableLabel = '月份';
+        showValues = state.statsType !== 'all';
+        highlight = year === Number(currentMonth.slice(0, 4)) ? Number(currentMonth.slice(5, 7)) - 1 : -1;
       }
-      tableRows = reportRows.map((r) => ({
-        label: r.year + '年', year: r.year, income: r.income, expense: r.expense,
-        balance: r.balance, count: r.count
-      }));
-      tableLabel = '年份';
-      showValues = state.statsType !== 'all';
-      highlight = yearAll ? -1 : Math.max(-1, reportRows.findIndex((r) => r.year === year));
       avgBase = 12;
       asset = C.assetSeriesRange(data, from, to);
     } else {
@@ -1056,16 +1110,17 @@
 
   function statsSummaryBoxHTML(c) {
     const prefix = c.mode === 'month' ? '月' : c.mode === 'year' ? (c.yearAll ? '全部' : '年') : c.mode === 'daily' ? '近7天' : '区间';
-    const year = c.mode === 'year';
-    const open = year && state.statsSummaryOpen;
+    const detail = c.mode === 'year' || c.mode === 'month';
+    const open = detail && state.statsSummaryOpen;
     let extra = '';
-    if (year) {
+    if (detail) {
       const ex = c.extended || {};
-      const months = c.yearAll ? Math.max(1, ex.months || 1) : 12;
+      const divisor = c.mode === 'month' ? Math.max(1, c.rangeDays) : (c.yearAll ? Math.max(1, ex.months || 1) : 12);
+      const avgName = c.mode === 'month' ? '日均' : '月均';
       const metrics = [
-        ['月均支出', '¥' + C.money(c.totals.expense / months)],
-        ['月均收入', '¥' + C.money(c.totals.income / months)],
-        ['月均结余', signedMoneyText(c.totals.balance / months)],
+        [avgName + '支出', '¥' + C.money(c.totals.expense / divisor)],
+        [avgName + '收入', '¥' + C.money(c.totals.income / divisor)],
+        [avgName + '结余', signedMoneyText(c.totals.balance / divisor)],
         ['转账', '¥' + C.money(ex.transfer)],
         ['还款', '¥' + C.money(ex.repay)],
         ['收款', '¥' + C.money(ex.receive)],
@@ -1089,7 +1144,7 @@
       '<div class="ss-cell"><span>' + prefix + '支出</span><b>¥' + C.money(c.totals.expense) + '</b></div>' +
       '<div class="ss-cell"><span>' + prefix + '收入</span><b>¥' + C.money(c.totals.income) + '</b></div>' +
       '<div class="ss-cell"><span>' + prefix + '结余</span><b>' + signedMoneyText(c.totals.balance) + '</b></div>' +
-      (year ? '<button class="ss-toggle" data-act="stats-summary-toggle" aria-label="展开更多数据">' + (open ? '收起' : '更多数据') + ' <span>' + (open ? '⌃' : '⌄') + '</span></button>' : '') +
+      (detail ? '<button class="ss-toggle" data-act="stats-summary-toggle" aria-label="展开更多数据">' + (open ? '收起' : '更多数据') + ' <span>' + (open ? '⌃' : '⌄') + '</span></button>' : '') +
       '<div class="ss-foot">' + c.rangeLabel + ' · ' + c.totals.count + ' 笔</div>' +
       extra +
     '</section>';
@@ -1230,12 +1285,11 @@
   function compactHeatMonth(data, bookId, year, month, type, max) {
     const key = year + '-' + pad2(month);
     const daily = C.dayTotals(data, bookId, key);
-    const first = C.weekdayIndex(key + '-01');
     const dim = C.daysInMonth(year, month);
     let cells = '';
-    for (let i = 0; i < 42; i++) {
-      const day = i - first + 1;
-      if (day < 1 || day > dim) { cells += '<span class="heat-dot empty"></span>'; continue; }
+    // 紧凑热力图不按星期排，固定 5 行 x 7 列，12 个月高度完全一致。
+    for (let day = 1; day <= 35; day++) {
+      if (day > dim) { cells += '<span class="heat-dot empty"></span>'; continue; }
       const rec = daily[day] || { expense: 0, income: 0 };
       const value = type === 'income' ? rec.income : rec.expense;
       cells += '<span class="heat-dot" style="' + heatStyle(value, max, type) + '" title="' + day + '日 ¥' + C.money(value) + '"></span>';
@@ -1306,11 +1360,11 @@
       return '<div class="stats">' + parts.join('') + '</div>';
     }
 
-    const chartTitle = c.mode === 'year' ? (c.yearAll ? '近十年收支' : '近十年收支') : c.mode === 'month' ? '收支统计' : c.mode === 'daily' ? '近 7 天收支' : '区间收支';
+    const chartTitle = c.mode === 'year' ? (c.yearAll ? '近十年收支' : c.year + ' 年 · 月度收支') : c.mode === 'month' ? '收支统计' : c.mode === 'daily' ? '近 7 天收支' : '区间收支';
     parts.push('<section class="card stats-chart-card">' +
       '<div class="stats-chart-head"><div class="card-title">' + chartTitle + '</div>' + statsChartControlsHTML() + '</div>' +
       '<div class="chart-bars stats-bars" id="statsBars"></div>' +
-      '<div class="chart-note">单位：' + (c.mode === 'year' ? '年' : c.mode === 'custom' && c.rangeDays > 31 ? '月' : '日') + ' · 点击柱/点查看金额</div>' +
+      '<div class="chart-note">单位：' + (c.mode === 'year' && c.yearAll ? '年' : c.mode === 'year' || (c.mode === 'custom' && c.rangeDays > 31) ? '月' : '日') + ' · 点击柱/点查看明细</div>' +
     '</section>');
 
     if (c.mode === 'year' && !c.yearAll) parts.push(yearHeatmapHTML(c));
@@ -1343,12 +1397,58 @@
     return '<div class="stats">' + parts.join('') + '</div>';
   }
 
-  function attachChartTip(el, c) {
+  function openStatsBills(c, idx) {
+    const data = c.data;
+    const labels = c.labels;
+    let from = c.from;
+    let to = c.to;
+    let title = labels[idx] || '账单明细';
+    if (c.mode === 'year') {
+      if (c.yearAll) {
+        const y = Number(labels[idx]);
+        if (!Number.isFinite(y)) return;
+        from = y + '-01-01';
+        to = y + '-12-31';
+        title = y + '年账单';
+      } else {
+        const m = idx + 1;
+        from = c.year + '-' + pad2(m) + '-01';
+        to = C.monthEnd(c.year + '-' + pad2(m));
+        title = c.year + '年' + m + '月账单';
+      }
+    } else if (c.mode === 'month') {
+      const date = c.monthKey + '-' + pad2(idx + 1);
+      from = date; to = date; title = C.dateLabel(date) + '账单';
+    } else if (c.mode === 'daily') {
+      const date = C.addDaysISO(c.from, idx);
+      from = date; to = date; title = C.dateLabel(date) + '账单';
+    } else if (c.mode === 'custom') {
+      if (c.rangeDays <= 31) {
+        const date = C.addDaysISO(c.from, idx);
+        from = date; to = date; title = C.dateLabel(date) + '账单';
+      } else {
+        const key = C.addMonthsKey(C.monthKeyOf(c.from), idx);
+        from = key + '-01'; to = C.monthEnd(key); title = C.monthLabel(key) + '账单';
+      }
+    }
+    const txs = C.sortTransactions(data.transactions.filter((t) => t.bookId === c.book.id && t.date >= from && t.date <= to));
+    const totals = C.rangeTotals(data, c.book.id, from, to);
+    openSheet({
+      title, subtitle: '支出 ¥' + C.money(totals.expense) + ' · 收入 ¥' + C.money(totals.income) + ' · 结余 ¥' + C.money(totals.balance),
+      className: 'bill-sheet', content:
+        '<div class="bill-summary">' +
+          '<div><span>支出</span><b>¥' + C.money(totals.expense) + '</b></div>' +
+          '<div><span>收入</span><b>¥' + C.money(totals.income) + '</b></div>' +
+          '<div><span>结余</span><b>' + signedMoneyText(totals.balance) + '</b></div>' +
+        '</div>' +
+        (txs.length ? '<div class="tx-list">' + txs.map((t) => txRowHTML(t)).join('') + '</div>'
+          : '<div class="empty" style="padding:30px 10px"><div class="empty-emoji theme-symbol">' + themeEmptyIcon() + '</div><div class="empty-title">这个单位下还没有账单</div></div>')
+    });
+  }
+
+  function attachChartNav(el, c) {
     if (!el) return;
     el.style.position = 'relative';
-    const tip = document.createElement('div');
-    tip.className = 'chart-tip';
-    el.appendChild(tip);
     el.onclick = (e) => {
       const rect = el.getBoundingClientRect();
       const x = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
@@ -1357,16 +1457,7 @@
       if (state.statsChartType === 'line') idx = Math.round((x / Math.max(rect.width, 1)) * (n - 1));
       else idx = Math.floor((x / Math.max(rect.width, 1)) * n);
       idx = Math.max(0, Math.min(n - 1, idx));
-      const lines = [];
-      if (c.series) {
-        c.series.forEach((s) => lines.push('<span class="tip-dot" style="background:' + s.color + '"></span>' + esc(s.name) + ' <b>¥' + C.money(s.values[idx]) + '</b>'));
-      } else {
-        lines.push('<b>¥' + C.money(c.values[idx]) + '</b>');
-      }
-      tip.innerHTML = '<div class="tip-label">' + esc(c.labels[idx] || '') + '</div>' + lines.map((x) => '<div class="tip-row">' + x + '</div>').join('');
-      const pct = n <= 1 ? 50 : (idx / (n - 1)) * 100;
-      tip.style.left = Math.max(8, Math.min(82, pct)) + '%';
-      tip.classList.add('show');
+      openStatsBills(c, idx);
     };
   }
 
@@ -1403,7 +1494,7 @@
           barWidth: c.labels.length > 20 ? 10 : 20
         });
       }
-      attachChartTip(barsEl, c);
+      attachChartNav(barsEl, c);
     }
 
     const donutEl = document.getElementById('statsDonut');
@@ -4197,7 +4288,7 @@
   let pageHorizontal = false;
 
   function pageTouchBlocked(target) {
-    return !!(target && target.closest('.month-rail, .month-stepper, .tabbar, .fab-add, .select-bar, .appbar, .sheet, .modal, .pull-hint, input, textarea, select'));
+    return !!(target && target.closest('.month-rail, .month-stepper, .calendar-grid-card, .tabbar, .fab-add, .select-bar, .appbar, .sheet, .modal, .pull-hint, input, textarea, select'));
   }
 
   function pageStep(dir) {

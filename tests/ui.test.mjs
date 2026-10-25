@@ -395,6 +395,43 @@ test('资产余额编辑与长按删除账户', async () => {
   assert.equal(document.querySelectorAll('.acct-row').length, before - 1);
 });
 
+test('月统计汇总可展开更多数据', async () => {
+  const { window, document } = boot();
+  click(document, '[data-route="stats"]');
+  assert.ok(document.querySelector('[data-act="stats-summary-toggle"]'), '月统计更多数据按钮');
+  click(document, '[data-act="stats-summary-toggle"]');
+  const extra = document.querySelector('.ss-extra.open');
+  assert.ok(extra, '月统计展开');
+  assert.match(extra.textContent, /日均支出/);
+  assert.match(extra.textContent, /退款/);
+});
+
+test('年统计按月份展示，点击柱状图进入该月账单', async () => {
+  const { window, document } = boot();
+  click(document, '[data-route="stats"]');
+  click(document, '[data-act="stats-mode"][data-mode="year"]');
+  const chart = document.querySelector('#statsBars');
+  assert.match(chart.textContent, /12月/);
+  assert.match(document.querySelector('.stats-table .st-head').textContent, /月份/);
+  click(document, '#statsBars');
+  const sheet = document.querySelector('.bill-sheet');
+  assert.ok(sheet, '账单列表');
+  assert.match(sheet.textContent, /2026年1月账单/);
+  assert.ok(sheet.querySelector('.tx-list') || sheet.querySelector('.empty'), '账单内容');
+});
+
+test('日历左右滑动切换月份', async () => {
+  const { window, document } = boot();
+  click(document, '[data-route="calendar"]');
+  const title = document.querySelector('.cal-title').textContent;
+  const grid = document.querySelector('.calendar-grid-card');
+  grid.dispatchEvent(touch(window, 'touchstart', 240, 420));
+  grid.dispatchEvent(touch(window, 'touchmove', 90, 425));
+  grid.dispatchEvent(touch(window, 'touchend', 90, 425));
+  assert.notEqual(document.querySelector('.cal-title').textContent, title, '月份应切换');
+  assert.ok(document.querySelector('.calendar-grid-card'), '仍在日历页');
+});
+
 test('年统计：所有年份、十年图表、热力图、展开数据与曲线切换', async () => {
   const { window, document } = boot();
   click(document, '[data-route="stats"]');
