@@ -8,7 +8,31 @@
   const C = window.LedgerCore;
   const CH = window.LedgerCharts;
   const STORAGE_KEY = 'xingkong.ledger.v4';
-  const VERSION_TEXT = '2.0.0';
+  const VERSION_TEXT = '2.1.0';
+  const THEMES = [
+    { id: 'auto', name: '跟随系统', desc: '自动切换浅色 / 深色', emoji: '🌓', sw: 'auto' },
+    { id: 'light', name: '星空浅色', desc: '靛蓝星夜', emoji: '✦', sw: 'light' },
+    { id: 'dark', name: '星空深色', desc: '深夜银河', emoji: '🌌', sw: 'dark' },
+    { id: 'grass', name: '草原', desc: '风吹草低', emoji: '🌿', sw: 'grass' },
+    { id: 'sky', name: '天空', desc: '晴空万里', emoji: '☁️', sw: 'sky' },
+    { id: 'cloud', name: '白云', desc: '云朵与风', emoji: '☁️', sw: 'cloud' },
+    { id: 'castle', name: '粉色城堡', desc: '玫瑰与塔楼', emoji: '🏰', sw: 'castle' },
+    { id: 'wheat', name: '麦田', desc: '金色麦浪', emoji: '🌾', sw: 'wheat' },
+    { id: 'snow', name: '白雪', desc: '雪落无声', emoji: '❄️', sw: 'snow' },
+    { id: 'storm', name: '闪电', desc: '雷雨夜行', emoji: '⚡', sw: 'storm' },
+    { id: 'wave', name: '波浪', desc: '潮汐海岸', emoji: '🌊', sw: 'wave' },
+    { id: 'ocean', name: '海底', desc: '深海微光', emoji: '🐚', sw: 'ocean' }
+  ];
+  const THEME_META = {
+    light: { dark: false, color: '#5b6cff' }, dark: { dark: true, color: '#070a17' },
+    grass: { dark: false, color: '#2e8b57' }, sky: { dark: false, color: '#2f80ed' },
+    cloud: { dark: false, color: '#6c8ab8' }, castle: { dark: false, color: '#d65a9a' },
+    wheat: { dark: false, color: '#c08a2e' }, snow: { dark: false, color: '#5b8ec9' },
+    storm: { dark: true, color: '#141821' }, wave: { dark: false, color: '#168a9e' },
+    ocean: { dark: true, color: '#071a2c' }
+  };
+  function themeById(id) { return THEMES.find((t) => t.id === id) || THEMES[0]; }
+  function isDarkTheme(id) { return !!(THEME_META[id] && THEME_META[id].dark); }
 
   const $ = (sel, root) => (root || document).querySelector(sel);
   const $$ = (sel, root) => Array.prototype.slice.call((root || document).querySelectorAll(sel));
@@ -146,17 +170,43 @@
 
   function resolveTheme() {
     const setting = state.data.settings.theme;
-    if (setting === 'dark') return 'dark';
-    if (setting === 'light') return 'light';
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    if (setting === 'auto') {
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    if (THEMES.some((t) => t.id === setting)) return setting;
+    return 'light';
   }
 
   function applyTheme() {
     const theme = resolveTheme();
     document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute('data-dark', isDarkTheme(theme) ? '1' : '0');
     const meta = document.getElementById('themeColor');
-    if (meta) meta.setAttribute('content', theme === 'dark' ? '#070a17' : '#5b6cff');
+    const metaInfo = THEME_META[theme] || THEME_META.light;
+    if (meta) meta.setAttribute('content', metaInfo.color);
+    try {
+      if (window.AndroidBridge && window.AndroidBridge.setSystemBars) window.AndroidBridge.setSystemBars(metaInfo.dark);
+    } catch (err) { /* 非 Android 环境 */ }
     state.chartSig = '';
+  }
+
+  function themeEmptyIcon() {
+    const theme = resolveTheme();
+    const map = {
+      grass: '🌿', sky: '☁️', cloud: '☁️', castle: '🏰', wheat: '🌾',
+      snow: '❄️', storm: '⚡', wave: '🌊', ocean: '🐚'
+    };
+    return map[theme] || '✦';
+  }
+
+  function applyInsets() {
+    try {
+      if (!window.AndroidBridge) return;
+      const st = window.AndroidBridge.getStatusBarHeight ? window.AndroidBridge.getStatusBarHeight() : 0;
+      const nb = window.AndroidBridge.getNavigationBarHeight ? window.AndroidBridge.getNavigationBarHeight() : 0;
+      if (st > 0) document.documentElement.style.setProperty('--safe-t', st + 'px');
+      if (nb > 0) document.documentElement.style.setProperty('--safe-b', nb + 'px');
+    } catch (err) { /* web */ }
   }
 
   function toast(message, type) {
@@ -508,7 +558,7 @@
     const body = groups.length
       ? dayGroupsHTML(groups)
       : '<div class="empty">' +
-          '<div class="empty-emoji">🌱</div>' +
+          '<div class="empty-emoji theme-symbol">' + themeEmptyIcon() + '</div>' +
           '<div class="empty-title">这个月还没有记账</div>' +
           '<div class="empty-text">每一笔小记录，都会长成清楚的消费轮廓。<br>点击下方的加号开始吧。</div>' +
         '</div>';
@@ -589,6 +639,7 @@
     const maxExpense = Object.keys(daily).reduce((m, d) => Math.max(m, daily[d].expense || 0), 0);
     const maxIncome = Object.keys(daily).reduce((m, d) => Math.max(m, daily[d].income || 0), 0);
     const heat = data.settings.calendarHeat !== false;
+    const showLunar = data.settings.calendarLunar !== false;
     const firstWeekday = C.weekdayIndex(month + '-01');
     const dim = C.daysInMonth(Number(month.slice(0, 4)), Number(month.slice(5, 7)));
     const totalCells = Math.ceil((firstWeekday + dim) / 7) * 7;
@@ -614,6 +665,7 @@
       labels[day] = lab;
       const isToday = day === today;
       const isSelected = day === selected;
+      const displayLabel = showLunar ? lab.text : (lab.festival || lab.term);
       const weekday = C.weekdayIndex(day);
       const style = calendarHeatStyle(rec.expense, rec.income, maxExpense, maxIncome, isSelected, heat);
       const classes = ['cal-cell'];
@@ -624,14 +676,14 @@
       if (rec.count) classes.push('has');
       cells += '<button class="' + classes.join(' ') + '" style="' + style + '" data-act="calendar-select" data-day="' + day + '">' +
         '<span class="cc-day">' + dayNum + '</span>' +
-        '<span class="cc-lunar">' + esc(lab.text || '') + '</span>' +
+        (displayLabel ? '<span class="cc-lunar">' + esc(displayLabel) + '</span>' : '') +
         '<span class="cc-amounts"><i class="out">-' + shortMoney(rec.expense) + '</i><i class="in">+' + shortMoney(rec.income) + '</i></span>' +
       '</button>';
     }
 
     const dayTxHTML = dayList.length
       ? '<div class="tx-list">' + dayList.map((t) => txRowHTML(t)).join('') + '</div>'
-      : '<div class="empty" style="padding:28px 10px 24px"><div class="empty-emoji">🍃</div><div class="empty-title">这天还没有账单</div></div>';
+      : '<div class="empty" style="padding:28px 10px 24px"><div class="empty-emoji theme-symbol">' + themeEmptyIcon() + '</div><div class="empty-title">这天还没有账单</div></div>';
 
     return '<div class="calendar-page">' +
       '<section class="calendar-glass liquid">' +
@@ -674,15 +726,28 @@
             '<span class="s" style="display:block">支出越多越红，收入越多越绿</span></span>' +
           '<span class="switch"><input type="checkbox" data-heat' + (heat ? ' checked' : '') + '><span class="switch-track"></span></span>' +
         '</label>' +
-        '<div class="hint-box" style="margin-top:12px">关闭后日历恢复纯白，仍会显示每日收支金额。节假日与农历会继续显示。</div>',
+        '<label class="list-item" style="border:0;padding-left:0;padding-right:0">' +
+          '<span class="grow"><span class="t" style="display:block">显示农历</span>' +
+            '<span class="s" style="display:block">关闭后只保留节日与节气</span></span>' +
+          '<span class="switch"><input type="checkbox" data-lunar' + (state.data.settings.calendarLunar !== false ? ' checked' : '') + '><span class="switch-track"></span></span>' +
+        '</label>' +
+        '<div class="hint-box" style="margin-top:12px">热力背景关闭后日历恢复纯白；农历关闭后仍显示节日和节气。</div>',
       onMount(root, close) {
-        const input = root.querySelector('[data-heat]');
-        input.addEventListener('change', () => {
-          state.data.settings.calendarHeat = input.checked;
+        const heatInput = root.querySelector('[data-heat]');
+        const lunarInput = root.querySelector('[data-lunar]');
+        heatInput.addEventListener('change', () => {
+          state.data.settings.calendarHeat = heatInput.checked;
           saveData();
           close();
           render();
-          toast(input.checked ? '已开启热力背景' : '已关闭热力背景');
+          toast(heatInput.checked ? '已开启热力背景' : '已关闭热力背景');
+        });
+        lunarInput.addEventListener('change', () => {
+          state.data.settings.calendarLunar = lunarInput.checked;
+          saveData();
+          close();
+          render();
+          toast(lunarInput.checked ? '已显示农历' : '已隐藏农历，保留节日节气');
         });
       }
     });
@@ -1051,7 +1116,7 @@
     const c = statsContext();
     const parts = [statsDatebarHTML(c), statsSummaryBoxHTML(c)];
     if (!c.totals.count) {
-      parts.push('<div class="card"><div class="empty" style="padding:34px 16px"><div class="empty-emoji">🍃</div>' +
+      parts.push('<div class="card"><div class="empty" style="padding:34px 16px"><div class="empty-emoji theme-symbol">' + themeEmptyIcon() + '</div>' +
         '<div class="empty-title">这个区间还没有账单</div><div class="empty-text">换个时间，或先记一笔再回来看看。</div></div></div>');
       parts.push(statsSummaryCardHTML(c));
       return '<div class="stats">' + parts.join('') + '</div>';
@@ -1093,9 +1158,10 @@
   function mountStatsCharts() {
     const c = statsContext();
     const theme = document.documentElement.getAttribute('data-theme');
-    const labelColor = theme === 'dark' ? 'rgba(159,178,168,.85)' : 'rgba(91,109,100,.85)';
-    const textColor = theme === 'dark' ? '#e9f3ee' : '#101c16';
-    const gridColor = theme === 'dark' ? 'rgba(255,255,255,.09)' : 'rgba(16,28,22,.08)';
+    const dark = isDarkTheme(theme);
+    const labelColor = dark ? 'rgba(200,208,230,.85)' : 'rgba(91,109,100,.85)';
+    const textColor = dark ? '#eef2ff' : '#101c16';
+    const gridColor = dark ? 'rgba(255,255,255,.09)' : 'rgba(16,28,22,.08)';
     const barColor = state.statsType === 'income' ? '#0e9f6e' : state.statsType === 'balance' ? '#3b82f6' : '#ef6c5a';
 
     const barsEl = document.getElementById('statsBars');
@@ -1121,7 +1187,7 @@
       const list = c.breakdown.slice(0, 6).map((x) => ({ value: x.value, color: x.color }));
       const rest = c.breakdown.slice(6).reduce((sum, x) => sum + x.value, 0);
       if (rest > 0) list.push({ value: rest, color: '#94a3b8' });
-      CH.donut(donutEl, list, { emptyColor: theme === 'dark' ? 'rgba(255,255,255,.08)' : 'rgba(148,163,184,.16)' });
+      CH.donut(donutEl, list, { emptyColor: dark ? 'rgba(255,255,255,.08)' : 'rgba(148,163,184,.16)' });
     }
 
     if (c.mode === 'month') {
@@ -1269,6 +1335,46 @@
     });
   }
 
+  function openBookkeepingAccounts() {
+    const rows = state.data.accounts.map((a) => (
+      '<label class="list-item" style="border:0;padding-left:0;padding-right:0">' +
+        '<span class="ic" style="background:' + alpha(a.color, 0.14) + '">' + a.icon + '</span>' +
+        '<span class="grow"><span class="t" style="display:block">' + esc(a.name) + '</span>' +
+          '<span class="s" style="display:block">' + (a.bookkeeping === false ? '未启用 · 不出现在记账选择里' : '已启用记账') + '</span></span>' +
+        '<span class="switch"><input type="checkbox" data-bookkeeping-account="' + a.id + '"' + (a.bookkeeping !== false ? ' checked' : '') + '><span class="switch-track"></span></span>' +
+      '</label>'
+    )).join('');
+    openSheet({
+      title: '记账账户', subtitle: '关闭后不再出现在记账与转账选择中', content:
+        '<div class="list-plain">' + rows + '</div>' +
+        '<div class="hint-box" style="margin-top:12px">已有账单不会消失；重新开启后账户会回到记账选择里。至少保留一个开启的账户。</div>',
+      footer: '<button class="btn primary block" data-close-bookkeeping>完成</button>',
+      onMount(root, close) {
+        root.addEventListener('change', (e) => {
+          const input = e.target.closest('[data-bookkeeping-account]');
+          if (!input) return;
+          const account = state.data.accounts.find((a) => a.id === input.dataset.bookkeepingAccount);
+          if (!account) return;
+          if (!input.checked && state.data.accounts.filter((a) => a.bookkeeping !== false).length <= 1) {
+            input.checked = true;
+            toast('至少保留一个启用记账的账户');
+            return;
+          }
+          account.bookkeeping = input.checked;
+          saveData();
+          const caption = input.closest('label').querySelector('.s');
+          if (caption) caption.textContent = input.checked ? '已启用记账' : '未启用 · 不出现在记账选择里';
+          toast(input.checked ? '已启用记账' : '已关闭记账');
+        });
+        root.addEventListener('click', (e) => {
+          if (!e.target.closest('[data-close-bookkeeping]')) return;
+          close();
+          render();
+        });
+      }
+    });
+  }
+
   function openBalanceEditor(account) {
     if (!account) return;
     const current = (C.accountBalances(state.data)[account.id] || 0);
@@ -1335,6 +1441,7 @@
           '<span class="grow">' +
             '<span class="acct-name">' + esc(a.name) +
               (a.name === (C.ACCOUNT_TYPES[a.type] || C.ACCOUNT_TYPES.other).name ? '' : '<span class="acct-type">' + (C.ACCOUNT_TYPES[a.type] || C.ACCOUNT_TYPES.other).name + '</span>') +
+              (a.bookkeeping === false ? '<span class="acct-tag">未启用记账</span>' : '') +
             '</span>' +
             '<span class="acct-sub">本月支出 ¥' + C.money(flow.outflow, 0) + (flow.inflow ? ' · 流入 ¥' + C.money(flow.inflow, 0) : '') + '</span>' +
           '</span>' +
@@ -1358,6 +1465,10 @@
         '<button class="action-btn primary" data-act="open-transfer">' + svg('swap', 18) + '转账</button>' +
         '<button class="action-btn" data-act="add-account">' + svg('plus', 18) + '新增账户</button>' +
       '</div>' +
+      '<button class="bookkeeping-bar" data-act="open-account-bookkeeping">' +
+        '<span class="bb-icon">📒</span><span class="grow"><b>记账账户</b><small>' +
+          data.accounts.filter((a) => a.bookkeeping !== false).length + ' / ' + data.accounts.length + ' 个启用</small></span>' +
+        '<span class="chev">›</span></button>' +
       '<div class="acct-group">' +
         '<div class="acct-head"><span>资金账户</span><span>' + assetAccounts.length + ' 个</span></div>' +
         '<div class="acct-list">' + rows(assetAccounts) + '</div>' +
@@ -1379,8 +1490,14 @@
     const data = state.data;
     const stats = C.overallStats(data);
     const book = C.activeBook(data);
-    const themeText = { auto: '跟随系统', light: '浅色', dark: '深色' }[data.settings.theme] || '跟随系统';
+    const themeText = themeById(data.settings.theme).name;
     return '<div class="profile">' +
+      '<section class="profile-brand">' +
+        '<span class="profile-brand-logo">✦</span>' +
+        '<div class="grow"><div class="profile-brand-name">星空记账</div>' +
+          '<div class="profile-brand-sub">本地记账 · 数据自持 · 离线可用</div></div>' +
+        '<span class="profile-brand-badge">v' + VERSION_TEXT + '</span>' +
+      '</section>' +
       '<div class="stat-strip">' +
         '<div><b>' + stats.count + '</b><span>记账笔数</span></div>' +
         '<div><b>' + stats.days + '</b><span>记账天数</span></div>' +
@@ -1522,7 +1639,8 @@
     const opts = options || {};
     const tx = txId ? state.data.transactions.find((t) => t.id === txId) : null;
     const cats = C.categoriesOf(state.data, 'expense');
-    const accounts = state.data.accounts;
+    const accounts = state.data.accounts.filter((a) => a.bookkeeping !== false || (tx && (tx.accountId === a.id || tx.toAccountId === a.id)));
+    if (!accounts.length) { toast('没有启用记账的账户，请先到资产页开启'); return; }
     const draft = {
       type: opts.type || (tx ? tx.type : 'expense'),
       amountStr: tx ? String(tx.amount) : '',
@@ -1873,7 +1991,7 @@
       .map((t) => t.subcategory))).slice(0, 10);
     const currencies = ['CNY', 'USD', 'EUR', 'JPY', 'HKD', 'GBP', 'AUD', 'CAD', 'SGD'];
     if (local.currency && currencies.indexOf(local.currency) < 0) currencies.push(local.currency);
-    let accountOptions = state.data.accounts.map((a) => (
+    let accountOptions = state.data.accounts.filter((a) => a.bookkeeping !== false).map((a) => (
       '<option value="' + esc(a.name) + '"' + (a.name === local.reimburseAccount ? ' selected' : '') + '>' +
       a.icon + ' ' + esc(a.name) + '</option>'
     )).join('');
@@ -2000,7 +2118,9 @@
   function pickAccount(currentId, excludeId, onPick) {
     const am = C.accountMap(state.data);
     const balances = C.accountBalances(state.data);
-    const content = '<div class="list-plain">' + state.data.accounts.map((a) => (
+    const usable = state.data.accounts.filter((a) => a.bookkeeping !== false);
+    if (!usable.length) { toast('没有启用记账的账户'); return; }
+    const content = '<div class="list-plain">' + usable.map((a) => (
       '<button class="list-item" data-account-id="' + a.id + '" style="width:100%;text-align:left;background:none"' +
         (a.id === excludeId ? ' disabled' : '') + '>' +
         '<span class="ic" style="background:' + alpha(a.color, 0.14) + '">' + a.icon + '</span>' +
@@ -2259,6 +2379,7 @@
               '<span>记账 <b>' + Object.keys(totals).length + '</b> 天</span></div>';
         }
         paint();
+        categoryPainter = paint;
         root.addEventListener('click', (e) => {
           const nav = e.target.closest('[data-nav]');
           if (nav) { viewMonth = C.addMonthsKey(viewMonth, Number(nav.dataset.nav)); paint(); return; }
@@ -2283,7 +2404,7 @@
         '<span>共 <b>' + list.length + '</b> 笔</span></div>' +
       (list.length
         ? '<div class="tx-list">' + list.map((t) => txRowHTML(t)).join('') + '</div>'
-        : '<div class="empty" style="padding:30px 10px"><div class="empty-emoji">🍃</div><div class="empty-title">这天没有记账</div></div>') +
+        : '<div class="empty" style="padding:30px 10px"><div class="empty-emoji theme-symbol">' + themeEmptyIcon() + '</div><div class="empty-title">这天没有记账</div></div>') +
       '<button class="btn primary block" data-add-day style="margin-top:14px">在这一天记一笔</button>';
     openSheet({
       title: C.dateLabel(day) + ' · ' + C.weekdayCN(day),
@@ -2424,6 +2545,8 @@
    * 分类
    * ------------------------------------------------------------------ */
 
+  let categoryPainter = null;
+
   function openCategories(startType, onDone) {
     let type = startType === 'income' ? 'income' : 'expense';
     const content =
@@ -2433,7 +2556,7 @@
       '</div>' +
       '<div data-list style="margin-top:10px"></div>' +
       '<button class="btn primary block" data-add-cat style="margin-top:12px">+ 新增分类</button>' +
-      '<div class="hint-box" style="margin-top:12px">内置分类可以改名、换图标和颜色；自定义分类在未被使用时可以删除。</div>';
+      '<div class="hint-box" style="margin-top:12px">点击分类可编辑；长按分类可转入其他分类或删除。</div>';
     openSheet({
       title: '分类管理', subtitle: '记账时第一眼看到的东西', content,
       onMount(root, close) {
@@ -2451,6 +2574,7 @@
           }).join('') + '</div>';
         }
         paint();
+        categoryPainter = paint;
         root.addEventListener('click', (e) => {
           const t = e.target.closest('[data-cat-type]');
           if (t) {
@@ -2471,7 +2595,86 @@
         });
       },
       onClose() {
+        categoryPainter = null;
         if (onDone) onDone();
+      }
+    });
+  }
+
+  function openCategoryActions(cat) {
+    if (!cat) return;
+    const used = state.data.transactions.filter((t) => t.categoryId === cat.id).length;
+    openSheet({
+      title: cat.name, subtitle: used + ' 笔账单 · ' + (cat.type === 'income' ? '收入分类' : '支出分类'), content:
+        '<div class="menu">' +
+          '<button class="menu-row" data-cat-move><span class="menu-icon">↪️</span>' +
+            '<span class="menu-label">转入其他分类</span><span class="menu-value">保留当前分类<span class="chev">›</span></span></button>' +
+          '<button class="menu-row" data-cat-delete><span class="menu-icon">🗑️</span>' +
+            '<span class="menu-label">删除分类</span><span class="menu-value">' + (used ? '先转入再删除' : '直接删除') + '<span class="chev">›</span></span></button>' +
+        '</div>' +
+        '<div class="hint-box">删除有账单的分类时，会先选择目标分类，再把账单和周期规则转过去。</div>',
+      onMount(root, close) {
+        root.addEventListener('click', (e) => {
+          if (e.target.closest('[data-cat-move]')) {
+            close();
+            openCategoryMove(cat, false);
+            return;
+          }
+          if (e.target.closest('[data-cat-delete]')) {
+            close();
+            if (used > 0) { openCategoryMove(cat, true); return; }
+            confirmDialog({ title: '删除分类「' + cat.name + '」？', message: '删除后不可恢复。', confirmText: '删除', danger: true }).then((ok) => {
+              if (!ok) return;
+              state.data.categories = state.data.categories.filter((c) => c.id !== cat.id);
+              saveData();
+              if (categoryPainter) categoryPainter();
+              render();
+              toast('分类已删除');
+            });
+          }
+        });
+      }
+    });
+  }
+
+  function openCategoryMove(cat, removeAfter) {
+    const targets = state.data.categories.filter((c) => c.id !== cat.id && c.type === cat.type);
+    if (!targets.length) { toast('没有其他同类型分类可转入'); return; }
+    openSheet({
+      title: removeAfter ? '转入并删除' : '转入其他分类',
+      subtitle: '把「' + cat.name + '」的账单转到', content:
+        '<div class="list-plain">' + targets.map((c) => {
+          const n = state.data.transactions.filter((t) => t.categoryId === cat.id).length;
+          return '<button class="list-item" data-cat-target="' + c.id + '" style="width:100%;text-align:left;background:none">' +
+            '<span class="ic" style="background:' + alpha(c.color, 0.14) + '">' + c.icon + '</span>' +
+            '<span class="grow"><span class="t" style="display:block">' + esc(c.name) + '</span>' +
+              '<span class="s" style="display:block">' + (c.builtin ? '内置分类' : '自定义分类') + '</span></span>' +
+            '<span class="chev">›</span></button>';
+        }).join('') + '</div>',
+      onMount(root, close) {
+        root.addEventListener('click', (e) => {
+          const btn = e.target.closest('[data-cat-target]');
+          if (!btn) return;
+          const target = state.data.categories.find((c) => c.id === btn.dataset.catTarget);
+          if (!target) return;
+          let moved = 0;
+          state.data.transactions.forEach((t) => {
+            if (t.categoryId === cat.id) { t.categoryId = target.id; moved++; }
+          });
+          state.data.recurring.forEach((r) => { if (r.categoryId === cat.id) r.categoryId = target.id; });
+          (state.data.books || []).forEach((b) => {
+            if (b.budget && b.budget.categories && b.budget.categories[cat.id]) {
+              b.budget.categories[target.id] = C.round2((b.budget.categories[target.id] || 0) + b.budget.categories[cat.id]);
+              delete b.budget.categories[cat.id];
+            }
+          });
+          if (removeAfter) state.data.categories = state.data.categories.filter((c) => c.id !== cat.id);
+          saveData();
+          close();
+          if (categoryPainter) categoryPainter();
+          render();
+          toast('已转入「' + target.name + '」' + (moved ? '，共 ' + moved + ' 笔' : '') + (removeAfter ? '，原分类已删除' : ''));
+        });
       }
     });
   }
@@ -2667,7 +2870,8 @@
 
   function openRecurringEditor(rule, onDone) {
     const isNew = !rule;
-    const accounts = state.data.accounts;
+    const accounts = state.data.accounts.filter((a) => a.bookkeeping !== false || (tx && (tx.accountId === a.id || tx.toAccountId === a.id)));
+    if (!accounts.length) { toast('没有启用记账的账户，请先到资产页开启'); return; }
     const draft = {
       type: rule ? rule.type : 'expense',
       amount: rule ? String(rule.amount) : '',
@@ -2786,7 +2990,8 @@
       type: account ? account.type : 'cash',
       icon: account ? account.icon : '💵',
       initial: account ? String(account.initial) : '',
-      include: account ? account.include !== false : true
+      include: account ? account.include !== false : true,
+      bookkeeping: account ? account.bookkeeping !== false : true
     };
     const used = account ? state.data.transactions.filter((t) => t.accountId === account.id || t.toAccountId === account.id).length : 0;
     const inRules = account ? state.data.recurring.some((r) => r.accountId === account.id) : 0;
@@ -2813,6 +3018,11 @@
           '<span class="grow"><span class="t" style="display:block">计入总资产</span>' +
             '<span class="s" style="display:block">关闭后只用于记账，不参与资产统计</span></span>' +
           '<span class="switch"><input type="checkbox" data-include' + (draft.include ? ' checked' : '') + '><span class="switch-track"></span></span>' +
+        '</label>' +
+        '<label class="list-item" style="border:0;padding-left:0;padding-right:0">' +
+          '<span class="grow"><span class="t" style="display:block">启用记账</span>' +
+            '<span class="s" style="display:block">关闭后不出现在记账账户选择里</span></span>' +
+          '<span class="switch"><input type="checkbox" data-bookkeeping' + (draft.bookkeeping ? ' checked' : '') + '><span class="switch-track"></span></span>' +
         '</label>',
       footer,
       onMount(root, close) {
@@ -2847,7 +3057,8 @@
               name, type, icon: draft.icon,
               color: (C.ACCOUNT_TYPES[type] || { icon: '👛' }).liability ? '#f43f5e' : '#0ea5e9',
               initial: C.round2(init),
-              include: $('[data-include]', root).checked
+              include: $('[data-include]', root).checked,
+              bookkeeping: $('[data-bookkeeping]', root).checked
             };
             if (account) Object.assign(account, base);
             else state.data.accounts.push(Object.assign({ id: C.uid('a') }, base));
@@ -3090,17 +3301,17 @@
 
   function openTheme() {
     const current = state.data.settings.theme;
-    const options = [['auto', '跟随系统', '自动匹配手机的深色 / 浅色模式'], ['light', '浅色', '清爽的浅色界面'], ['dark', '深色', '夜间护眼']];
     openSheet({
-      title: '外观主题', subtitle: '选择你喜欢的界面', content:
-        '<div class="list-plain">' + options.map((o) => (
-          '<button class="list-item" data-theme-opt="' + o[0] + '" style="width:100%;text-align:left;background:none">' +
-            '<span class="ic">' + (o[0] === 'dark' ? '🌙' : o[0] === 'light' ? '☀️' : '🌓') + '</span>' +
-            '<span class="grow"><span class="t" style="display:block">' + o[1] + '</span>' +
-              '<span class="s" style="display:block">' + o[2] + '</span></span>' +
-            (current === o[0] ? '<span style="color:var(--primary)">' + svg('check', 19) + '</span>' : '') +
+      title: '外观主题', subtitle: '星空、草原、天空与更多场景', content:
+        '<div class="theme-grid">' + THEMES.map((o) => (
+          '<button class="theme-card' + (current === o.id ? ' active' : '') + '" data-theme-opt="' + o.id + '">' +
+            '<span class="theme-swatch sw-' + o.sw + '">' + o.emoji + '</span>' +
+            '<span class="theme-card-name">' + o.name + '</span>' +
+            '<span class="theme-card-desc">' + o.desc + '</span>' +
+            (current === o.id ? '<span class="theme-check">' + svg('check', 14) + '</span>' : '') +
           '</button>'
-        )).join('') + '</div>',
+        )).join('') + '</div>' +
+        '<div class="hint-box" style="margin-top:12px">每个主题都有独立的背景、卡片、主色与玻璃质感。</div>',
       onMount(root, close) {
         root.addEventListener('click', (e) => {
           const btn = e.target.closest('[data-theme-opt]');
@@ -3110,7 +3321,7 @@
           applyTheme();
           close();
           render();
-          toast('已切换外观');
+          toast('已切换为「' + themeById(btn.dataset.themeOpt).name + '」');
           if (state.route === 'stats') mountStatsCharts();
         });
       }
@@ -3567,6 +3778,7 @@
     'open-about': openAbout,
     'open-transfer': () => openEntry(null, { type: 'transfer' }),
     'add-account': () => openAccountEditor(null),
+    'open-account-bookkeeping': openBookkeepingAccounts,
     'edit-account': (t) => {
       const account = state.data.accounts.find((a) => a.id === t.dataset.id);
       if (account) openAccountEditor(account);
@@ -3623,6 +3835,7 @@
   function init() {
     if (state.data) return;
     state.data = loadData();
+    applyInsets();
     const created = C.applyRecurring(state.data, C.todayISO());
     if (created) saveData();
     applyTheme();
@@ -3759,5 +3972,51 @@
     if (dy < -2) fixedPageStartY = null;
   }, { passive: false });
   document.addEventListener('touchend', () => { fixedPageStartY = null; }, { passive: true });
+
+
+  /* 长按分类管理 */
+  let catPressTimer = null;
+  let catPressId = null;
+  let catPressPos = null;
+
+  function cancelCatPress() {
+    if (catPressTimer) window.clearTimeout(catPressTimer);
+    catPressTimer = null;
+    catPressId = null;
+    catPressPos = null;
+  }
+
+  function catPressStart(e) {
+    if (e.type === 'mousedown' && ('ontouchstart' in window) && navigator.maxTouchPoints > 0) return;
+    const row = e.target.closest('[data-cat-edit]');
+    if (!row || !overlayRoot.contains(row)) return;
+    const point = e.touches ? e.touches[0] : e;
+    cancelCatPress();
+    catPressId = row.dataset.catEdit;
+    catPressPos = { x: point.clientX, y: point.clientY };
+    catPressTimer = window.setTimeout(() => {
+      catPressTimer = null;
+      const id = catPressId;
+      catPressId = null;
+      catPressPos = null;
+      if (!id) return;
+      state.suppressClickUntil = Date.now() + 450;
+      const cat = state.data.categories.find((c) => c.id === id);
+      if (cat) openCategoryActions(cat);
+    }, 520);
+  }
+
+  function catPressMove(e) {
+    if (!catPressPos) return;
+    const point = e.touches ? e.touches[0] : e;
+    if (Math.abs(point.clientX - catPressPos.x) > 10 || Math.abs(point.clientY - catPressPos.y) > 10) cancelCatPress();
+  }
+
+  document.addEventListener('touchstart', catPressStart, { passive: true });
+  document.addEventListener('touchmove', catPressMove, { passive: true });
+  document.addEventListener('touchend', cancelCatPress, { passive: true });
+  document.addEventListener('mousedown', catPressStart);
+  document.addEventListener('mousemove', catPressMove);
+  document.addEventListener('mouseup', cancelCatPress);
 
 })();

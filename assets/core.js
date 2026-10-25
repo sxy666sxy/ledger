@@ -295,7 +295,8 @@
         currency: '¥',
         demo: !!opts.demo,
         onboarded: false,
-        calendarHeat: true
+        calendarHeat: true,
+        calendarLunar: true
       },
       books: [{
         id: bookId,
@@ -424,7 +425,8 @@
   /** 让演示数据的账户余额保持自然（不至于一打开就是负数） */
   function adjustDemoBalances(data) {
     const flow = {};
-    data.accounts.forEach((a) => { flow[a.id] = 0; });
+    data.accounts.forEach((a) => {
+      flow[a.id] = 0; });
     data.transactions.forEach((t) => {
       if (t.type === 'income' && flow[t.accountId] != null) flow[t.accountId] += t.amount;
       if (t.type === 'expense' && flow[t.accountId] != null) flow[t.accountId] -= t.amount;
@@ -483,6 +485,7 @@
       color: a.color || '#94a3b8',
       initial: round2(Number(a.initial) || 0),
       include: a.include !== false,
+      bookkeeping: a.bookkeeping !== false,
       order: Number.isFinite(a.order) ? a.order : i
     }));
 
@@ -549,6 +552,7 @@
     s.demo = !!s.demo;
     s.onboarded = !!s.onboarded;
     s.calendarHeat = s.calendarHeat !== false;
+    s.calendarLunar = s.calendarLunar !== false;
 
     if (!Array.isArray(data.tags)) data.tags = [];
     data.tags = Array.from(new Set(data.tags.filter((t) => typeof t === 'string')));
@@ -577,7 +581,8 @@
   }
   function accountMap(data) {
     const map = {};
-    data.accounts.forEach((a) => { map[a.id] = a; });
+    data.accounts.forEach((a) => {
+      map[a.id] = a; });
     return map;
   }
   function activeBook(data) {
@@ -702,7 +707,8 @@
 
   function accountBalances(data, bookId) {
     const map = {};
-    data.accounts.forEach((a) => { map[a.id] = toCents(a.initial); });
+    data.accounts.forEach((a) => {
+      map[a.id] = toCents(a.initial); });
     for (const t of data.transactions) {
       if (bookId && t.bookId !== bookId) continue;
       if (t.type === 'income' && map[t.accountId] != null) map[t.accountId] += toCents(t.amount);
@@ -826,7 +832,8 @@
     const [year, month] = monthKey.split('-').map(Number);
     const dim = daysInMonth(year, month);
     const balances = {};
-    data.accounts.forEach((a) => { if (a.include) balances[a.id] = toCents(a.initial); });
+    data.accounts.forEach((a) => {
+      if (a.include) balances[a.id] = toCents(a.initial); });
     const start = monthKey + '-01';
 
     function apply(t) {
@@ -1197,7 +1204,8 @@
     const catByKey = {};
     data.categories.forEach((c) => { catByKey[c.type + '|' + c.name] = c.id; });
     const accByName = {};
-    data.accounts.forEach((a) => { accByName[a.name] = a.id; });
+    data.accounts.forEach((a) => {
+      accByName[a.name] = a.id; });
 
     function ensureBook(name) {
       const text = String(name == null ? '' : name).trim();

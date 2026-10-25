@@ -394,6 +394,57 @@ test('资产余额编辑与长按删除账户', async () => {
   assert.equal(document.querySelectorAll('.acct-row').length, before - 1);
 });
 
+test('主题中心包含九个新主题并可切换', async () => {
+  const { window, document } = boot();
+  click(document, '[data-route="profile"]');
+  click(document, '[data-act="open-theme"]');
+  assert.equal(document.querySelectorAll('[data-theme-opt]').length, 12);
+  assert.ok(document.querySelector('[data-theme-opt="grass"]'));
+  assert.ok(document.querySelector('[data-theme-opt="ocean"]'));
+  click(document, '[data-theme-opt="grass"]');
+  await sleep(30);
+  assert.equal(document.documentElement.dataset.theme, 'grass');
+  assert.equal(dataOf(window).settings.theme, 'grass');
+  assert.match(document.querySelector('.view').textContent, /星空记账/);
+});
+
+test('日历农历开关与记账账户开关', async () => {
+  const { window, document } = boot();
+  click(document, '[data-route="calendar"]');
+  click(document, '[data-act="calendar-settings"]');
+  const lunar = document.querySelector('[data-lunar]');
+  assert.ok(lunar);
+  lunar.checked = false;
+  lunar.dispatchEvent(new window.Event('change', { bubbles: true }));
+  await sleep(30);
+  assert.equal(dataOf(window).settings.calendarLunar, false);
+  assert.ok(!Array.from(document.querySelectorAll('.cc-lunar')).some((x) => x.textContent === '十七'));
+
+  click(document, '[data-route="assets"]');
+  click(document, '[data-act="open-account-bookkeeping"]');
+  const toggle = document.querySelector('[data-bookkeeping-account]');
+  assert.ok(toggle);
+  toggle.checked = false;
+  toggle.dispatchEvent(new window.Event('change', { bubbles: true }));
+  await sleep(20);
+  assert.equal(dataOf(window).accounts.find((a) => a.id === toggle.dataset.bookkeepingAccount).bookkeeping, false);
+  click(document, '[data-close-bookkeeping]');
+  await sleep(20);
+  assert.match(document.querySelector('.bookkeeping-bar').textContent, /\d+ \/ \d+ 个启用/);
+});
+
+test('分类管理长按可转入其他分类', async () => {
+  const { window, document } = boot();
+  click(document, '[data-route="profile"]');
+  click(document, '[data-act="open-categories"]');
+  const row = document.querySelector('[data-cat-edit]');
+  assert.ok(row);
+  row.dispatchEvent(new window.MouseEvent('mousedown', { bubbles: true, cancelable: true, clientX: 10, clientY: 10 }));
+  await sleep(900);
+  assert.match(document.body.textContent, /转入其他分类/);
+  assert.ok(document.querySelector('[data-cat-move]'));
+});
+
 test('长按账单进入多选并可取消', async () => {
   const { window, document } = boot();
   const row = document.querySelector('.tx');

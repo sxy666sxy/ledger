@@ -5,25 +5,30 @@
 
 - 仓库：<https://github.com/sxy666sxy/ledger>
 - APK 下载：<https://github.com/sxy666sxy/ledger/releases/latest>
-- 直链（v2.0.0）：<https://github.com/sxy666sxy/ledger/releases/download/v2.0.0/xingkong-ledger-v2.0.0.apk>
+- 直链（v2.1.0）：<https://github.com/sxy666sxy/ledger/releases/download/v2.1.0/xingkong-ledger-v2.1.0.apk>
 
 ## 预览
 
-| 明细 | 统计 | 我的 |
-| --- | --- | --- |
-| <img src="screenshots/01-home.png" width="240" alt="明细"> | <img src="screenshots/03-stats.png" width="240" alt="统计"> | <img src="screenshots/07-profile.png" width="240" alt="我的"> |
+| 明细 | 日历 |
+| --- | --- |
+| <img src="screenshots/01-home.png" width="240" alt="明细"> | <img src="screenshots/04-calendar.png" width="240" alt="日历"> |
+
+| 统计 | 我的 |
+| --- | --- |
+| <img src="screenshots/03-stats.png" width="240" alt="统计"> | <img src="screenshots/07-profile.png" width="240" alt="我的"> |
 
 ## 下载与安装（Android）
 
-1. 打开 [Releases](https://github.com/sxy666sxy/ledger/releases/latest)，下载 `xingkong-ledger-v2.0.0.apk`。
+1. 打开 [Releases](https://github.com/sxy666sxy/ledger/releases/latest)，下载 `xingkong-ledger-v2.1.0.apk`。
 2. 在手机上点击 APK，允许「安装未知来源应用」，安装完成即可使用。
 3. 首次打开会生成近 3 个月的示例账单，可在「我的 → 数据与备份」清空。
 
 说明：
 
 - APK 是 **WebView 封装版**，不申请网络权限，完全离线。
-- v2.0.0 更名为 **星空记账**，包名改为 `com.xingkong.ledger`，并使用新的 release 签名密钥；与 v1.x 不能覆盖升级。
-- 从旧版升级：先在旧版「数据与备份」导出 JSON，卸载旧版，再安装 v2.0.0，最后导入 JSON。
+- v2.0.0 起更名为 **星空记账**，包名改为 `com.xingkong.ledger`，并使用新的 release 签名密钥；与 v1.x 不能覆盖升级。
+- v2.1.0 沿用同一包名与签名密钥，v2.0.0 可直接覆盖升级。
+- 从旧版升级：先在旧版「数据与备份」导出 JSON，卸载旧版，再安装 v2.1.0，最后导入 JSON。
 - 数据保存在 App 的 WebView `localStorage` 中，卸载会清除；重要数据请定期导出 JSON。
 - 导出 JSON / Excel / CSV 时会调用系统文件选择器（SAF）。
 
@@ -67,6 +72,32 @@
 - 日期、账户、备注、标签一次填完；点击账单可编辑 / 删除
 - **更多账单信息**：二级分类、退款、优惠、报销账户 / 金额 / 明细、多币种、地址、创建用户、其他、附件图片（最多 5 张）
 - 多账本（日常 / 旅行 / 装修……），账单、预算独立，账户共用
+
+### 全面屏 / 液态玻璃
+
+- Android 端状态栏、导航栏透明，内容延伸到屏幕边缘，按主题自动切换深/浅图标
+- 底部五个按钮固定在悬浮玻璃胶囊里，页面左右滑动或滚动时都不移动
+- 顶部栏、底部导航、日历头部、多选条、下拉提示使用低透明度 + 强背景模糊的液态玻璃
+- 全局隐藏滚动条；Android WebView 原生滚动条也关闭
+
+### 我的
+
+- 顶部品牌卡：星空记账图标、名称、版本号，背景随主题变化
+- 分类管理支持长按：转入其他分类、删除分类（有账单时先选择转入目标）
+- 外观主题 12 套：跟随系统、星空浅色、星空深色、草原、天空、白云、粉色城堡、麦田、白雪、闪电、波浪、海底
+- 每个主题有独立页面背景、主色、卡片、玻璃和头图，不是简单换色
+- 日历空状态图标随主题变化（不再固定为树叶）
+
+### 账户
+
+- 资产页新增「记账账户」入口，可逐账户开启/关闭记账
+- 关闭后不出现在记账、转账、周期记账的账户选择里；已有账单保留
+- 点击账户余额可直接改当前余额；长按账户删除
+
+### 日历
+
+- 设置中新增「显示农历」开关：关闭后只保留节日与节气
+- 热力背景、农历、节日/节气均可独立控制
 
 ### 明细增强
 
@@ -206,10 +237,10 @@ ledger/
 
 ## 测试
 
-共 54 项：
+共 57 项：
 
 - 数据层 18 项
-- jsdom 界面 25 项
+- jsdom 界面 28 项
 - Excel 6 项（23 列表头、xlsx 构建/解析、openpyxl 文件导入、CSV 往返、旧表头兼容）
 - PWA 4 项
 - 单文件构建 1 项
@@ -223,7 +254,7 @@ npm test
 
 - 原生 APK 是 WebView 封装，不是原生 UI 重写
 - 暂无云同步 / 多设备、多人账本、微信/支付宝账单导入、OCR、桌面小组件、记账提醒、指纹解锁
-- v2.0.0 使用新的包名与签名；旧版升级请先导出 JSON 备份（见上）
+- v2.0.0 起使用新的包名与签名；v1.x 升级请先导出 JSON 备份（见上）
 - 日历节日覆盖农历节日、公历节日与二十四节气，不含每年法定调休表
 
 ## 声明

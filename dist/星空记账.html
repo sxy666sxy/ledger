@@ -41,6 +41,11 @@
   --glass-nav: rgba(255, 255, 255, 0.87);
   --glass-border: rgba(255, 255, 255, 0.58);
   --glass-shadow: 0 14px 40px rgba(30, 40, 100, 0.14);
+  --theme-bg: radial-gradient(80% 55% at 12% 0%, rgba(91, 108, 255, 0.10), transparent 60%), radial-gradient(70% 45% at 92% 8%, rgba(155, 120, 255, 0.09), transparent 60%), var(--bg);
+  --hero-bg: radial-gradient(1px 1px at 14% 28%, rgba(255,255,255,.9), transparent 1.6px), radial-gradient(1.2px 1.2px at 72% 18%, rgba(255,255,255,.8), transparent 1.8px), radial-gradient(1px 1px at 84% 64%, rgba(255,255,255,.55), transparent 1.5px), radial-gradient(1px 1px at 38% 82%, rgba(255,255,255,.6), transparent 1.5px), radial-gradient(120% 120% at 100% 0%, rgba(139, 156, 255, .35) 0%, rgba(139, 156, 255, 0) 52%), radial-gradient(90% 90% at 0% 100%, rgba(86, 48, 160, .35) 0%, rgba(86, 48, 160, 0) 58%), linear-gradient(128deg, #1a2355 0%, #0a0f2a 55%, #211747 100%);
+  --hero-shadow: 0 14px 36px -12px rgba(40, 55, 160, .65);
+  --fab-bg: linear-gradient(145deg, #8494ff, #4a5bdb);
+  --fab-shadow: 0 10px 26px rgba(74, 91, 219, .45), inset 0 1px 0 rgba(255,255,255,.35);
   --radius: 20px;
   --radius-sm: 14px;
   --tab-h: 62px;
@@ -71,6 +76,11 @@
   --glass-nav: rgba(16, 21, 43, 0.86);
   --glass-border: rgba(255, 255, 255, 0.1);
   --glass-shadow: 0 16px 44px rgba(0, 0, 0, 0.4);
+  --theme-bg: radial-gradient(70% 45% at 18% 0%, rgba(139, 156, 255, 0.13), transparent 60%), radial-gradient(55% 40% at 92% 8%, rgba(155, 120, 255, 0.10), transparent 60%), var(--bg);
+  --hero-bg: radial-gradient(1px 1px at 14% 28%, rgba(255,255,255,.9), transparent 1.6px), radial-gradient(1.2px 1.2px at 72% 18%, rgba(255,255,255,.8), transparent 1.8px), radial-gradient(1px 1px at 84% 64%, rgba(255,255,255,.55), transparent 1.5px), radial-gradient(1px 1px at 38% 82%, rgba(255,255,255,.6), transparent 1.5px), radial-gradient(120% 120% at 100% 0%, rgba(139, 156, 255, .26) 0%, rgba(139, 156, 255, 0) 52%), radial-gradient(90% 90% at 0% 100%, rgba(86, 48, 160, .32) 0%, rgba(86, 48, 160, 0) 58%), linear-gradient(128deg, #111a40 0%, #060916 55%, #17112f 100%);
+  --hero-shadow: 0 14px 36px -12px rgba(0, 0, 0, .7);
+  --fab-bg: linear-gradient(145deg, #8494ff, #4a5bdb);
+  --fab-shadow: 0 10px 26px rgba(74, 91, 219, .5), inset 0 1px 0 rgba(255,255,255,.3);
   color-scheme: dark;
 }
 
@@ -79,10 +89,7 @@
 html, body {
   margin: 0;
   padding: 0;
-  background:
-    radial-gradient(80% 55% at 12% 0%, rgba(91, 108, 255, 0.10), transparent 60%),
-    radial-gradient(70% 45% at 92% 8%, rgba(155, 120, 255, 0.09), transparent 60%),
-    var(--bg);
+  background: var(--theme-bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Source Han Sans SC", system-ui, "Segoe UI", sans-serif;
   font-size: 15px;
@@ -123,9 +130,7 @@ a { color: var(--primary); text-decoration: none; }
   margin: 0 auto;
   min-height: 100dvh;
   position: relative;
-  background:
-    radial-gradient(70% 40% at 20% 0%, rgba(91, 108, 255, 0.06), transparent 60%),
-    var(--bg);
+  background: var(--theme-bg);
 }
 
 .appbar {
@@ -231,12 +236,12 @@ a { color: var(--primary); text-decoration: none; }
   width: 54px;
   height: 54px;
   border-radius: 50%;
-  background: linear-gradient(145deg, #8494ff, #4a5bdb);
+  background: var(--fab-bg);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 26px rgba(74, 91, 219, .45), inset 0 1px 0 rgba(255,255,255,.35);
+  box-shadow: var(--fab-shadow);
   z-index: 65;
   transition: transform .15s ease;
 }
@@ -269,7 +274,7 @@ a { color: var(--primary); text-decoration: none; }
   height: 54px;
   border-radius: 50%;
   margin: -18px auto 0;
-  background: linear-gradient(145deg, #8494ff, #4a5bdb);
+  background: var(--fab-bg);
   color: #fff;
   display: flex;
   align-items: center;
@@ -289,15 +294,8 @@ a { color: var(--primary); text-decoration: none; }
   border-radius: 26px;
   color: #fff;
   overflow: hidden;
-  background:
-    radial-gradient(1px 1px at 14% 28%, rgba(255,255,255,.9), transparent 1.6px),
-    radial-gradient(1.2px 1.2px at 72% 18%, rgba(255,255,255,.8), transparent 1.8px),
-    radial-gradient(1px 1px at 84% 64%, rgba(255,255,255,.55), transparent 1.5px),
-    radial-gradient(1px 1px at 38% 82%, rgba(255,255,255,.6), transparent 1.5px),
-    radial-gradient(120% 120% at 100% 0%, rgba(139, 156, 255, .35) 0%, rgba(139, 156, 255, 0) 52%),
-    radial-gradient(90% 90% at 0% 100%, rgba(86, 48, 160, .35) 0%, rgba(86, 48, 160, 0) 58%),
-    linear-gradient(128deg, #1a2355 0%, #0a0f2a 55%, #211747 100%);
-  box-shadow: 0 14px 36px -12px rgba(40, 55, 160, .65);
+  background: var(--hero-bg);
+  box-shadow: var(--hero-shadow);
 }
 .hero::after {
   content: "";
@@ -508,7 +506,7 @@ a { color: var(--primary); text-decoration: none; }
 .tx-main { flex: 1; min-width: 0; display: block; }
 .tx-cat {
   font-size: 14.5px;
-  font-weight: 550;
+  font-weight: 450;
   letter-spacing: .1px;
   display: flex;
   align-items: center;
@@ -732,12 +730,8 @@ a { color: var(--primary); text-decoration: none; }
   border-radius: 24px;
   overflow: hidden;
   color: #fff;
-  background:
-    radial-gradient(1px 1px at 18% 24%, rgba(255,255,255,.8), transparent 1.5px),
-    radial-gradient(1.2px 1.2px at 76% 32%, rgba(255,255,255,.65), transparent 1.7px),
-    radial-gradient(100% 120% at 100% 0%, rgba(139, 156, 255, .28), transparent 55%),
-    linear-gradient(135deg, #111a3d 0%, #0a0e24 55%, #1a153d 100%);
-  box-shadow: 0 16px 40px -18px rgba(20, 30, 90, .7);
+  background: var(--hero-bg);
+  box-shadow: var(--hero-shadow);
 }
 .asset-hero > * { position: relative; z-index: 1; }
 .asset-hero .k { font-size: 11.5px; color: rgba(255, 255, 255, .55); letter-spacing: 2px; }
@@ -1435,12 +1429,12 @@ a { color: var(--primary); text-decoration: none; }
   width: 66px;
   height: 66px;
   border-radius: 22px;
-  background: linear-gradient(145deg, #8494ff, #4a5bdb);
+  background: var(--fab-bg);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 32px;
-  box-shadow: 0 12px 30px -8px rgba(74, 91, 219, .7);
+  box-shadow: var(--fab-shadow);
 }
 .lock-title { margin-top: 16px; font-size: 17px; font-weight: 650; }
 .lock-sub { font-size: 12px; color: var(--text-3); margin-top: 5px; }
@@ -1670,13 +1664,8 @@ a { color: var(--primary); text-decoration: none; }
   gap: 8px;
   color: #fff;
   overflow: hidden;
-  background:
-    radial-gradient(1px 1px at 12% 32%, rgba(255,255,255,.85), transparent 1.5px),
-    radial-gradient(1.2px 1.2px at 82% 22%, rgba(255,255,255,.7), transparent 1.7px),
-    radial-gradient(1px 1px at 68% 78%, rgba(255,255,255,.5), transparent 1.5px),
-    radial-gradient(110% 130% at 100% 0%, rgba(139, 156, 255, .32), transparent 52%),
-    linear-gradient(130deg, #2a3a8f, #151e55 58%, #2a1a54);
-  box-shadow: 0 14px 30px -14px rgba(40, 55, 160, .65);
+  background: var(--hero-bg);
+  box-shadow: var(--hero-shadow);
 }
 .stats-summary::after {
   content: "";
@@ -2088,6 +2077,260 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
   to { opacity: 1; transform: translateX(0); }
 }
 
+/* ---------------------------------------------------------------- themes */
+[data-theme="grass"] {
+  --bg: #f4fbf0; --surface: #ffffff; --surface-2: #f7fcf3; --surface-3: #eaf7e2;
+  --text: #17251a; --text-2: #536b55; --text-3: #8ca08e;
+  --line: rgba(23, 37, 26, .07); --line-strong: rgba(23, 37, 26, .13);
+  --primary: #2e8b57; --primary-dark: #1f6b41; --primary-soft: #e8f7ec;
+  --income: #178f5b; --danger: #e05252; --danger-soft: #fdeceb; --warning: #d9a52e;
+  --shadow-sm: 0 1px 2px rgba(26, 70, 38, .04), 0 6px 20px rgba(26, 70, 38, .06);
+  --shadow-lg: 0 18px 60px rgba(20, 60, 30, .14);
+  --glass-bg: rgba(255,255,255,.68); --glass-nav: rgba(255,255,255,.84);
+  --glass-border: rgba(255,255,255,.58); --glass-shadow: 0 14px 40px rgba(30, 80, 40, .13);
+  --theme-bg: radial-gradient(55% 35% at 8% 100%, rgba(76,175,80,.20), transparent 70%), radial-gradient(45% 30% at 92% 92%, rgba(139,195,74,.16), transparent 70%), repeating-linear-gradient(115deg, rgba(46,125,50,.035) 0 1px, transparent 1px 16px), linear-gradient(180deg,#f6fdf1,#e9f6df);
+  --hero-bg: radial-gradient(80% 80% at 100% 0%, rgba(174,213,129,.28), transparent 55%), radial-gradient(70% 60% at 0% 100%, rgba(27,94,32,.55), transparent 60%), repeating-linear-gradient(115deg, rgba(255,255,255,.045) 0 1px, transparent 1px 13px), linear-gradient(135deg,#2f6b3f,#173f27 55%,#4b8a4f);
+  --hero-shadow: 0 14px 36px -12px rgba(20, 80, 40, .6);
+  --fab-bg: linear-gradient(145deg,#56b36b,#1f6b41);
+  --fab-shadow: 0 10px 26px rgba(31,107,65,.45), inset 0 1px 0 rgba(255,255,255,.35);
+  color-scheme: light;
+}
+[data-theme="sky"] {
+  --bg: #eef7ff; --surface: #ffffff; --surface-2: #f5faff; --surface-3: #e8f3ff;
+  --text: #10213a; --text-2: #4d6685; --text-3: #8aa2bf;
+  --line: rgba(16,33,58,.07); --line-strong: rgba(16,33,58,.13);
+  --primary: #2f80ed; --primary-dark: #1d63c4; --primary-soft: #eaf3ff;
+  --income: #0f9f6e; --danger: #e05252; --danger-soft: #fdeceb; --warning: #e0a325;
+  --shadow-sm: 0 1px 2px rgba(25,60,110,.04), 0 6px 20px rgba(25,60,110,.06);
+  --shadow-lg: 0 18px 60px rgba(20,50,100,.15);
+  --glass-bg: rgba(255,255,255,.66); --glass-nav: rgba(255,255,255,.84);
+  --glass-border: rgba(255,255,255,.55); --glass-shadow: 0 14px 40px rgba(30,70,130,.13);
+  --theme-bg: radial-gradient(45% 30% at 18% 8%, rgba(255,255,255,.9), transparent 70%), radial-gradient(38% 25% at 82% 4%, rgba(255,255,255,.75), transparent 70%), radial-gradient(55% 35% at 50% 100%, rgba(120,190,255,.18), transparent 70%), linear-gradient(180deg,#e9f6ff,#d9ecff);
+  --hero-bg: radial-gradient(80% 80% at 100% 0%, rgba(144,202,255,.4), transparent 55%), radial-gradient(70% 60% at 0% 100%, rgba(12,70,150,.45), transparent 60%), linear-gradient(135deg,#1c4e9c,#0a2c66 55%,#1f6db3);
+  --hero-shadow: 0 14px 36px -12px rgba(20, 70, 150, .6);
+  --fab-bg: linear-gradient(145deg,#5aa7ff,#2f80ed);
+  --fab-shadow: 0 10px 26px rgba(47,128,237,.45), inset 0 1px 0 rgba(255,255,255,.35);
+  color-scheme: light;
+}
+[data-theme="cloud"] {
+  --bg: #f5f9fe; --surface: #ffffff; --surface-2: #f8fbff; --surface-3: #edf3fb;
+  --text: #1a2940; --text-2: #5a6f8c; --text-3: #93a7bf;
+  --line: rgba(26,41,64,.07); --line-strong: rgba(26,41,64,.13);
+  --primary: #6c8ab8; --primary-dark: #52709e; --primary-soft: #eef4fc;
+  --income: #0f9f6e; --danger: #e05252; --danger-soft: #fdeceb; --warning: #d9a52e;
+  --shadow-sm: 0 1px 2px rgba(50,75,110,.04), 0 6px 20px rgba(50,75,110,.06);
+  --shadow-lg: 0 18px 60px rgba(40,60,100,.14);
+  --glass-bg: rgba(255,255,255,.62); --glass-nav: rgba(255,255,255,.82);
+  --glass-border: rgba(255,255,255,.55); --glass-shadow: 0 14px 40px rgba(50,80,120,.13);
+  --theme-bg: radial-gradient(55% 28% at 12% 12%, rgba(255,255,255,.98), transparent 70%), radial-gradient(42% 24% at 88% 6%, rgba(255,255,255,.85), transparent 70%), radial-gradient(50% 30% at 50% 100%, rgba(150,180,215,.16), transparent 70%), linear-gradient(180deg,#f8fbff,#eaf2fb);
+  --hero-bg: radial-gradient(80% 80% at 100% 0%, rgba(220,235,255,.35), transparent 55%), radial-gradient(70% 60% at 0% 100%, rgba(40,70,110,.5), transparent 60%), linear-gradient(135deg,#5a6f8f,#2f4360 55%,#6d86a8);
+  --hero-shadow: 0 14px 36px -12px rgba(45, 70, 110, .55);
+  --fab-bg: linear-gradient(145deg,#9db8dc,#5a7398);
+  --fab-shadow: 0 10px 26px rgba(90,115,152,.45), inset 0 1px 0 rgba(255,255,255,.4);
+  color-scheme: light;
+}
+[data-theme="castle"] {
+  --bg: #fff5fb; --surface: #ffffff; --surface-2: #fff8fc; --surface-3: #fdebf5;
+  --text: #341b2b; --text-2: #7a5267; --text-3: #b28aa0;
+  --line: rgba(52,27,43,.07); --line-strong: rgba(52,27,43,.13);
+  --primary: #d65a9a; --primary-dark: #b33d79; --primary-soft: #fdebf5;
+  --income: #0f9f6e; --danger: #e05252; --danger-soft: #fdeceb; --warning: #e0a325;
+  --shadow-sm: 0 1px 2px rgba(120,40,80,.04), 0 6px 20px rgba(120,40,80,.06);
+  --shadow-lg: 0 18px 60px rgba(100,30,70,.14);
+  --glass-bg: rgba(255,255,255,.66); --glass-nav: rgba(255,255,255,.84);
+  --glass-border: rgba(255,255,255,.55); --glass-shadow: 0 14px 40px rgba(110,40,80,.13);
+  --theme-bg: radial-gradient(45% 30% at 85% 8%, rgba(255,200,230,.55), transparent 70%), radial-gradient(40% 25% at 12% 0%, rgba(255,225,240,.7), transparent 70%), repeating-linear-gradient(90deg, rgba(214,90,154,.035) 0 1px, transparent 1px 22px), linear-gradient(180deg,#fff8fc,#fbe9f4);
+  --hero-bg: radial-gradient(80% 80% at 100% 0%, rgba(255,180,215,.35), transparent 55%), radial-gradient(70% 60% at 0% 100%, rgba(80,20,55,.55), transparent 60%), linear-gradient(135deg,#8e2b63,#4a1739 55%,#b34a82);
+  --hero-shadow: 0 14px 36px -12px rgba(120, 30, 80, .6);
+  --fab-bg: linear-gradient(145deg,#f08ab8,#b23d73);
+  --fab-shadow: 0 10px 26px rgba(178,61,115,.45), inset 0 1px 0 rgba(255,255,255,.4);
+  color-scheme: light;
+}
+[data-theme="wheat"] {
+  --bg: #fdf8ec; --surface: #ffffff; --surface-2: #fffaf0; --surface-3: #f8f0db;
+  --text: #33250f; --text-2: #7c6644; --text-3: #b39b74;
+  --line: rgba(51,37,15,.07); --line-strong: rgba(51,37,15,.13);
+  --primary: #c08a2e; --primary-dark: #9c6b1d; --primary-soft: #fbf1da;
+  --income: #0f9f6e; --danger: #d9534f; --danger-soft: #fdeceb; --warning: #d9a52e;
+  --shadow-sm: 0 1px 2px rgba(90,65,20,.04), 0 6px 20px rgba(90,65,20,.06);
+  --shadow-lg: 0 18px 60px rgba(80,55,15,.14);
+  --glass-bg: rgba(255,255,255,.68); --glass-nav: rgba(255,255,255,.85);
+  --glass-border: rgba(255,255,255,.58); --glass-shadow: 0 14px 40px rgba(100,75,25,.13);
+  --theme-bg: radial-gradient(50% 32% at 10% 100%, rgba(218,165,32,.18), transparent 70%), radial-gradient(45% 28% at 90% 95%, rgba(240,200,90,.18), transparent 70%), repeating-linear-gradient(115deg, rgba(192,138,46,.045) 0 1px, transparent 1px 14px), linear-gradient(180deg,#fffaf0,#f6ecd5);
+  --hero-bg: radial-gradient(80% 80% at 100% 0%, rgba(255,220,140,.32), transparent 55%), radial-gradient(70% 60% at 0% 100%, rgba(70,45,10,.55), transparent 60%), repeating-linear-gradient(115deg, rgba(255,255,255,.04) 0 1px, transparent 1px 12px), linear-gradient(135deg,#8a5a18,#5c3a0e 55%,#b07a22);
+  --hero-shadow: 0 14px 36px -12px rgba(100, 65, 20, .6);
+  --fab-bg: linear-gradient(145deg,#e0b04e,#a06a1e);
+  --fab-shadow: 0 10px 26px rgba(160,106,30,.45), inset 0 1px 0 rgba(255,255,255,.35);
+  color-scheme: light;
+}
+[data-theme="snow"] {
+  --bg: #f3f9ff; --surface: #ffffff; --surface-2: #f7fbff; --surface-3: #eaf3fb;
+  --text: #182a3e; --text-2: #5a7088; --text-3: #91a8bf;
+  --line: rgba(24,42,62,.07); --line-strong: rgba(24,42,62,.13);
+  --primary: #5b8ec9; --primary-dark: #4474ad; --primary-soft: #eaf3fb;
+  --income: #0f9f6e; --danger: #e05252; --danger-soft: #fdeceb; --warning: #d9a52e;
+  --shadow-sm: 0 1px 2px rgba(50,80,120,.04), 0 6px 20px rgba(50,80,120,.06);
+  --shadow-lg: 0 18px 60px rgba(40,70,110,.14);
+  --glass-bg: rgba(255,255,255,.62); --glass-nav: rgba(255,255,255,.83);
+  --glass-border: rgba(255,255,255,.58); --glass-shadow: 0 14px 40px rgba(50,90,130,.13);
+  --theme-bg: radial-gradient(1.5px 1.5px at 18% 22%, rgba(120,170,220,.35), transparent 100%), radial-gradient(1.5px 1.5px at 72% 16%, rgba(140,185,225,.3), transparent 100%), radial-gradient(1.5px 1.5px at 44% 68%, rgba(120,170,220,.25), transparent 100%), radial-gradient(60% 35% at 50% 100%, rgba(180,215,245,.25), transparent 70%), linear-gradient(180deg,#f7fbff,#e9f3fd);
+  --hero-bg: radial-gradient(80% 80% at 100% 0%, rgba(220,240,255,.4), transparent 55%), radial-gradient(70% 60% at 0% 100%, rgba(35,65,105,.55), transparent 60%), linear-gradient(135deg,#5f7fa8,#2f4b73 55%,#7aa6d6);
+  --hero-shadow: 0 14px 36px -12px rgba(45, 75, 115, .55);
+  --fab-bg: linear-gradient(145deg,#9fc4e8,#5b8ec9);
+  --fab-shadow: 0 10px 26px rgba(91,142,201,.45), inset 0 1px 0 rgba(255,255,255,.45);
+  color-scheme: light;
+}
+[data-theme="storm"] {
+  --bg: #10141c; --surface: #1a202b; --surface-2: #1f2633; --surface-3: #262e3e;
+  --text: #f1f4ff; --text-2: #aab4c8; --text-3: #75819a;
+  --line: rgba(255,255,255,.07); --line-strong: rgba(255,255,255,.14);
+  --primary: #f4c542; --primary-dark: #d4a51f; --primary-soft: rgba(244,197,66,.14);
+  --income: #43d6a0; --danger: #ff6b6b; --danger-soft: rgba(255,107,107,.13); --warning: #f4c542;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.35), 0 8px 24px rgba(0,0,0,.32);
+  --shadow-lg: 0 20px 60px rgba(0,0,0,.55);
+  --glass-bg: rgba(22,27,38,.7); --glass-nav: rgba(22,27,38,.86);
+  --glass-border: rgba(255,255,255,.11); --glass-shadow: 0 16px 44px rgba(0,0,0,.45);
+  --theme-bg: radial-gradient(55% 35% at 85% 0%, rgba(244,197,66,.10), transparent 65%), repeating-linear-gradient(115deg, rgba(244,197,66,.035) 0 1px, transparent 1px 18px), linear-gradient(180deg,#141923,#0a0d14);
+  --hero-bg: radial-gradient(80% 80% at 85% 0%, rgba(244,197,66,.26), transparent 55%), radial-gradient(70% 60% at 0% 100%, rgba(25,30,45,.8), transparent 60%), linear-gradient(118deg, transparent 0 62%, rgba(244,197,66,.16) 62% 62.5%, transparent 62.5%), linear-gradient(135deg,#202736,#070a12 55%,#3b3a1c);
+  --hero-shadow: 0 14px 36px -12px rgba(0,0,0,.8);
+  --fab-bg: linear-gradient(145deg,#f4c542,#b8860b);
+  --fab-shadow: 0 10px 26px rgba(244,197,66,.3), inset 0 1px 0 rgba(255,255,255,.35);
+  color-scheme: dark;
+}
+[data-theme="wave"] {
+  --bg: #effbfc; --surface: #ffffff; --surface-2: #f6fdfe; --surface-3: #e5f7f9;
+  --text: #12333a; --text-2: #4f7076; --text-3: #8aa8ad;
+  --line: rgba(18,51,58,.07); --line-strong: rgba(18,51,58,.13);
+  --primary: #168a9e; --primary-dark: #0f6b7b; --primary-soft: #e5f7f9;
+  --income: #0f9f6e; --danger: #e05252; --danger-soft: #fdeceb; --warning: #d9a52e;
+  --shadow-sm: 0 1px 2px rgba(20,80,90,.04), 0 6px 20px rgba(20,80,90,.06);
+  --shadow-lg: 0 18px 60px rgba(15,70,80,.14);
+  --glass-bg: rgba(255,255,255,.64); --glass-nav: rgba(255,255,255,.83);
+  --glass-border: rgba(255,255,255,.55); --glass-shadow: 0 14px 40px rgba(20,90,100,.13);
+  --theme-bg: radial-gradient(55% 28% at 50% 100%, rgba(22,138,158,.18), transparent 70%), radial-gradient(45% 22% at 10% 85%, rgba(100,200,210,.18), transparent 70%), repeating-radial-gradient(ellipse at 50% 110%, rgba(22,138,158,.07) 0 2px, transparent 2px 18px), linear-gradient(180deg,#f3fdfe,#e4f6f8);
+  --hero-bg: radial-gradient(80% 80% at 100% 0%, rgba(120,220,230,.35), transparent 55%), radial-gradient(70% 60% at 0% 100%, rgba(5,55,70,.55), transparent 60%), repeating-radial-gradient(ellipse at 50% 110%, rgba(255,255,255,.05) 0 2px, transparent 2px 16px), linear-gradient(135deg,#0c5b73,#063b52 55%,#1386a1);
+  --hero-shadow: 0 14px 36px -12px rgba(10, 80, 95, .6);
+  --fab-bg: linear-gradient(145deg,#34b8c9,#0c6f84);
+  --fab-shadow: 0 10px 26px rgba(12,111,132,.45), inset 0 1px 0 rgba(255,255,255,.35);
+  color-scheme: light;
+}
+[data-theme="ocean"] {
+  --bg: #061624; --surface: #0d2538; --surface-2: #112d43; --surface-3: #173a55;
+  --text: #eaf6ff; --text-2: #9dbbd0; --text-3: #65859c;
+  --line: rgba(255,255,255,.07); --line-strong: rgba(255,255,255,.14);
+  --primary: #4aa3ff; --primary-dark: #2d7ed6; --primary-soft: rgba(74,163,255,.14);
+  --income: #2dd4bf; --danger: #ff7a7a; --danger-soft: rgba(255,122,122,.13); --warning: #f4c542;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.35), 0 8px 24px rgba(0,0,0,.3);
+  --shadow-lg: 0 20px 60px rgba(0,0,0,.55);
+  --glass-bg: rgba(10,30,45,.7); --glass-nav: rgba(10,30,45,.86);
+  --glass-border: rgba(255,255,255,.1); --glass-shadow: 0 16px 44px rgba(0,0,0,.45);
+  --theme-bg: radial-gradient(2px 2px at 18% 26%, rgba(120,200,255,.35), transparent 100%), radial-gradient(2px 2px at 74% 18%, rgba(120,200,255,.25), transparent 100%), radial-gradient(2px 2px at 46% 72%, rgba(120,200,255,.22), transparent 100%), radial-gradient(60% 35% at 50% 100%, rgba(20,80,130,.35), transparent 70%), linear-gradient(180deg,#082033,#03101d);
+  --hero-bg: radial-gradient(80% 80% at 100% 0%, rgba(74,163,255,.3), transparent 55%), radial-gradient(70% 60% at 0% 100%, rgba(2,20,40,.75), transparent 60%), radial-gradient(2px 2px at 28% 68%, rgba(180,230,255,.35), transparent 100%), linear-gradient(135deg,#0a2b4a,#03121f 55%,#0e3c5e);
+  --hero-shadow: 0 14px 36px -12px rgba(0,0,0,.75);
+  --fab-bg: linear-gradient(145deg,#4aa3ff,#0e5a8a);
+  --fab-shadow: 0 10px 26px rgba(74,163,255,.35), inset 0 1px 0 rgba(255,255,255,.3);
+  color-scheme: dark;
+}
+
+/* 主题选择 */
+.theme-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; }
+.theme-card {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start;
+  gap: 2px; padding: 9px; border-radius: 14px; text-align: left;
+  background: var(--surface-2); border: 1.5px solid transparent;
+}
+.theme-card.active { border-color: var(--primary); background: var(--primary-soft); }
+.theme-swatch {
+  width: 100%; height: 58px; border-radius: 9px; display: flex;
+  align-items: center; justify-content: center; font-size: 24px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.16);
+}
+.theme-card-name { font-size: 12.5px; font-weight: 700; margin-top: 5px; }
+.theme-card-desc { font-size: 9.5px; color: var(--text-3); }
+.theme-check {
+  position: absolute; right: 7px; top: 7px; width: 20px; height: 20px;
+  border-radius: 50%; background: var(--primary); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+}
+.sw-auto { background: linear-gradient(135deg,#5b6cff,#0a0f2a 55%,#8b9cff); }
+.sw-light { background: linear-gradient(135deg,#1a2355,#0a0f2a 55%,#211747); }
+.sw-dark { background: linear-gradient(135deg,#111a40,#060916 55%,#17112f); }
+.sw-grass { background: linear-gradient(135deg,#2f6b3f,#4b8a4f 55%,#aed581); }
+.sw-sky { background: linear-gradient(135deg,#1c4e9c,#2f80ed 55%,#bfe3ff); }
+.sw-cloud { background: linear-gradient(135deg,#5a6f8f,#8ea9cf 55%,#eef5ff); }
+.sw-castle { background: linear-gradient(135deg,#8e2b63,#b34a82 55%,#ffc8e6); }
+.sw-wheat { background: linear-gradient(135deg,#8a5a18,#c08a2e 55%,#ffe29a); }
+.sw-snow { background: linear-gradient(135deg,#5f7fa8,#7aa6d6 55%,#eaf6ff); }
+.sw-storm { background: linear-gradient(135deg,#202736,#070a12 55%,#f4c542); }
+.sw-wave { background: linear-gradient(135deg,#0c5b73,#1386a1 55%,#a8eef5); }
+.sw-ocean { background: linear-gradient(135deg,#0a2b4a,#0e3c5e 55%,#4aa3ff); }
+
+/* 我的品牌头 */
+.profile-brand {
+  position: relative; display: flex; align-items: center; gap: 13px;
+  margin: 0 0 14px; padding: 16px 16px; border-radius: 22px;
+  color: #fff; background: var(--hero-bg); box-shadow: var(--hero-shadow);
+  overflow: hidden;
+}
+.profile-brand::after {
+  content: ""; position: absolute; right: -34px; top: -55px;
+  width: 150px; height: 150px; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.18);
+  pointer-events: none;
+}
+.profile-brand > * { position: relative; z-index: 1; }
+.profile-brand-logo {
+  width: 52px; height: 52px; border-radius: 15px; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  color: #ffe08a; font-size: 31px; line-height: 1;
+  background: linear-gradient(145deg, #1b2356, #070a17 62%, #211747);
+  box-shadow: 0 8px 20px rgba(0,0,0,.26), inset 0 1px 0 rgba(255,255,255,.18);
+}
+.profile-brand-name { font-size: 19px; font-weight: 750; letter-spacing: -.3px; }
+.profile-brand-sub { font-size: 11px; opacity: .72; margin-top: 2px; }
+.profile-brand-badge { margin-left: auto; font-size: 9px; padding: 3px 7px; border-radius: 99px; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.18); }
+.empty-emoji.theme-symbol { color: var(--primary); font-size: 34px; text-shadow: 0 4px 16px rgba(0,0,0,.08); }
+.acct-tag { font-size: 9px; font-weight: 500; color: var(--text-3); background: var(--surface-3); border-radius: 4px; padding: 1px 4px; margin-left: 5px; }
+
+.bookkeeping-bar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 10px 0 2px;
+  padding: 11px 14px;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  text-align: left;
+}
+.bookkeeping-bar .bb-icon {
+  width: 30px; height: 30px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--primary-soft); font-size: 15px;
+}
+.bookkeeping-bar b { display: block; font-size: 13px; font-weight: 650; }
+.bookkeeping-bar small { display: block; font-size: 10px; color: var(--text-3); margin-top: 1px; }
+.bookkeeping-bar .chev { color: var(--text-3); }
+
+/* 液态玻璃：更低不透明度 + 更强模糊，能透出下一层界面 */
+.appbar, .tabbar, .calendar-glass, .select-bar, .liquid {
+  background: color-mix(in srgb, var(--surface) 58%, transparent) !important;
+  backdrop-filter: blur(30px) saturate(1.9);
+  -webkit-backdrop-filter: blur(30px) saturate(1.9);
+  border: 1px solid color-mix(in srgb, #ffffff 46%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.5), var(--glass-shadow);
+}
+.appbar { border-left: 0; border-right: 0; border-top: 0; border-radius: 0; }
+[data-theme="storm"] .appbar, [data-theme="storm"] .tabbar, [data-theme="storm"] .calendar-glass, [data-theme="storm"] .select-bar, [data-theme="storm"] .liquid,
+[data-theme="ocean"] .appbar, [data-theme="ocean"] .tabbar, [data-theme="ocean"] .calendar-glass, [data-theme="ocean"] .select-bar, [data-theme="ocean"] .liquid {
+  background: color-mix(in srgb, #10182a 58%, transparent) !important;
+  border-color: rgba(255,255,255,.14);
+}
+@supports not (background: color-mix(in srgb, #fff 50%, transparent)) {
+  .appbar, .tabbar, .calendar-glass, .select-bar, .liquid { background: var(--surface) !important; }
+}
+
 </style>
 </head>
 <body>
@@ -2403,7 +2646,8 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
         currency: '¥',
         demo: !!opts.demo,
         onboarded: false,
-        calendarHeat: true
+        calendarHeat: true,
+        calendarLunar: true
       },
       books: [{
         id: bookId,
@@ -2532,7 +2776,8 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
   /** 让演示数据的账户余额保持自然（不至于一打开就是负数） */
   function adjustDemoBalances(data) {
     const flow = {};
-    data.accounts.forEach((a) => { flow[a.id] = 0; });
+    data.accounts.forEach((a) => {
+      flow[a.id] = 0; });
     data.transactions.forEach((t) => {
       if (t.type === 'income' && flow[t.accountId] != null) flow[t.accountId] += t.amount;
       if (t.type === 'expense' && flow[t.accountId] != null) flow[t.accountId] -= t.amount;
@@ -2591,6 +2836,7 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
       color: a.color || '#94a3b8',
       initial: round2(Number(a.initial) || 0),
       include: a.include !== false,
+      bookkeeping: a.bookkeeping !== false,
       order: Number.isFinite(a.order) ? a.order : i
     }));
 
@@ -2657,6 +2903,7 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
     s.demo = !!s.demo;
     s.onboarded = !!s.onboarded;
     s.calendarHeat = s.calendarHeat !== false;
+    s.calendarLunar = s.calendarLunar !== false;
 
     if (!Array.isArray(data.tags)) data.tags = [];
     data.tags = Array.from(new Set(data.tags.filter((t) => typeof t === 'string')));
@@ -2685,7 +2932,8 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
   }
   function accountMap(data) {
     const map = {};
-    data.accounts.forEach((a) => { map[a.id] = a; });
+    data.accounts.forEach((a) => {
+      map[a.id] = a; });
     return map;
   }
   function activeBook(data) {
@@ -2810,7 +3058,8 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
 
   function accountBalances(data, bookId) {
     const map = {};
-    data.accounts.forEach((a) => { map[a.id] = toCents(a.initial); });
+    data.accounts.forEach((a) => {
+      map[a.id] = toCents(a.initial); });
     for (const t of data.transactions) {
       if (bookId && t.bookId !== bookId) continue;
       if (t.type === 'income' && map[t.accountId] != null) map[t.accountId] += toCents(t.amount);
@@ -2934,7 +3183,8 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
     const [year, month] = monthKey.split('-').map(Number);
     const dim = daysInMonth(year, month);
     const balances = {};
-    data.accounts.forEach((a) => { if (a.include) balances[a.id] = toCents(a.initial); });
+    data.accounts.forEach((a) => {
+      if (a.include) balances[a.id] = toCents(a.initial); });
     const start = monthKey + '-01';
 
     function apply(t) {
@@ -3305,7 +3555,8 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
     const catByKey = {};
     data.categories.forEach((c) => { catByKey[c.type + '|' + c.name] = c.id; });
     const accByName = {};
-    data.accounts.forEach((a) => { accByName[a.name] = a.id; });
+    data.accounts.forEach((a) => {
+      accByName[a.name] = a.id; });
 
     function ensureBook(name) {
       const text = String(name == null ? '' : name).trim();
@@ -4369,7 +4620,31 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
   const C = window.LedgerCore;
   const CH = window.LedgerCharts;
   const STORAGE_KEY = 'xingkong.ledger.v4';
-  const VERSION_TEXT = '2.0.0';
+  const VERSION_TEXT = '2.1.0';
+  const THEMES = [
+    { id: 'auto', name: '跟随系统', desc: '自动切换浅色 / 深色', emoji: '🌓', sw: 'auto' },
+    { id: 'light', name: '星空浅色', desc: '靛蓝星夜', emoji: '✦', sw: 'light' },
+    { id: 'dark', name: '星空深色', desc: '深夜银河', emoji: '🌌', sw: 'dark' },
+    { id: 'grass', name: '草原', desc: '风吹草低', emoji: '🌿', sw: 'grass' },
+    { id: 'sky', name: '天空', desc: '晴空万里', emoji: '☁️', sw: 'sky' },
+    { id: 'cloud', name: '白云', desc: '云朵与风', emoji: '☁️', sw: 'cloud' },
+    { id: 'castle', name: '粉色城堡', desc: '玫瑰与塔楼', emoji: '🏰', sw: 'castle' },
+    { id: 'wheat', name: '麦田', desc: '金色麦浪', emoji: '🌾', sw: 'wheat' },
+    { id: 'snow', name: '白雪', desc: '雪落无声', emoji: '❄️', sw: 'snow' },
+    { id: 'storm', name: '闪电', desc: '雷雨夜行', emoji: '⚡', sw: 'storm' },
+    { id: 'wave', name: '波浪', desc: '潮汐海岸', emoji: '🌊', sw: 'wave' },
+    { id: 'ocean', name: '海底', desc: '深海微光', emoji: '🐚', sw: 'ocean' }
+  ];
+  const THEME_META = {
+    light: { dark: false, color: '#5b6cff' }, dark: { dark: true, color: '#070a17' },
+    grass: { dark: false, color: '#2e8b57' }, sky: { dark: false, color: '#2f80ed' },
+    cloud: { dark: false, color: '#6c8ab8' }, castle: { dark: false, color: '#d65a9a' },
+    wheat: { dark: false, color: '#c08a2e' }, snow: { dark: false, color: '#5b8ec9' },
+    storm: { dark: true, color: '#141821' }, wave: { dark: false, color: '#168a9e' },
+    ocean: { dark: true, color: '#071a2c' }
+  };
+  function themeById(id) { return THEMES.find((t) => t.id === id) || THEMES[0]; }
+  function isDarkTheme(id) { return !!(THEME_META[id] && THEME_META[id].dark); }
 
   const $ = (sel, root) => (root || document).querySelector(sel);
   const $$ = (sel, root) => Array.prototype.slice.call((root || document).querySelectorAll(sel));
@@ -4507,17 +4782,43 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
 
   function resolveTheme() {
     const setting = state.data.settings.theme;
-    if (setting === 'dark') return 'dark';
-    if (setting === 'light') return 'light';
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    if (setting === 'auto') {
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    if (THEMES.some((t) => t.id === setting)) return setting;
+    return 'light';
   }
 
   function applyTheme() {
     const theme = resolveTheme();
     document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute('data-dark', isDarkTheme(theme) ? '1' : '0');
     const meta = document.getElementById('themeColor');
-    if (meta) meta.setAttribute('content', theme === 'dark' ? '#070a17' : '#5b6cff');
+    const metaInfo = THEME_META[theme] || THEME_META.light;
+    if (meta) meta.setAttribute('content', metaInfo.color);
+    try {
+      if (window.AndroidBridge && window.AndroidBridge.setSystemBars) window.AndroidBridge.setSystemBars(metaInfo.dark);
+    } catch (err) { /* 非 Android 环境 */ }
     state.chartSig = '';
+  }
+
+  function themeEmptyIcon() {
+    const theme = resolveTheme();
+    const map = {
+      grass: '🌿', sky: '☁️', cloud: '☁️', castle: '🏰', wheat: '🌾',
+      snow: '❄️', storm: '⚡', wave: '🌊', ocean: '🐚'
+    };
+    return map[theme] || '✦';
+  }
+
+  function applyInsets() {
+    try {
+      if (!window.AndroidBridge) return;
+      const st = window.AndroidBridge.getStatusBarHeight ? window.AndroidBridge.getStatusBarHeight() : 0;
+      const nb = window.AndroidBridge.getNavigationBarHeight ? window.AndroidBridge.getNavigationBarHeight() : 0;
+      if (st > 0) document.documentElement.style.setProperty('--safe-t', st + 'px');
+      if (nb > 0) document.documentElement.style.setProperty('--safe-b', nb + 'px');
+    } catch (err) { /* web */ }
   }
 
   function toast(message, type) {
@@ -4869,7 +5170,7 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
     const body = groups.length
       ? dayGroupsHTML(groups)
       : '<div class="empty">' +
-          '<div class="empty-emoji">🌱</div>' +
+          '<div class="empty-emoji theme-symbol">' + themeEmptyIcon() + '</div>' +
           '<div class="empty-title">这个月还没有记账</div>' +
           '<div class="empty-text">每一笔小记录，都会长成清楚的消费轮廓。<br>点击下方的加号开始吧。</div>' +
         '</div>';
@@ -4950,6 +5251,7 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
     const maxExpense = Object.keys(daily).reduce((m, d) => Math.max(m, daily[d].expense || 0), 0);
     const maxIncome = Object.keys(daily).reduce((m, d) => Math.max(m, daily[d].income || 0), 0);
     const heat = data.settings.calendarHeat !== false;
+    const showLunar = data.settings.calendarLunar !== false;
     const firstWeekday = C.weekdayIndex(month + '-01');
     const dim = C.daysInMonth(Number(month.slice(0, 4)), Number(month.slice(5, 7)));
     const totalCells = Math.ceil((firstWeekday + dim) / 7) * 7;
@@ -4975,6 +5277,7 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
       labels[day] = lab;
       const isToday = day === today;
       const isSelected = day === selected;
+      const displayLabel = showLunar ? lab.text : (lab.festival || lab.term);
       const weekday = C.weekdayIndex(day);
       const style = calendarHeatStyle(rec.expense, rec.income, maxExpense, maxIncome, isSelected, heat);
       const classes = ['cal-cell'];
@@ -4985,14 +5288,14 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
       if (rec.count) classes.push('has');
       cells += '<button class="' + classes.join(' ') + '" style="' + style + '" data-act="calendar-select" data-day="' + day + '">' +
         '<span class="cc-day">' + dayNum + '</span>' +
-        '<span class="cc-lunar">' + esc(lab.text || '') + '</span>' +
+        (displayLabel ? '<span class="cc-lunar">' + esc(displayLabel) + '</span>' : '') +
         '<span class="cc-amounts"><i class="out">-' + shortMoney(rec.expense) + '</i><i class="in">+' + shortMoney(rec.income) + '</i></span>' +
       '</button>';
     }
 
     const dayTxHTML = dayList.length
       ? '<div class="tx-list">' + dayList.map((t) => txRowHTML(t)).join('') + '</div>'
-      : '<div class="empty" style="padding:28px 10px 24px"><div class="empty-emoji">🍃</div><div class="empty-title">这天还没有账单</div></div>';
+      : '<div class="empty" style="padding:28px 10px 24px"><div class="empty-emoji theme-symbol">' + themeEmptyIcon() + '</div><div class="empty-title">这天还没有账单</div></div>';
 
     return '<div class="calendar-page">' +
       '<section class="calendar-glass liquid">' +
@@ -5035,15 +5338,28 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
             '<span class="s" style="display:block">支出越多越红，收入越多越绿</span></span>' +
           '<span class="switch"><input type="checkbox" data-heat' + (heat ? ' checked' : '') + '><span class="switch-track"></span></span>' +
         '</label>' +
-        '<div class="hint-box" style="margin-top:12px">关闭后日历恢复纯白，仍会显示每日收支金额。节假日与农历会继续显示。</div>',
+        '<label class="list-item" style="border:0;padding-left:0;padding-right:0">' +
+          '<span class="grow"><span class="t" style="display:block">显示农历</span>' +
+            '<span class="s" style="display:block">关闭后只保留节日与节气</span></span>' +
+          '<span class="switch"><input type="checkbox" data-lunar' + (state.data.settings.calendarLunar !== false ? ' checked' : '') + '><span class="switch-track"></span></span>' +
+        '</label>' +
+        '<div class="hint-box" style="margin-top:12px">热力背景关闭后日历恢复纯白；农历关闭后仍显示节日和节气。</div>',
       onMount(root, close) {
-        const input = root.querySelector('[data-heat]');
-        input.addEventListener('change', () => {
-          state.data.settings.calendarHeat = input.checked;
+        const heatInput = root.querySelector('[data-heat]');
+        const lunarInput = root.querySelector('[data-lunar]');
+        heatInput.addEventListener('change', () => {
+          state.data.settings.calendarHeat = heatInput.checked;
           saveData();
           close();
           render();
-          toast(input.checked ? '已开启热力背景' : '已关闭热力背景');
+          toast(heatInput.checked ? '已开启热力背景' : '已关闭热力背景');
+        });
+        lunarInput.addEventListener('change', () => {
+          state.data.settings.calendarLunar = lunarInput.checked;
+          saveData();
+          close();
+          render();
+          toast(lunarInput.checked ? '已显示农历' : '已隐藏农历，保留节日节气');
         });
       }
     });
@@ -5412,7 +5728,7 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
     const c = statsContext();
     const parts = [statsDatebarHTML(c), statsSummaryBoxHTML(c)];
     if (!c.totals.count) {
-      parts.push('<div class="card"><div class="empty" style="padding:34px 16px"><div class="empty-emoji">🍃</div>' +
+      parts.push('<div class="card"><div class="empty" style="padding:34px 16px"><div class="empty-emoji theme-symbol">' + themeEmptyIcon() + '</div>' +
         '<div class="empty-title">这个区间还没有账单</div><div class="empty-text">换个时间，或先记一笔再回来看看。</div></div></div>');
       parts.push(statsSummaryCardHTML(c));
       return '<div class="stats">' + parts.join('') + '</div>';
@@ -5454,9 +5770,10 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
   function mountStatsCharts() {
     const c = statsContext();
     const theme = document.documentElement.getAttribute('data-theme');
-    const labelColor = theme === 'dark' ? 'rgba(159,178,168,.85)' : 'rgba(91,109,100,.85)';
-    const textColor = theme === 'dark' ? '#e9f3ee' : '#101c16';
-    const gridColor = theme === 'dark' ? 'rgba(255,255,255,.09)' : 'rgba(16,28,22,.08)';
+    const dark = isDarkTheme(theme);
+    const labelColor = dark ? 'rgba(200,208,230,.85)' : 'rgba(91,109,100,.85)';
+    const textColor = dark ? '#eef2ff' : '#101c16';
+    const gridColor = dark ? 'rgba(255,255,255,.09)' : 'rgba(16,28,22,.08)';
     const barColor = state.statsType === 'income' ? '#0e9f6e' : state.statsType === 'balance' ? '#3b82f6' : '#ef6c5a';
 
     const barsEl = document.getElementById('statsBars');
@@ -5482,7 +5799,7 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
       const list = c.breakdown.slice(0, 6).map((x) => ({ value: x.value, color: x.color }));
       const rest = c.breakdown.slice(6).reduce((sum, x) => sum + x.value, 0);
       if (rest > 0) list.push({ value: rest, color: '#94a3b8' });
-      CH.donut(donutEl, list, { emptyColor: theme === 'dark' ? 'rgba(255,255,255,.08)' : 'rgba(148,163,184,.16)' });
+      CH.donut(donutEl, list, { emptyColor: dark ? 'rgba(255,255,255,.08)' : 'rgba(148,163,184,.16)' });
     }
 
     if (c.mode === 'month') {
@@ -5630,6 +5947,46 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
     });
   }
 
+  function openBookkeepingAccounts() {
+    const rows = state.data.accounts.map((a) => (
+      '<label class="list-item" style="border:0;padding-left:0;padding-right:0">' +
+        '<span class="ic" style="background:' + alpha(a.color, 0.14) + '">' + a.icon + '</span>' +
+        '<span class="grow"><span class="t" style="display:block">' + esc(a.name) + '</span>' +
+          '<span class="s" style="display:block">' + (a.bookkeeping === false ? '未启用 · 不出现在记账选择里' : '已启用记账') + '</span></span>' +
+        '<span class="switch"><input type="checkbox" data-bookkeeping-account="' + a.id + '"' + (a.bookkeeping !== false ? ' checked' : '') + '><span class="switch-track"></span></span>' +
+      '</label>'
+    )).join('');
+    openSheet({
+      title: '记账账户', subtitle: '关闭后不再出现在记账与转账选择中', content:
+        '<div class="list-plain">' + rows + '</div>' +
+        '<div class="hint-box" style="margin-top:12px">已有账单不会消失；重新开启后账户会回到记账选择里。至少保留一个开启的账户。</div>',
+      footer: '<button class="btn primary block" data-close-bookkeeping>完成</button>',
+      onMount(root, close) {
+        root.addEventListener('change', (e) => {
+          const input = e.target.closest('[data-bookkeeping-account]');
+          if (!input) return;
+          const account = state.data.accounts.find((a) => a.id === input.dataset.bookkeepingAccount);
+          if (!account) return;
+          if (!input.checked && state.data.accounts.filter((a) => a.bookkeeping !== false).length <= 1) {
+            input.checked = true;
+            toast('至少保留一个启用记账的账户');
+            return;
+          }
+          account.bookkeeping = input.checked;
+          saveData();
+          const caption = input.closest('label').querySelector('.s');
+          if (caption) caption.textContent = input.checked ? '已启用记账' : '未启用 · 不出现在记账选择里';
+          toast(input.checked ? '已启用记账' : '已关闭记账');
+        });
+        root.addEventListener('click', (e) => {
+          if (!e.target.closest('[data-close-bookkeeping]')) return;
+          close();
+          render();
+        });
+      }
+    });
+  }
+
   function openBalanceEditor(account) {
     if (!account) return;
     const current = (C.accountBalances(state.data)[account.id] || 0);
@@ -5696,6 +6053,7 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
           '<span class="grow">' +
             '<span class="acct-name">' + esc(a.name) +
               (a.name === (C.ACCOUNT_TYPES[a.type] || C.ACCOUNT_TYPES.other).name ? '' : '<span class="acct-type">' + (C.ACCOUNT_TYPES[a.type] || C.ACCOUNT_TYPES.other).name + '</span>') +
+              (a.bookkeeping === false ? '<span class="acct-tag">未启用记账</span>' : '') +
             '</span>' +
             '<span class="acct-sub">本月支出 ¥' + C.money(flow.outflow, 0) + (flow.inflow ? ' · 流入 ¥' + C.money(flow.inflow, 0) : '') + '</span>' +
           '</span>' +
@@ -5719,6 +6077,10 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
         '<button class="action-btn primary" data-act="open-transfer">' + svg('swap', 18) + '转账</button>' +
         '<button class="action-btn" data-act="add-account">' + svg('plus', 18) + '新增账户</button>' +
       '</div>' +
+      '<button class="bookkeeping-bar" data-act="open-account-bookkeeping">' +
+        '<span class="bb-icon">📒</span><span class="grow"><b>记账账户</b><small>' +
+          data.accounts.filter((a) => a.bookkeeping !== false).length + ' / ' + data.accounts.length + ' 个启用</small></span>' +
+        '<span class="chev">›</span></button>' +
       '<div class="acct-group">' +
         '<div class="acct-head"><span>资金账户</span><span>' + assetAccounts.length + ' 个</span></div>' +
         '<div class="acct-list">' + rows(assetAccounts) + '</div>' +
@@ -5740,8 +6102,14 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
     const data = state.data;
     const stats = C.overallStats(data);
     const book = C.activeBook(data);
-    const themeText = { auto: '跟随系统', light: '浅色', dark: '深色' }[data.settings.theme] || '跟随系统';
+    const themeText = themeById(data.settings.theme).name;
     return '<div class="profile">' +
+      '<section class="profile-brand">' +
+        '<span class="profile-brand-logo">✦</span>' +
+        '<div class="grow"><div class="profile-brand-name">星空记账</div>' +
+          '<div class="profile-brand-sub">本地记账 · 数据自持 · 离线可用</div></div>' +
+        '<span class="profile-brand-badge">v' + VERSION_TEXT + '</span>' +
+      '</section>' +
       '<div class="stat-strip">' +
         '<div><b>' + stats.count + '</b><span>记账笔数</span></div>' +
         '<div><b>' + stats.days + '</b><span>记账天数</span></div>' +
@@ -5883,7 +6251,8 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
     const opts = options || {};
     const tx = txId ? state.data.transactions.find((t) => t.id === txId) : null;
     const cats = C.categoriesOf(state.data, 'expense');
-    const accounts = state.data.accounts;
+    const accounts = state.data.accounts.filter((a) => a.bookkeeping !== false || (tx && (tx.accountId === a.id || tx.toAccountId === a.id)));
+    if (!accounts.length) { toast('没有启用记账的账户，请先到资产页开启'); return; }
     const draft = {
       type: opts.type || (tx ? tx.type : 'expense'),
       amountStr: tx ? String(tx.amount) : '',
@@ -6234,7 +6603,7 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
       .map((t) => t.subcategory))).slice(0, 10);
     const currencies = ['CNY', 'USD', 'EUR', 'JPY', 'HKD', 'GBP', 'AUD', 'CAD', 'SGD'];
     if (local.currency && currencies.indexOf(local.currency) < 0) currencies.push(local.currency);
-    let accountOptions = state.data.accounts.map((a) => (
+    let accountOptions = state.data.accounts.filter((a) => a.bookkeeping !== false).map((a) => (
       '<option value="' + esc(a.name) + '"' + (a.name === local.reimburseAccount ? ' selected' : '') + '>' +
       a.icon + ' ' + esc(a.name) + '</option>'
     )).join('');
@@ -6361,7 +6730,9 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
   function pickAccount(currentId, excludeId, onPick) {
     const am = C.accountMap(state.data);
     const balances = C.accountBalances(state.data);
-    const content = '<div class="list-plain">' + state.data.accounts.map((a) => (
+    const usable = state.data.accounts.filter((a) => a.bookkeeping !== false);
+    if (!usable.length) { toast('没有启用记账的账户'); return; }
+    const content = '<div class="list-plain">' + usable.map((a) => (
       '<button class="list-item" data-account-id="' + a.id + '" style="width:100%;text-align:left;background:none"' +
         (a.id === excludeId ? ' disabled' : '') + '>' +
         '<span class="ic" style="background:' + alpha(a.color, 0.14) + '">' + a.icon + '</span>' +
@@ -6620,6 +6991,7 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
               '<span>记账 <b>' + Object.keys(totals).length + '</b> 天</span></div>';
         }
         paint();
+        categoryPainter = paint;
         root.addEventListener('click', (e) => {
           const nav = e.target.closest('[data-nav]');
           if (nav) { viewMonth = C.addMonthsKey(viewMonth, Number(nav.dataset.nav)); paint(); return; }
@@ -6644,7 +7016,7 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
         '<span>共 <b>' + list.length + '</b> 笔</span></div>' +
       (list.length
         ? '<div class="tx-list">' + list.map((t) => txRowHTML(t)).join('') + '</div>'
-        : '<div class="empty" style="padding:30px 10px"><div class="empty-emoji">🍃</div><div class="empty-title">这天没有记账</div></div>') +
+        : '<div class="empty" style="padding:30px 10px"><div class="empty-emoji theme-symbol">' + themeEmptyIcon() + '</div><div class="empty-title">这天没有记账</div></div>') +
       '<button class="btn primary block" data-add-day style="margin-top:14px">在这一天记一笔</button>';
     openSheet({
       title: C.dateLabel(day) + ' · ' + C.weekdayCN(day),
@@ -6785,6 +7157,8 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
    * 分类
    * ------------------------------------------------------------------ */
 
+  let categoryPainter = null;
+
   function openCategories(startType, onDone) {
     let type = startType === 'income' ? 'income' : 'expense';
     const content =
@@ -6794,7 +7168,7 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
       '</div>' +
       '<div data-list style="margin-top:10px"></div>' +
       '<button class="btn primary block" data-add-cat style="margin-top:12px">+ 新增分类</button>' +
-      '<div class="hint-box" style="margin-top:12px">内置分类可以改名、换图标和颜色；自定义分类在未被使用时可以删除。</div>';
+      '<div class="hint-box" style="margin-top:12px">点击分类可编辑；长按分类可转入其他分类或删除。</div>';
     openSheet({
       title: '分类管理', subtitle: '记账时第一眼看到的东西', content,
       onMount(root, close) {
@@ -6812,6 +7186,7 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
           }).join('') + '</div>';
         }
         paint();
+        categoryPainter = paint;
         root.addEventListener('click', (e) => {
           const t = e.target.closest('[data-cat-type]');
           if (t) {
@@ -6832,7 +7207,86 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
         });
       },
       onClose() {
+        categoryPainter = null;
         if (onDone) onDone();
+      }
+    });
+  }
+
+  function openCategoryActions(cat) {
+    if (!cat) return;
+    const used = state.data.transactions.filter((t) => t.categoryId === cat.id).length;
+    openSheet({
+      title: cat.name, subtitle: used + ' 笔账单 · ' + (cat.type === 'income' ? '收入分类' : '支出分类'), content:
+        '<div class="menu">' +
+          '<button class="menu-row" data-cat-move><span class="menu-icon">↪️</span>' +
+            '<span class="menu-label">转入其他分类</span><span class="menu-value">保留当前分类<span class="chev">›</span></span></button>' +
+          '<button class="menu-row" data-cat-delete><span class="menu-icon">🗑️</span>' +
+            '<span class="menu-label">删除分类</span><span class="menu-value">' + (used ? '先转入再删除' : '直接删除') + '<span class="chev">›</span></span></button>' +
+        '</div>' +
+        '<div class="hint-box">删除有账单的分类时，会先选择目标分类，再把账单和周期规则转过去。</div>',
+      onMount(root, close) {
+        root.addEventListener('click', (e) => {
+          if (e.target.closest('[data-cat-move]')) {
+            close();
+            openCategoryMove(cat, false);
+            return;
+          }
+          if (e.target.closest('[data-cat-delete]')) {
+            close();
+            if (used > 0) { openCategoryMove(cat, true); return; }
+            confirmDialog({ title: '删除分类「' + cat.name + '」？', message: '删除后不可恢复。', confirmText: '删除', danger: true }).then((ok) => {
+              if (!ok) return;
+              state.data.categories = state.data.categories.filter((c) => c.id !== cat.id);
+              saveData();
+              if (categoryPainter) categoryPainter();
+              render();
+              toast('分类已删除');
+            });
+          }
+        });
+      }
+    });
+  }
+
+  function openCategoryMove(cat, removeAfter) {
+    const targets = state.data.categories.filter((c) => c.id !== cat.id && c.type === cat.type);
+    if (!targets.length) { toast('没有其他同类型分类可转入'); return; }
+    openSheet({
+      title: removeAfter ? '转入并删除' : '转入其他分类',
+      subtitle: '把「' + cat.name + '」的账单转到', content:
+        '<div class="list-plain">' + targets.map((c) => {
+          const n = state.data.transactions.filter((t) => t.categoryId === cat.id).length;
+          return '<button class="list-item" data-cat-target="' + c.id + '" style="width:100%;text-align:left;background:none">' +
+            '<span class="ic" style="background:' + alpha(c.color, 0.14) + '">' + c.icon + '</span>' +
+            '<span class="grow"><span class="t" style="display:block">' + esc(c.name) + '</span>' +
+              '<span class="s" style="display:block">' + (c.builtin ? '内置分类' : '自定义分类') + '</span></span>' +
+            '<span class="chev">›</span></button>';
+        }).join('') + '</div>',
+      onMount(root, close) {
+        root.addEventListener('click', (e) => {
+          const btn = e.target.closest('[data-cat-target]');
+          if (!btn) return;
+          const target = state.data.categories.find((c) => c.id === btn.dataset.catTarget);
+          if (!target) return;
+          let moved = 0;
+          state.data.transactions.forEach((t) => {
+            if (t.categoryId === cat.id) { t.categoryId = target.id; moved++; }
+          });
+          state.data.recurring.forEach((r) => { if (r.categoryId === cat.id) r.categoryId = target.id; });
+          (state.data.books || []).forEach((b) => {
+            if (b.budget && b.budget.categories && b.budget.categories[cat.id]) {
+              b.budget.categories[target.id] = C.round2((b.budget.categories[target.id] || 0) + b.budget.categories[cat.id]);
+              delete b.budget.categories[cat.id];
+            }
+          });
+          if (removeAfter) state.data.categories = state.data.categories.filter((c) => c.id !== cat.id);
+          saveData();
+          close();
+          if (categoryPainter) categoryPainter();
+          render();
+          toast('已转入「' + target.name + '」' + (moved ? '，共 ' + moved + ' 笔' : '') + (removeAfter ? '，原分类已删除' : ''));
+        });
       }
     });
   }
@@ -7028,7 +7482,8 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
 
   function openRecurringEditor(rule, onDone) {
     const isNew = !rule;
-    const accounts = state.data.accounts;
+    const accounts = state.data.accounts.filter((a) => a.bookkeeping !== false || (tx && (tx.accountId === a.id || tx.toAccountId === a.id)));
+    if (!accounts.length) { toast('没有启用记账的账户，请先到资产页开启'); return; }
     const draft = {
       type: rule ? rule.type : 'expense',
       amount: rule ? String(rule.amount) : '',
@@ -7147,7 +7602,8 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
       type: account ? account.type : 'cash',
       icon: account ? account.icon : '💵',
       initial: account ? String(account.initial) : '',
-      include: account ? account.include !== false : true
+      include: account ? account.include !== false : true,
+      bookkeeping: account ? account.bookkeeping !== false : true
     };
     const used = account ? state.data.transactions.filter((t) => t.accountId === account.id || t.toAccountId === account.id).length : 0;
     const inRules = account ? state.data.recurring.some((r) => r.accountId === account.id) : 0;
@@ -7174,6 +7630,11 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
           '<span class="grow"><span class="t" style="display:block">计入总资产</span>' +
             '<span class="s" style="display:block">关闭后只用于记账，不参与资产统计</span></span>' +
           '<span class="switch"><input type="checkbox" data-include' + (draft.include ? ' checked' : '') + '><span class="switch-track"></span></span>' +
+        '</label>' +
+        '<label class="list-item" style="border:0;padding-left:0;padding-right:0">' +
+          '<span class="grow"><span class="t" style="display:block">启用记账</span>' +
+            '<span class="s" style="display:block">关闭后不出现在记账账户选择里</span></span>' +
+          '<span class="switch"><input type="checkbox" data-bookkeeping' + (draft.bookkeeping ? ' checked' : '') + '><span class="switch-track"></span></span>' +
         '</label>',
       footer,
       onMount(root, close) {
@@ -7208,7 +7669,8 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
               name, type, icon: draft.icon,
               color: (C.ACCOUNT_TYPES[type] || { icon: '👛' }).liability ? '#f43f5e' : '#0ea5e9',
               initial: C.round2(init),
-              include: $('[data-include]', root).checked
+              include: $('[data-include]', root).checked,
+              bookkeeping: $('[data-bookkeeping]', root).checked
             };
             if (account) Object.assign(account, base);
             else state.data.accounts.push(Object.assign({ id: C.uid('a') }, base));
@@ -7451,17 +7913,17 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
 
   function openTheme() {
     const current = state.data.settings.theme;
-    const options = [['auto', '跟随系统', '自动匹配手机的深色 / 浅色模式'], ['light', '浅色', '清爽的浅色界面'], ['dark', '深色', '夜间护眼']];
     openSheet({
-      title: '外观主题', subtitle: '选择你喜欢的界面', content:
-        '<div class="list-plain">' + options.map((o) => (
-          '<button class="list-item" data-theme-opt="' + o[0] + '" style="width:100%;text-align:left;background:none">' +
-            '<span class="ic">' + (o[0] === 'dark' ? '🌙' : o[0] === 'light' ? '☀️' : '🌓') + '</span>' +
-            '<span class="grow"><span class="t" style="display:block">' + o[1] + '</span>' +
-              '<span class="s" style="display:block">' + o[2] + '</span></span>' +
-            (current === o[0] ? '<span style="color:var(--primary)">' + svg('check', 19) + '</span>' : '') +
+      title: '外观主题', subtitle: '星空、草原、天空与更多场景', content:
+        '<div class="theme-grid">' + THEMES.map((o) => (
+          '<button class="theme-card' + (current === o.id ? ' active' : '') + '" data-theme-opt="' + o.id + '">' +
+            '<span class="theme-swatch sw-' + o.sw + '">' + o.emoji + '</span>' +
+            '<span class="theme-card-name">' + o.name + '</span>' +
+            '<span class="theme-card-desc">' + o.desc + '</span>' +
+            (current === o.id ? '<span class="theme-check">' + svg('check', 14) + '</span>' : '') +
           '</button>'
-        )).join('') + '</div>',
+        )).join('') + '</div>' +
+        '<div class="hint-box" style="margin-top:12px">每个主题都有独立的背景、卡片、主色与玻璃质感。</div>',
       onMount(root, close) {
         root.addEventListener('click', (e) => {
           const btn = e.target.closest('[data-theme-opt]');
@@ -7471,7 +7933,7 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
           applyTheme();
           close();
           render();
-          toast('已切换外观');
+          toast('已切换为「' + themeById(btn.dataset.themeOpt).name + '」');
           if (state.route === 'stats') mountStatsCharts();
         });
       }
@@ -7928,6 +8390,7 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
     'open-about': openAbout,
     'open-transfer': () => openEntry(null, { type: 'transfer' }),
     'add-account': () => openAccountEditor(null),
+    'open-account-bookkeeping': openBookkeepingAccounts,
     'edit-account': (t) => {
       const account = state.data.accounts.find((a) => a.id === t.dataset.id);
       if (account) openAccountEditor(account);
@@ -7984,6 +8447,7 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
   function init() {
     if (state.data) return;
     state.data = loadData();
+    applyInsets();
     const created = C.applyRecurring(state.data, C.todayISO());
     if (created) saveData();
     applyTheme();
@@ -8120,6 +8584,52 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
     if (dy < -2) fixedPageStartY = null;
   }, { passive: false });
   document.addEventListener('touchend', () => { fixedPageStartY = null; }, { passive: true });
+
+
+  /* 长按分类管理 */
+  let catPressTimer = null;
+  let catPressId = null;
+  let catPressPos = null;
+
+  function cancelCatPress() {
+    if (catPressTimer) window.clearTimeout(catPressTimer);
+    catPressTimer = null;
+    catPressId = null;
+    catPressPos = null;
+  }
+
+  function catPressStart(e) {
+    if (e.type === 'mousedown' && ('ontouchstart' in window) && navigator.maxTouchPoints > 0) return;
+    const row = e.target.closest('[data-cat-edit]');
+    if (!row || !overlayRoot.contains(row)) return;
+    const point = e.touches ? e.touches[0] : e;
+    cancelCatPress();
+    catPressId = row.dataset.catEdit;
+    catPressPos = { x: point.clientX, y: point.clientY };
+    catPressTimer = window.setTimeout(() => {
+      catPressTimer = null;
+      const id = catPressId;
+      catPressId = null;
+      catPressPos = null;
+      if (!id) return;
+      state.suppressClickUntil = Date.now() + 450;
+      const cat = state.data.categories.find((c) => c.id === id);
+      if (cat) openCategoryActions(cat);
+    }, 520);
+  }
+
+  function catPressMove(e) {
+    if (!catPressPos) return;
+    const point = e.touches ? e.touches[0] : e;
+    if (Math.abs(point.clientX - catPressPos.x) > 10 || Math.abs(point.clientY - catPressPos.y) > 10) cancelCatPress();
+  }
+
+  document.addEventListener('touchstart', catPressStart, { passive: true });
+  document.addEventListener('touchmove', catPressMove, { passive: true });
+  document.addEventListener('touchend', cancelCatPress, { passive: true });
+  document.addEventListener('mousedown', catPressStart);
+  document.addEventListener('mousemove', catPressMove);
+  document.addEventListener('mouseup', cancelCatPress);
 
 })();
 
