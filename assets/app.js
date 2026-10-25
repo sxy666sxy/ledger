@@ -8,7 +8,7 @@
   const C = window.LedgerCore;
   const CH = window.LedgerCharts;
   const STORAGE_KEY = 'xingkong.ledger.v4';
-  const VERSION_TEXT = '2.1.2';
+  const VERSION_TEXT = '2.1.3';
   const THEMES = [
     { id: 'auto', name: '跟随系统', desc: '自动切换浅色 / 深色', emoji: '🌓', sw: 'auto' },
     { id: 'light', name: '星空浅色', desc: '靛蓝星夜', emoji: '✦', sw: 'light' },
@@ -132,6 +132,10 @@
     statsShareType: 'expense',
     statsSankey: 'category',
     statsYear: Number(C.thisMonthKey().slice(0, 4)),
+    statsYearAll: false,
+    statsChartType: 'bar',
+    statsHeatType: 'expense',
+    statsSummaryOpen: false,
     statsCustomFrom: C.addDaysISO(C.todayISO(), -6),
     statsCustomTo: C.todayISO(),
     statsSwipe: 0,
@@ -834,15 +838,23 @@
     const today = C.todayISO();
     const currentMonth = C.thisMonthKey();
     const mode = state.statsMode;
-    let from, to, monthKey = null, year = null;
+    let from, to, monthKey = null, year = null, yearAll = false;
     if (mode === 'month') {
       monthKey = state.statsMonth;
       from = monthKey + '-01';
       to = C.monthEnd(monthKey);
     } else if (mode === 'year') {
-      year = state.statsYear;
-      from = year + '-01-01';
-      to = year + '-12-31';
+      yearAll = !!state.statsYearAll;
+      const currentYear = Number(currentMonth.slice(0, 4));
+      const dataYears = data.transactions
+        .filter((t) => t.bookId === book.id)
+        .map((t) => Number(t.date.slice(0, 4)))
+        .filter((y) => Number.isFinite(y));
+      const minYear = dataYears.length ? Math.min.apply(null, dataYears) : currentYear;
+      const maxYear = dataYears.length ? Math.max.apply(null, dataYears) : currentYear;
+      year = yearAll ? null : state.statsYear;
+      from = yearAll ? minYear + '-01-01' : year + '-01-01';
+      to = yearAll ? maxYear + '-12-31' : year + '-12-31';
     } else if (mode === 'custom') {
       from = state.statsCustomFrom;
       to = state.statsCustomTo;
@@ -859,7 +871,7 @@
     const rangeDays = daysBetweenInclusive(from, to);
     const expenseBreakdown = C.categoryBreakdownRange(data, book.id, from, to, 'expense');
     const breakdown = C.categoryBreakdownRange(data, book.id, from, to, state.statsShareType);
-    let labels = [], values = [], tableRows = [], tableLabel = '日期';
+    let labels = [], values = [], tableRows = [], tableLabel = '日期', series = null;
     let showValues = false, labelEvery = 1, highlight = -1, asset = null;
     let avgBase = rangeDays;
 
@@ -870,6 +882,10 @@
       const net = exp.map((v, i) => C.round2(inc[i] - v));
       labels = Array.from({ length: dim }, (_, i) => String(i + 1));
       values = state.statsType === 'income' ? inc : state.statsType === 'balance' ? net : exp;
+      series = state.statsType === 'all' ? [
+        { values: exp, color: '#ef6c5a', name: '支出' },
+        { values: inc, color: '#0e9f6e', name: '收入' }
+      ] : null;
       tableRows = dayRows.map((r) => ({
         label: r.date.slice(5), date: r.date, income: r.income, expense: r.expense,
         balance: r.balance, count: r.count
@@ -893,18 +909,37 @@
       labelEvery = rangeDays > 14 ? 2 : 1;
       highlight = rangeDays - 1;
       avgBase = rangeDays;
+      if (state.statsType === 'all') {
+        series = [
+          { values: Array.from({ length: rangeDays }, (_, i) => { const row = dayMap[C.addDaysISO(from, i)]; return row ? row.expense : 0; }), color: '#ef6c5a', name: '支出' },
+          { values: Array.from({ length: rangeDays }, (_, i) => { const row = dayMap[C.addDaysISO(from, i)]; return row ? row.income : 0; }), color: '#0e9f6e', name: '收入' }
+        ];
+      }
     } else if (mode === 'year') {
-      const ms = C.yearMonths(data, book.id, year);
-      labels = ms.map((m) => m.month + '月');
-      values = ms.map((m) => state.statsType === 'income' ? m.income : state.statsType === 'balance' ? m.balance : m.expense);
-      tableRows = ms.filter((m) => m.count > 0).map((m) => ({
-        label: m.month + '月', month: m.month, income: m.income, expense: m.expense,
-        balance: m.balance, count: m.count
+      const currentYear = Number(currentMonth.slice(0, 4));
+      const reportRows = C.yearRows(data, book.id, currentYear - 9, currentYear);
+      labels = reportRows.map((r) => String(r.year));
+      const expValues = reportRows.map((r) => r.expense);
+      const incValues = reportRows.map((r) => r.income);
+      const balValues = reportRows.map((r) => r.balance);
+      if (state.statsType === 'all') {
+        values = expValues;
+        series = [
+          { values: expValues, color: '#ef6c5a', name: '支出' },
+          { values: incValues, color: '#0e9f6e', name: '收入' }
+        ];
+      } else {
+        values = state.statsType === 'income' ? incValues : state.statsType === 'balance' ? balValues : expValues;
+      }
+      tableRows = reportRows.map((r) => ({
+        label: r.year + '年', year: r.year, income: r.income, expense: r.expense,
+        balance: r.balance, count: r.count
       }));
-      tableLabel = '月份';
-      showValues = false;
-      highlight = year === Number(currentMonth.slice(0, 4)) ? Number(currentMonth.slice(5, 7)) - 1 : -1;
+      tableLabel = '年份';
+      showValues = state.statsType !== 'all';
+      highlight = yearAll ? -1 : Math.max(-1, reportRows.findIndex((r) => r.year === year));
       avgBase = 12;
+      asset = C.assetSeriesRange(data, from, to);
     } else {
       // 自定义长区间：按月汇总柱状图
       let cursor = C.monthKeyOf(from);
@@ -928,16 +963,19 @@
 
     const prev = mode === 'month' ? C.monthTotals(data, book.id, C.addMonthsKey(monthKey, -1)) : null;
     const rangeLabel = mode === 'month' ? C.monthLabel(monthKey)
-      : mode === 'year' ? year + '年'
+      : mode === 'year' ? (yearAll ? '全部年份' : year + '年')
       : mode === 'custom' ? from.slice(5).replace('-', '.') + ' - ' + to.slice(5).replace('-', '.')
       : from.slice(5).replace('-', '/') + ' - ' + to.slice(5).replace('-', '/');
+    const extended = C.extendedRangeStats(data, book.id, from, to);
 
     return {
-      data, book, mode, from, to, monthKey, year, totals, dayRows,
-      expenseBreakdown, breakdown, labels, values, tableRows, tableLabel,
-      showValues, labelEvery, highlight, asset, prev, rangeLabel,
-      rangeDays, avg: totals.expense / Math.max(avgBase, 1),
-      daysWith: mode === 'year' ? tableRows.length : dayRows.length,
+      data, book, mode, from, to, monthKey, year, yearAll, totals, dayRows,
+      expenseBreakdown, breakdown, labels, values, series, tableRows, tableLabel,
+      showValues, labelEvery, highlight, asset, prev, rangeLabel, extended,
+      rangeDays, avg: totals.expense / Math.max(mode === 'year' && yearAll ? (extended.months || 1) : avgBase, 1),
+      daysWith: mode === 'year' ? tableRows.filter((r) => r.count > 0).length : dayRows.length,
+      monthsWith: mode === 'year' && !yearAll ? C.yearMonths(data, book.id, year).filter((m) => m.count > 0).length : 0,
+      yearsWith: mode === 'year' ? tableRows.filter((r) => r.count > 0).length : 0,
       sankeyNodes: statsSankeyNodes({ data, book, from, to, expenseBreakdown })
     };
   }
@@ -978,11 +1016,19 @@
       '</div>';
     }
     if (c.mode === 'year') {
-      return '<div class="stats-datebar year-bar">' +
-        '<button class="year-step" data-act="stats-year-step" data-step="-1" aria-label="上一年">‹</button>' +
-        '<b class="year-label">' + c.year + ' 年</b>' +
-        '<button class="year-step" data-act="stats-year-step" data-step="1" aria-label="下一年">›</button>' +
-        '<span class="db-sub">全年</span>' +
+      const currentYear = Number(C.thisMonthKey().slice(0, 4));
+      const baseYear = c.yearAll ? currentYear : c.year;
+      const chips = Array.from({ length: 10 }, (_, i) => {
+        const y = baseYear - i;
+        const label = y === currentYear ? '今年' : y === currentYear - 1 ? '去年' : y + '年';
+        return '<button class="month-chip year-chip' + (!c.yearAll && y === c.year ? ' selected' : '') + '" data-act="stats-set-year" data-year="' + y + '">' + label + '</button>';
+      }).join('');
+      return '<div class="stats-datebar year-rail-bar">' +
+        '<button class="year-all' + (c.yearAll ? ' active' : '') + '" data-act="stats-year-all">所有</button>' +
+        '<div class="month-rail-wrap">' +
+          '<div class="month-rail" data-year-rail>' + chips + '</div>' +
+          (c.yearAll ? '' : '<span class="rail-arrow" aria-hidden="true">▲</span>') +
+        '</div>' +
       '</div>';
     }
     if (c.mode === 'custom') {
@@ -1009,12 +1055,43 @@
   }
 
   function statsSummaryBoxHTML(c) {
-    const prefix = c.mode === 'month' ? '月' : c.mode === 'year' ? '年' : c.mode === 'daily' ? '近7天' : '区间';
-    return '<section class="stats-summary">' +
+    const prefix = c.mode === 'month' ? '月' : c.mode === 'year' ? (c.yearAll ? '全部' : '年') : c.mode === 'daily' ? '近7天' : '区间';
+    const year = c.mode === 'year';
+    const open = year && state.statsSummaryOpen;
+    let extra = '';
+    if (year) {
+      const ex = c.extended || {};
+      const months = c.yearAll ? Math.max(1, ex.months || 1) : 12;
+      const metrics = [
+        ['月均支出', '¥' + C.money(c.totals.expense / months)],
+        ['月均收入', '¥' + C.money(c.totals.income / months)],
+        ['月均结余', signedMoneyText(c.totals.balance / months)],
+        ['转账', '¥' + C.money(ex.transfer)],
+        ['还款', '¥' + C.money(ex.repay)],
+        ['收款', '¥' + C.money(ex.receive)],
+        ['应付/借入', '¥' + C.money(ex.payable)],
+        ['应收/借出', '¥' + C.money(ex.receivable)],
+        ['手续费', '¥' + C.money(ex.fee)],
+        ['报销', '¥' + C.money(ex.reimburse)],
+        ['报销到账', '¥' + C.money(ex.reimburseReceived)],
+        ['待报销', '¥' + C.money(ex.reimbursePending)],
+        ['退款', '¥' + C.money(ex.refund)],
+        ['退款收入', '¥' + C.money(ex.refundIncome)],
+        ['退款支出', '¥' + C.money(ex.refundExpense)],
+        ['支出优惠', '¥' + C.money(ex.discountExpense)],
+        ['收入优惠', '¥' + C.money(ex.discountIncome)]
+      ];
+      extra = '<div class="ss-extra' + (open ? ' open' : '') + '">' + metrics.map((m) => (
+        '<div class="ss-metric"><span>' + m[0] + '</span><b>' + m[1] + '</b></div>'
+      )).join('') + '</div>';
+    }
+    return '<section class="stats-summary' + (open ? ' open' : '') + '">' +
       '<div class="ss-cell"><span>' + prefix + '支出</span><b>¥' + C.money(c.totals.expense) + '</b></div>' +
       '<div class="ss-cell"><span>' + prefix + '收入</span><b>¥' + C.money(c.totals.income) + '</b></div>' +
       '<div class="ss-cell"><span>' + prefix + '结余</span><b>' + signedMoneyText(c.totals.balance) + '</b></div>' +
+      (year ? '<button class="ss-toggle" data-act="stats-summary-toggle" aria-label="展开更多数据">' + (open ? '收起' : '更多数据') + ' <span>' + (open ? '⌃' : '⌄') + '</span></button>' : '') +
       '<div class="ss-foot">' + c.rangeLabel + ' · ' + c.totals.count + ' 笔</div>' +
+      extra +
     '</section>';
   }
 
@@ -1084,7 +1161,7 @@
 
   function statsSummaryCardHTML(c) {
     const top = c.expenseBreakdown[0];
-    const title = c.mode === 'month' ? '月份总结' : c.mode === 'year' ? '年度总结' : c.mode === 'daily' ? '近 7 天小结' : '区间小结';
+    const title = c.mode === 'month' ? '月份总结' : c.mode === 'year' ? (c.yearAll ? '全部年份总结' : '年度总结') : c.mode === 'daily' ? '近 7 天小结' : '区间小结';
     const lines = [];
     lines.push('支出 <b>¥' + C.money(c.totals.expense) + '</b>，收入 <b>¥' + C.money(c.totals.income) + '</b>，结余 <b>' + signedMoneyText(c.totals.balance) + '</b>。');
     if (top) {
@@ -1102,7 +1179,11 @@
         }
       }
     } else if (c.mode === 'year') {
-      lines.push('月均支出 ¥' + C.money(c.totals.expense / 12) + '；有记账的月份 <b>' + c.daysWith + '</b> 个。');
+      if (c.yearAll) {
+        lines.push('月均支出 ¥' + C.money(c.avg) + '；有记账的年份 <b>' + c.yearsWith + '</b> 个。');
+      } else {
+        lines.push('月均支出 ¥' + C.money(c.totals.expense / 12) + '；有记账的月份 <b>' + c.monthsWith + '</b> 个。');
+      }
     } else {
       lines.push('日均支出 ¥' + C.money(c.avg) + '；区间内记账 <b>' + c.daysWith + '</b> 天。');
     }
@@ -1112,6 +1193,107 @@
         lines.map((line) => '<p>' + line + '</p>').join('') +
       '</div>' +
     '</section>';
+  }
+
+  function statsChartControlsHTML() {
+    return '<div class="stats-chart-controls">' +
+      statsToggleHTML(state.statsType, [['expense', '支出'], ['income', '收入'], ['balance', '结余'], ['all', '全部']], 'stats-type') +
+      '<div class="stats-chart-type">' +
+        '<button class="' + (state.statsChartType !== 'line' ? 'active' : '') + '" data-act="stats-chart-type" data-value="bar" aria-label="柱状图">▥</button>' +
+        '<button class="' + (state.statsChartType === 'line' ? 'active' : '') + '" data-act="stats-chart-type" data-value="line" aria-label="曲线图">〰</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function statsExpenseDataHTML(c) {
+    const txs = c.data.transactions.filter((t) => t.bookId === c.book.id && t.type === 'expense' && t.date >= c.from && t.date <= c.to);
+    const maxTx = txs.reduce((m, t) => (Number(t.amount) > Number(m.amount || 0) ? t : m), {});
+    const top = c.expenseBreakdown[0];
+    const avgLabel = c.mode === 'month' || c.mode === 'daily' ? '日均支出' : '月均支出';
+    return '<section class="card stats-data-card">' +
+      '<div class="card-title">支出数据<span>' + c.rangeLabel + '</span></div>' +
+      '<div class="stats-data-grid">' +
+        '<div><span>' + avgLabel + '</span><b>¥' + C.money(c.avg) + '</b></div>' +
+        '<div><span>支出笔数</span><b>' + txs.length + '</b></div>' +
+        '<div><span>最大单笔</span><b>¥' + C.money(maxTx.amount || 0) + '</b></div>' +
+      '</div>' +
+      (top ? '<div class="hint-box">最大分类「' + esc(top.name) + '」¥' + C.money(top.value) + '，占 ' + Math.round(top.pct * 100) + '%。</div>' : '') +
+    '</section>';
+  }
+
+  function heatStyle(value, max, type) {
+    if (!value) return '';
+    const alpha = 0.08 + 0.55 * (value / Math.max(max, 1));
+    return 'background:' + (type === 'income' ? 'rgba(14,159,110,' : 'rgba(229,72,77,') + alpha.toFixed(3) + ')';
+  }
+
+  function compactHeatMonth(data, bookId, year, month, type, max) {
+    const key = year + '-' + pad2(month);
+    const daily = C.dayTotals(data, bookId, key);
+    const first = C.weekdayIndex(key + '-01');
+    const dim = C.daysInMonth(year, month);
+    let cells = '';
+    for (let i = 0; i < 42; i++) {
+      const day = i - first + 1;
+      if (day < 1 || day > dim) { cells += '<span class="heat-dot empty"></span>'; continue; }
+      const rec = daily[day] || { expense: 0, income: 0 };
+      const value = type === 'income' ? rec.income : rec.expense;
+      cells += '<span class="heat-dot" style="' + heatStyle(value, max, type) + '" title="' + day + '日 ¥' + C.money(value) + '"></span>';
+    }
+    return '<div class="heat-month"><div class="heat-month-label">' + month + '月</div><div class="heat-mini">' + cells + '</div></div>';
+  }
+
+  function yearHeatmapHTML(c) {
+    if (!c.year || c.yearAll) return '';
+    const type = state.statsHeatType;
+    let max = 0;
+    for (let m = 1; m <= 12; m++) {
+      const daily = C.dayTotals(c.data, c.book.id, c.year + '-' + pad2(m));
+      Object.keys(daily).forEach((d) => { max = Math.max(max, type === 'income' ? daily[d].income : daily[d].expense); });
+    }
+    let months = '';
+    for (let m = 1; m <= 12; m++) months += compactHeatMonth(c.data, c.book.id, c.year, m, type, max);
+    return '<section class="card heat-card">' +
+      '<div class="card-title">每月收支热力' +
+        statsToggleHTML(type, [['expense', '支出'], ['income', '收入']], 'stats-heat-type') +
+      '</div>' +
+      '<div class="heat-year-grid" data-act="open-year-heatmap">' + months + '</div>' +
+      '<button class="heat-expand" data-act="open-year-heatmap">点击放大热力图 <span>↗</span></button>' +
+    '</section>';
+  }
+
+  function fullHeatMonth(c, year, month, type) {
+    const key = year + '-' + pad2(month);
+    const daily = C.dayTotals(c.data, c.book.id, key);
+    const first = C.weekdayIndex(key + '-01');
+    const dim = C.daysInMonth(year, month);
+    let max = 0;
+    Object.keys(daily).forEach((d) => { max = Math.max(max, type === 'income' ? daily[d].income : daily[d].expense); });
+    let cells = '';
+    for (let i = 0; i < Math.ceil((first + dim) / 7) * 7; i++) {
+      const day = i - first + 1;
+      if (day < 1 || day > dim) { cells += '<span class="heat-full-cell empty"></span>'; continue; }
+      const rec = daily[day] || { expense: 0, income: 0 };
+      const value = type === 'income' ? rec.income : rec.expense;
+      cells += '<span class="heat-full-cell" style="' + heatStyle(value, max, type) + '"><b>' + day + '</b><i>' + (value ? (type === 'income' ? '+' : '-') + C.money(value, 0) : '') + '</i></span>';
+    }
+    return '<section class="heat-full-month"><h4>' + year + '年' + month + '月</h4>' +
+      '<div class="heat-full-week"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>' +
+      '<div class="heat-full-grid">' + cells + '</div></section>';
+  }
+
+  function openYearHeatmap() {
+    const c = statsContext();
+    if (!c.year || c.yearAll) return;
+    const type = state.statsHeatType;
+    const typeCN = type === 'income' ? '收入' : '支出';
+    let months = '';
+    for (let m = 1; m <= 12; m++) months += fullHeatMonth(c, c.year, m, type);
+    openSheet({
+      title: c.year + '年 每月收支热力', subtitle: '颜色越深，' + typeCN + '越高', className: 'heatmap-sheet', content:
+        '<div class="heat-full">' + months + '</div>',
+      onMount(root, close) { /* 静态热力展示，滚动查看 12 个月 */ }
+    });
   }
 
   function statsHTML() {
@@ -1124,15 +1306,18 @@
       return '<div class="stats">' + parts.join('') + '</div>';
     }
 
+    const chartTitle = c.mode === 'year' ? (c.yearAll ? '近十年收支' : '近十年收支') : c.mode === 'month' ? '收支统计' : c.mode === 'daily' ? '近 7 天收支' : '区间收支';
     parts.push('<section class="card stats-chart-card">' +
-      '<div class="card-title">收支统计' + statsToggleHTML(state.statsType, [['expense', '支出'], ['income', '收入'], ['balance', '结余']], 'stats-type') + '</div>' +
+      '<div class="stats-chart-head"><div class="card-title">' + chartTitle + '</div>' + statsChartControlsHTML() + '</div>' +
       '<div class="chart-bars stats-bars" id="statsBars"></div>' +
-      '<div class="chart-note">单位：' + (c.mode === 'year' || (c.mode === 'custom' && c.rangeDays > 31) ? '月' : '日') + '</div>' +
+      '<div class="chart-note">单位：' + (c.mode === 'year' ? '年' : c.mode === 'custom' && c.rangeDays > 31 ? '月' : '日') + ' · 点击柱/点查看金额</div>' +
     '</section>');
 
-    if (c.mode === 'month') {
+    if (c.mode === 'year' && !c.yearAll) parts.push(yearHeatmapHTML(c));
+
+    if (c.mode === 'month' || c.mode === 'year') {
       parts.push('<section class="card">' +
-        '<div class="card-title">资产走势<span>每日净资产</span></div>' +
+        '<div class="card-title">资产走势<span>' + (c.mode === 'year' ? '每日净资产' : '每日净资产') + '</span></div>' +
         '<div class="chart-line stats-line" id="assetChart"></div>' +
       '</section>');
       parts.push('<section class="card">' +
@@ -1151,10 +1336,38 @@
     }
 
     parts.push(statsShareHTML(c));
+    parts.push(statsExpenseDataHTML(c));
     parts.push(statsRankHTML(c));
     parts.push(statsTableHTML(c));
     parts.push(statsSummaryCardHTML(c));
     return '<div class="stats">' + parts.join('') + '</div>';
+  }
+
+  function attachChartTip(el, c) {
+    if (!el) return;
+    el.style.position = 'relative';
+    const tip = document.createElement('div');
+    tip.className = 'chart-tip';
+    el.appendChild(tip);
+    el.onclick = (e) => {
+      const rect = el.getBoundingClientRect();
+      const x = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+      const n = c.labels.length;
+      let idx = 0;
+      if (state.statsChartType === 'line') idx = Math.round((x / Math.max(rect.width, 1)) * (n - 1));
+      else idx = Math.floor((x / Math.max(rect.width, 1)) * n);
+      idx = Math.max(0, Math.min(n - 1, idx));
+      const lines = [];
+      if (c.series) {
+        c.series.forEach((s) => lines.push('<span class="tip-dot" style="background:' + s.color + '"></span>' + esc(s.name) + ' <b>¥' + C.money(s.values[idx]) + '</b>'));
+      } else {
+        lines.push('<b>¥' + C.money(c.values[idx]) + '</b>');
+      }
+      tip.innerHTML = '<div class="tip-label">' + esc(c.labels[idx] || '') + '</div>' + lines.map((x) => '<div class="tip-row">' + x + '</div>').join('');
+      const pct = n <= 1 ? 50 : (idx / (n - 1)) * 100;
+      tip.style.left = Math.max(8, Math.min(82, pct)) + '%';
+      tip.classList.add('show');
+    };
   }
 
   function mountStatsCharts() {
@@ -1168,20 +1381,29 @@
 
     const barsEl = document.getElementById('statsBars');
     if (barsEl) {
-      CH.bars(barsEl, {
-        labels: c.labels,
-        values: c.values,
-        highlight: c.highlight
-      }, {
-        color: barColor,
-        mutedColor: alpha(barColor, 0.65),
-        negativeColor: '#e5484d',
-        showValues: c.showValues,
-        labelEvery: c.labelEvery,
-        axis: true,
-        labelColor, textColor, gridColor,
-        barWidth: c.labels.length > 20 ? 10 : 22
-      });
+      const chartData = c.series ? { labels: c.labels, series: c.series, highlight: c.highlight } : { labels: c.labels, values: c.values, highlight: c.highlight };
+      if (state.statsChartType === 'line') {
+        CH.line(barsEl, chartData, {
+          color: barColor,
+          axis: true,
+          domain: state.statsType === 'balance' ? 'minmax' : undefined,
+          fillTop: 'rgba(239,108,90,.18)',
+          fillBottom: 'rgba(239,108,90,0)',
+          labelColor, gridColor
+        });
+      } else {
+        CH.bars(barsEl, chartData, {
+          color: barColor,
+          mutedColor: alpha(barColor, 0.65),
+          negativeColor: '#e5484d',
+          showValues: c.showValues && state.statsType !== 'all',
+          labelEvery: c.labelEvery,
+          axis: true,
+          labelColor, textColor, gridColor,
+          barWidth: c.labels.length > 20 ? 10 : 20
+        });
+      }
+      attachChartTip(barsEl, c);
     }
 
     const donutEl = document.getElementById('statsDonut');
@@ -1192,18 +1414,17 @@
       CH.donut(donutEl, list, { emptyColor: dark ? 'rgba(255,255,255,.08)' : 'rgba(148,163,184,.16)' });
     }
 
-    if (c.mode === 'month') {
+    if (c.mode === 'month' || c.mode === 'year') {
       const assetEl = document.getElementById('assetChart');
       if (assetEl && c.asset) {
+        const first = c.mode === 'month' ? '1 日' : (c.asset[0] ? c.asset[0].date.slice(5) : '');
+        const last = c.mode === 'month' ? c.asset.length + ' 日' : (c.asset[c.asset.length - 1] ? c.asset[c.asset.length - 1].date.slice(5) : '');
         CH.line(assetEl, {
-          labels: ['1 日', c.asset.length + ' 日'],
+          labels: [first, last],
           values: c.asset.map((x) => x.value)
         }, {
-          color: '#0ea5e9',
-          axis: true,
-          domain: 'minmax',
-          fillTop: 'rgba(14,165,233,.22)',
-          fillBottom: 'rgba(14,165,233,0)',
+          color: '#0ea5e9', axis: true, domain: 'minmax',
+          fillTop: 'rgba(14,165,233,.22)', fillBottom: 'rgba(14,165,233,0)',
           labelColor, gridColor
         });
       }
@@ -1218,6 +1439,7 @@
     }
 
     window.setTimeout(wireMonthRail, 80);
+    window.setTimeout(wireYearRail, 80);
   }
 
   function stepStatsMonth(delta) {
@@ -1227,6 +1449,43 @@
     renderView();
     window.scrollTo(0, 0);
     window.setTimeout(() => { state.statsSwipe = 0; }, 260);
+  }
+
+  function stepStatsYear(delta) {
+    state.statsYearAll = false;
+    state.statsYear += delta;
+    renderView();
+    window.scrollTo(0, 0);
+  }
+
+  function wireYearRail() {
+    const rail = document.querySelector('[data-year-rail]');
+    if (!rail || rail.dataset.wired === '1') return;
+    rail.dataset.wired = '1';
+    let startX = null, startY = null, horizontal = false;
+    rail.addEventListener('touchstart', (e) => {
+      startX = e.touches[0].clientX; startY = e.touches[0].clientY; horizontal = false;
+    }, { passive: true });
+    rail.addEventListener('touchmove', (e) => {
+      if (startX == null) return;
+      const dx = e.touches[0].clientX - startX;
+      const dy = e.touches[0].clientY - startY;
+      if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) {
+        horizontal = true;
+        if (e.cancelable) e.preventDefault();
+      }
+    }, { passive: false });
+    rail.addEventListener('touchend', (e) => {
+      if (startX == null) return;
+      const dx = e.changedTouches[0].clientX - startX;
+      const dy = e.changedTouches[0].clientY - startY;
+      startX = null; startY = null;
+      if (horizontal && Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+        state.suppressClickUntil = Date.now() + 300;
+        stepStatsYear(dx < 0 ? -1 : 1);
+      }
+      horizontal = false;
+    }, { passive: true });
   }
 
   function wireMonthRail() {
@@ -3702,7 +3961,7 @@
     },
     'stats-type': (t) => {
       const type = t.dataset.type;
-      state.statsType = type === 'income' || type === 'balance' ? type : 'expense';
+      state.statsType = type === 'income' || type === 'balance' || type === 'all' ? type : 'expense';
       renderView();
     },
     'stats-share-type': (t) => {
@@ -3732,8 +3991,34 @@
     },
     'stats-year-step': (t) => {
       state.statsYear += Number(t.dataset.step || 0);
+      state.statsYearAll = false;
       renderView();
     },
+    'stats-year-all': () => {
+      state.statsYearAll = true;
+      state.statsYear = Number(C.thisMonthKey().slice(0, 4));
+      renderView();
+    },
+    'stats-set-year': (t) => {
+      const y = Number(t.dataset.year);
+      if (!Number.isFinite(y)) return;
+      state.statsYear = y;
+      state.statsYearAll = false;
+      renderView();
+    },
+    'stats-chart-type': (t) => {
+      state.statsChartType = t.dataset.value === 'line' ? 'line' : 'bar';
+      renderView();
+    },
+    'stats-heat-type': (t) => {
+      state.statsHeatType = t.dataset.type === 'income' ? 'income' : 'expense';
+      renderView();
+    },
+    'stats-summary-toggle': () => {
+      state.statsSummaryOpen = !state.statsSummaryOpen;
+      renderView();
+    },
+    'open-year-heatmap': () => openYearHeatmap(),
     'stats-year-picker': () => openStatsMonthPicker(),
     'stats-custom-start': () => openStatsDate('start'),
     'stats-custom-end': () => openStatsDate('end'),
@@ -3842,6 +4127,7 @@
     if (created) saveData();
     applyTheme();
     render();
+
     if (state.data.settings.pinHash) showLock();
     registerServiceWorker();
     handleLaunchAction();
@@ -3945,8 +4231,10 @@
 
   document.addEventListener('touchend', (e) => {
     if (pageTouchX == null) return;
-    const dx = e.changedTouches[0].clientX - pageTouchX;
-    const dy = e.changedTouches[0].clientY - pageTouchY;
+    const point = (e.changedTouches && e.changedTouches[0]) || (e.touches && e.touches[0]);
+    if (!point) { pageTouchX = null; pageTouchY = null; pageTouchAt = 0; pageTouchTarget = null; pageHorizontal = false; return; }
+    const dx = point.clientX - pageTouchX;
+    const dy = point.clientY - pageTouchY;
     const duration = Date.now() - pageTouchAt;
     const target = pageTouchTarget;
     pageTouchX = null;

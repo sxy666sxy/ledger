@@ -2315,3 +2315,86 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
 @supports not (background: color-mix(in srgb, #fff 50%, transparent)) {
   .appbar, .tabbar, .calendar-glass, .select-bar, .liquid { background: var(--surface) !important; }
 }
+
+/* 年统计 / 图表交互 */
+.year-rail-bar { gap: 8px; }
+.year-all {
+  flex: none; height: 32px; padding: 0 12px; border-radius: 10px;
+  background: var(--surface); box-shadow: var(--shadow-sm);
+  color: var(--text-2); font-size: 12px; font-weight: 650;
+}
+.year-all.active { background: var(--primary); color: #fff; }
+.year-chip { width: 68px; }
+.stats-chart-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.stats-chart-head .card-title { flex: none; }
+.stats-chart-controls { display: flex; align-items: center; gap: 5px; margin-left: auto; }
+.stats-chart-controls .stats-mini-seg button { padding: 0 6px; }
+.stats-chart-type { display: flex; background: var(--surface-3); border-radius: 8px; padding: 2px; gap: 1px; }
+.stats-chart-type button { width: 26px; height: 24px; border-radius: 6px; color: var(--text-3); font-size: 13px; }
+.stats-chart-type button.active { background: var(--surface); color: var(--primary); font-weight: 700; }
+.stats-data-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 6px 0 10px; }
+.stats-data-grid > div { background: var(--surface-2); border-radius: 12px; padding: 10px 8px; text-align: center; }
+.stats-data-grid span { display: block; font-size: 9.5px; color: var(--text-3); }
+.stats-data-grid b { display: block; margin-top: 3px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.chart-tip {
+  position: absolute; z-index: 5; top: 3px; transform: translateX(-50%);
+  background: rgba(18, 28, 45, .92); color: #fff; border-radius: 9px;
+  padding: 6px 9px; font-size: 10px; line-height: 1.55; pointer-events: none;
+  opacity: 0; transition: opacity .15s; white-space: nowrap;
+  box-shadow: 0 8px 22px rgba(0,0,0,.24);
+}
+.chart-tip.show { opacity: 1; }
+.chart-tip .tip-label { color: rgba(255,255,255,.6); font-size: 9px; margin-bottom: 1px; }
+.chart-tip .tip-row { display: flex; align-items: center; gap: 4px; }
+.chart-tip b { margin-left: auto; font-weight: 650; }
+.chart-tip .tip-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+.chart-tip .tip-row + .tip-row { margin-top: 1px; }
+
+/* 年度汇总展开 */
+.ss-toggle {
+  position: absolute; right: 14px; bottom: 9px;
+  color: rgba(255,255,255,.82); font-size: 10px; z-index: 2;
+  display: flex; align-items: center; gap: 3px;
+}
+.ss-toggle span { font-size: 12px; }
+.stats-summary .ss-extra {
+  grid-column: 1 / -1;
+  display: none;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px 8px;
+  margin-top: 8px; padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,.14);
+  position: relative; z-index: 1;
+}
+.stats-summary .ss-extra.open { display: grid; }
+.ss-metric span { display: block; font-size: 9.5px; color: rgba(255,255,255,.6); }
+.ss-metric b { display: block; font-size: 12.5px; font-weight: 650; margin-top: 1px; font-variant-numeric: tabular-nums; }
+.stats-summary.open .ss-foot { padding-bottom: 2px; }
+
+/* 年度热力图 */
+.heat-year-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 10px; margin: 6px 0 10px; }
+.heat-month { min-width: 0; overflow: hidden; }
+.heat-month-label { font-size: 10px; color: var(--text-3); margin-bottom: 4px; }
+.heat-mini { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; min-width: 0; justify-items: center; }
+.heat-dot { width: 6px; height: 6px; min-width: 0; border-radius: 50%; background: var(--surface-3); display: block; justify-self: center; }
+.heat-dot.empty { background: transparent; }
+.heat-expand { width: 100%; height: 30px; border-radius: 9px; background: var(--surface-2); color: var(--text-3); font-size: 10.5px; }
+.heat-expand span { color: var(--primary); margin-left: 3px; }
+.heatmap-sheet { max-height: 94dvh; }
+.heat-full { display: flex; flex-direction: column; gap: 20px; padding-bottom: 10px; }
+.heat-full-month h4 { margin: 0 0 6px; font-size: 14px; font-weight: 700; }
+.heat-full-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-bottom: 3px; }
+.heat-full-week span { text-align: center; font-size: 9px; color: var(--text-3); }
+.heat-full-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.heat-full-cell {
+  min-height: 43px; border-radius: 8px; background: var(--surface-2);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 1px; font-variant-numeric: tabular-nums; overflow: hidden;
+}
+.heat-full-cell.empty { background: transparent; }
+.heat-full-cell b { font-size: 11px; font-weight: 600; }
+.heat-full-cell i { font-style: normal; font-size: 8px; color: var(--text-2); }
+@media (max-width: 360px) {
+  .stats-chart-controls { width: 100%; justify-content: flex-end; }
+  .heat-year-grid { gap: 9px 7px; }
+}

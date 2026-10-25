@@ -858,6 +858,76 @@
     return series;
   }
 
+  function yearRows(data, bookId, startYear, endYear) {
+    const rows = [];
+    for (let y = startYear; y <= endYear; y++) {
+      const t = rangeTotals(data, bookId, y + '-01-01', y + '-12-31');
+      rows.push({ year: y, income: t.income, expense: t.expense, balance: t.balance, count: t.count });
+    }
+    return rows;
+  }
+
+  function extendedRangeStats(data, bookId, from, to) {
+    const out = {
+      transfer: 0, repay: 0, receive: 0, payable: 0, receivable: 0, fee: 0,
+      reimburse: 0, reimburseReceived: 0, reimbursePending: 0,
+      refund: 0, refundIncome: 0, refundExpense: 0,
+      discountExpense: 0, discountIncome: 0, months: 0
+    };
+    const months = {};
+    let hasReimbursePending = false;
+    data.transactions.forEach((t) => {
+      if (t.bookId !== bookId || t.date < from || t.date > to) return;
+      months[t.date.slice(0, 7)] = true;
+      const amount = Number(t.amount) || 0;
+      if (t.type === 'transfer') out.transfer += amount;
+      if (t.type === 'income') out.receive += 0; // 当前数据模型没有独立收款字段
+      out.refund += Number(t.refund) || 0;
+      if (t.type === 'income') out.refundIncome += Number(t.refund) || 0;
+      if (t.type === 'expense') out.refundExpense += Number(t.refund) || 0;
+      if (t.type === 'expense') out.discountExpense += Number(t.discount) || 0;
+      if (t.type === 'income') out.discountIncome += Number(t.discount) || 0;
+      const reimburse = Number(t.reimburseAmount) || 0;
+      if (reimburse > 0) {
+        out.reimburse += reimburse;
+        out.reimbursePending += reimburse;
+        hasReimbursePending = true;
+      }
+    });
+    out.reimburseReceived = 0;
+    out.months = Object.keys(months).length;
+    if (!hasReimbursePending) out.reimbursePending = 0;
+    Object.keys(out).forEach((k) => { if (k !== 'months') out[k] = round2(out[k]); });
+    return out;
+  }
+
+  /** 任意日期区间内每日净资产（含所有账户）。 */
+  function assetSeriesRange(data, from, to) {
+    const balances = {};
+    data.accounts.forEach((a) => { if (a.include) balances[a.id] = toCents(a.initial); });
+    function apply(t) {
+      if (t.type === 'income' && balances[t.accountId] != null) balances[t.accountId] += toCents(t.amount);
+      if (t.type === 'expense' && balances[t.accountId] != null) balances[t.accountId] -= toCents(t.amount);
+      if (t.type === 'transfer') {
+        if (balances[t.accountId] != null) balances[t.accountId] -= toCents(t.amount);
+        if (t.toAccountId && balances[t.toAccountId] != null) balances[t.toAccountId] += toCents(t.amount);
+      }
+    }
+    function sum() { return Object.keys(balances).reduce((acc, key) => acc + balances[key], 0); }
+    data.transactions.forEach((t) => { if (t.date < from) apply(t); });
+    const series = [];
+    let date = from;
+    let guard = 0;
+    while (date <= to && guard++ < 5000) {
+      data.transactions.forEach((t) => { if (t.date === date) apply(t); });
+      series.push({ date, value: fromCents(sum()) });
+      const d = parseISO(date);
+      d.setDate(d.getDate() + 1);
+      date = iso(d);
+    }
+    return series;
+  }
+
   function monthDailySeries(data, bookId, monthKey, type) {
     const [year, month] = monthKey.split('-').map(Number);
     const dim = daysInMonth(year, month);
@@ -1497,6 +1567,9 @@
     categoryBreakdownRange,
     dailyRows,
     assetSeries,
+    assetSeriesRange,
+    yearRows,
+    extendedRangeStats,
     monthDailySeries,
     yearMonths,
     dayTotals,

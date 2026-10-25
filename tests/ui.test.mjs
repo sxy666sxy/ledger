@@ -101,7 +101,8 @@ test('统计页：四种模式、月份切换与图表切换', async () => {
   assert.ok(!document.querySelector('#assetChart'), '日常模式不显示资产走势');
 
   click(document, '[data-act="stats-mode"][data-mode="year"]');
-  assert.ok(document.querySelector('.year-label'));
+  assert.ok(document.querySelector('.year-rail-bar'));
+  assert.ok(document.querySelector('[data-act="stats-year-all"]'));
   assert.match(document.querySelector('.view').textContent, /年支出/);
 
   click(document, '[data-act="stats-mode"][data-mode="custom"]');
@@ -394,6 +395,38 @@ test('资产余额编辑与长按删除账户', async () => {
   assert.equal(document.querySelectorAll('.acct-row').length, before - 1);
 });
 
+test('年统计：所有年份、十年图表、热力图、展开数据与曲线切换', async () => {
+  const { window, document } = boot();
+  click(document, '[data-route="stats"]');
+  click(document, '[data-act="stats-mode"][data-mode="year"]');
+  assert.ok(document.querySelector('.year-rail-bar'));
+  assert.ok(document.querySelector('[data-act="stats-year-all"]'));
+  assert.ok(document.querySelector('.heat-year-grid'), '年度热力图');
+  assert.ok(document.querySelectorAll('.year-chip').length >= 8);
+
+  click(document, '[data-act="stats-summary-toggle"]');
+  assert.ok(document.querySelector('.ss-extra.open'), '展开更多年度数据');
+  assert.match(document.querySelector('.ss-extra').textContent, /月均支出/);
+  assert.match(document.querySelector('.ss-extra').textContent, /退款/);
+
+  click(document, '[data-act="stats-chart-type"][data-value="line"]');
+  assert.ok(document.querySelector('.stats-chart-type .active').textContent.length > 0);
+  assert.ok(document.querySelector('#statsBars svg'));
+
+  click(document, '[data-act="stats-type"][data-type="all"]');
+  assert.ok(document.querySelector('#statsBars svg'));
+
+  click(document, '[data-act="open-year-heatmap"]');
+  const full = document.querySelector('.heat-full');
+  assert.ok(full, '放大热力图');
+  assert.ok(document.querySelectorAll('.heat-full-month').length >= 12);
+  click(document, '[data-close]');
+  await sleep(20);
+
+  click(document, '[data-act="stats-year-all"]');
+  assert.match(document.querySelector('.ss-foot').textContent, /全部年份/);
+  assert.ok(!document.querySelector('.heat-year-grid'), '所有年份隐藏月度热力图');
+});
 test('主题中心包含九个新主题并可切换', async () => {
   const { window, document } = boot();
   click(document, '[data-route="profile"]');

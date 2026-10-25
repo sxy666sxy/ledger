@@ -87,14 +87,20 @@
     el.innerHTML = svgOpen(w, h) + inner + '</svg>';
   }
 
-  /** 柱状图，支持负值（结余）、数值标签、Y 轴刻度。 */
+  /** 柱状图，支持单/多系列、负值、数值标签、Y 轴刻度。 */
   function bars(el, data, opts) {
     if (!el) return;
     const o = opts || {};
     const { w, h } = sizeOf(el, 340, 170);
-    const values = data.values.map((v) => Number(v) || 0);
-    const n = values.length;
-    const showValues = !!o.showValues;
+    const labels = data.labels || [];
+    const series = (data.series && data.series.length ? data.series : [{ values: data.values || [], color: o.color }]).map((s) => ({
+      values: (s.values || []).map((v) => Number(v) || 0),
+      color: s.color || o.color || '#0e9f6e',
+      name: s.name || ''
+    }));
+    const allValues = series.reduce((arr, s) => arr.concat(s.values), []);
+    const n = labels.length;
+    const showValues = !!o.showValues && series.length === 1;
     const axis = !!o.axis;
     const padL = axis ? 32 : 6;
     const padR = 8;
@@ -102,8 +108,8 @@
     const padBottom = 22;
     const plotW = w - padL - padR;
     const plotH = h - padTop - padBottom;
-    const maxV = Math.max(0, Math.max.apply(null, values.concat([0])));
-    const minV = Math.min(0, Math.min.apply(null, values.concat([0])));
+    const maxV = Math.max(0, Math.max.apply(null, allValues.concat([0])));
+    const minV = Math.min(0, Math.min.apply(null, allValues.concat([0])));
     const maxAbs = Math.max(Math.abs(maxV), Math.abs(minV), 1);
     const step = niceStep(maxAbs / 3);
     const top = Math.max(step, Math.ceil(maxV / step) * step);
@@ -119,7 +125,6 @@
     const nLabel = n <= 12 ? 1 : (o.labelEvery || 2);
     let inner = '';
 
-    // 横向网格 / Y 轴刻度
     for (let i = 0; i <= 4; i++) {
       const v = bottom + (domain * i) / 4;
       const y = yOf(v);
@@ -136,32 +141,33 @@
     }
 
     const slot = plotW / Math.max(n, 1);
-    const barW = Math.min(o.barWidth || 22, slot * 0.56);
-    values.forEach((v, i) => {
-      const x = padL + slot * i + (slot - barW) / 2;
-      const y = yOf(Math.max(v, 0));
-      const yTop = Math.min(yOf(0), yOf(v));
-      const bh = Math.max(Math.abs(yOf(v) - yOf(0)), v === 0 ? 0 : 2);
-      const hot = i === highlight;
-      let color = v < 0 ? negativeColor : (hot ? (o.color || '#0e9f6e') : (o.mutedColor || 'rgba(14,159,110,.28)'));
-      if (bh > 0) {
-        inner += '<path d="' + roundRect(x, yTop, barW, bh, Math.min(6, barW / 2)) + '" fill="' + color + '"/>';
-      }
-      if (showValues && n <= 16 && v !== 0) {
-        const labelY = v >= 0 ? Math.max(11, yTop - 6) : Math.min(h - 4, yTop + bh + 12);
-        inner += '<text x="' + (x + barW / 2) + '" y="' + labelY + '" text-anchor="middle" font-size="9.5" font-weight="600" fill="' +
-          (v < 0 ? negativeColor : textColor) + '">' + compact(v) + '</text>';
-      }
+    const groupW = Math.min(series.length > 1 ? slot * 0.74 : (o.barWidth || 22), slot * 0.74);
+    const bw = series.length > 1 ? groupW / series.length : Math.min(o.barWidth || 22, slot * 0.56);
+    const baseX = (i) => padL + slot * i + (slot - (series.length > 1 ? groupW : bw)) / 2;
+    for (let i = 0; i < n; i++) {
+      series.forEach((s, si) => {
+        const v = s.values[i] || 0;
+        const x = baseX(i) + (series.length > 1 ? si * bw : 0);
+        const yTop = Math.min(yOf(0), yOf(v));
+        const bh = Math.max(Math.abs(yOf(v) - yOf(0)), v === 0 ? 0 : 2);
+        const hot = i === highlight;
+        const color = v < 0 ? negativeColor : (series.length > 1 ? s.color : (hot ? (s.color || o.color || '#0e9f6e') : (o.mutedColor || 'rgba(14,159,110,.28)')));
+        if (bh > 0) inner += '<path d="' + roundRect(x, yTop, bw, bh, Math.min(6, bw / 2)) + '" fill="' + color + '"/>';
+        if (showValues && n <= 16 && v !== 0) {
+          const labelY = v >= 0 ? Math.max(11, yTop - 6) : Math.min(h - 4, yTop + bh + 12);
+          inner += '<text x="' + (x + bw / 2) + '" y="' + labelY + '" text-anchor="middle" font-size="9.5" font-weight="600" fill="' +
+            (v < 0 ? negativeColor : textColor) + '">' + compact(v) + '</text>';
+        }
+      });
       if (i % nLabel === 0 || i === n - 1) {
-        inner += '<text x="' + (x + barW / 2) + '" y="' + (h - 5) + '" text-anchor="middle" font-size="9.5" font-weight="' +
-          (hot ? 600 : 500) + '" fill="' + labelColor + '">' + xmlEscape(data.labels[i] || '') + '</text>';
+        inner += '<text x="' + (padL + slot * i + slot / 2) + '" y="' + (h - 5) + '" text-anchor="middle" font-size="9.5" font-weight="' +
+          (i === highlight ? 600 : 500) + '" fill="' + labelColor + '">' + xmlEscape(labels[i] || '') + '</text>';
       }
-    });
-
+    }
     el.innerHTML = svgOpen(w, h) + inner + '</svg>';
   }
 
-  /** 折线图；domain='minmax' 用于资产走势。 */
+  /** 折线图；支持单/多系列；domain='minmax' 用于资产走势。 */
   function line(el, data, opts) {
     if (!el) return;
     const o = opts || {};
@@ -171,31 +177,29 @@
     const padR = 8, padTop = 14, padBottom = 18;
     const plotW = w - padL - padR;
     const plotH = h - padTop - padBottom;
-    const values = data.values.map((v) => Number(v) || 0);
-    let minV = 0;
-    let maxV = Math.max.apply(null, values.concat([1]));
-    if (o.domain === 'minmax') {
-      minV = Math.min.apply(null, values);
-      maxV = Math.max.apply(null, values);
-      const pad = (maxV - minV || 1) * 0.08;
-      minV -= pad;
-      maxV += pad;
-    }
-    const range = Math.max(maxV - minV, 1e-6);
-    const n = values.length;
-    const pts = values.map((v, i) => ({
-      x: padL + (n === 1 ? plotW / 2 : (plotW * i) / (n - 1)),
-      y: padTop + plotH - ((v - minV) / range) * plotH
+    const labels = data.labels || [];
+    const series = (data.series && data.series.length ? data.series : [{ values: data.values || [], color: o.color }]).map((s) => ({
+      values: (s.values || []).map((v) => Number(v) || 0),
+      color: s.color || o.color || '#0e9f6e',
+      name: s.name || ''
     }));
-    const id = 'grad' + (++gradSeq);
-    const color = o.color || '#0e9f6e';
+    const allValues = series.reduce((arr, s) => arr.concat(s.values), []);
+    let minV = 0;
+    let maxV = Math.max.apply(null, allValues.concat([1]));
+    if (o.domain === 'minmax') {
+      minV = Math.min.apply(null, allValues);
+      maxV = Math.max.apply(null, allValues);
+      const pad = (maxV - minV || 1) * 0.08;
+      minV -= pad; maxV += pad;
+    }
+    if (series.length > 1) minV = Math.min(minV, 0);
+    const range = Math.max(maxV - minV, 1e-6);
+    const n = labels.length;
+    const xOf = (i) => padL + (n === 1 ? plotW / 2 : (plotW * i) / (n - 1));
+    const yOf = (v) => padTop + plotH - ((v - minV) / range) * plotH;
     const gridColor = o.gridColor || 'rgba(148,163,184,.16)';
     const labelColor = o.labelColor || 'rgba(100,116,139,.8)';
-
-    let inner = '<defs><linearGradient id="' + id + '" x1="0" y1="0" x2="0" y2="1">' +
-      '<stop offset="0" stop-color="' + color + '" stop-opacity="0.22"/>' +
-      '<stop offset="1" stop-color="' + color + '" stop-opacity="0"/>' +
-      '</linearGradient></defs>';
+    let inner = '';
 
     if (axis) {
       for (let i = 0; i <= 3; i++) {
@@ -208,32 +212,35 @@
       }
     }
 
-    const lineD = pts.map((p, i) => {
-      if (i === 0) return 'M' + p.x.toFixed(1) + ',' + p.y.toFixed(1);
-      const prev = pts[i - 1];
-      const mx = (prev.x + p.x) / 2;
-      return 'C' + mx.toFixed(1) + ',' + prev.y.toFixed(1) + ' ' + mx.toFixed(1) + ',' + p.y.toFixed(1) +
-        ' ' + p.x.toFixed(1) + ',' + p.y.toFixed(1);
-    }).join(' ');
-    const areaPath = lineD + ' L' + pts[n - 1].x.toFixed(1) + ',' + (padTop + plotH) +
-      ' L' + pts[0].x.toFixed(1) + ',' + (padTop + plotH) + ' Z';
-
-    inner += '<path d="' + areaPath + '" fill="url(#' + id + ')"/>' +
-      '<path d="' + lineD + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
-
-    let maxIdx = 0, minIdx = 0;
-    values.forEach((v, i) => {
-      if (v > values[maxIdx]) maxIdx = i;
-      if (v < values[minIdx]) minIdx = i;
+    series.forEach((s, si) => {
+      const pts = s.values.map((v, i) => ({ x: xOf(i), y: yOf(v) }));
+      const lineD = pts.map((p, i) => {
+        if (i === 0) return 'M' + p.x.toFixed(1) + ',' + p.y.toFixed(1);
+        const prev = pts[i - 1];
+        const mx = (prev.x + p.x) / 2;
+        return 'C' + mx.toFixed(1) + ',' + prev.y.toFixed(1) + ' ' + mx.toFixed(1) + ',' + p.y.toFixed(1) +
+          ' ' + p.x.toFixed(1) + ',' + p.y.toFixed(1);
+      }).join(' ');
+      if (series.length === 1) {
+        const id = 'grad' + (++gradSeq);
+        const areaPath = lineD + ' L' + pts[n - 1].x.toFixed(1) + ',' + (padTop + plotH) +
+          ' L' + pts[0].x.toFixed(1) + ',' + (padTop + plotH) + ' Z';
+        inner += '<defs><linearGradient id="' + id + '" x1="0" y1="0" x2="0" y2="1">' +
+          '<stop offset="0" stop-color="' + s.color + '" stop-opacity="0.22"/>' +
+          '<stop offset="1" stop-color="' + s.color + '" stop-opacity="0"/>' +
+          '</linearGradient></defs><path d="' + areaPath + '" fill="url(#' + id + ')"/>';
+      }
+      inner += '<path d="' + lineD + '" fill="none" stroke="' + s.color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+      let maxIdx = 0;
+      s.values.forEach((v, i) => { if (v > s.values[maxIdx]) maxIdx = i; });
+      if (o.dot !== false && series.length === 1) {
+        const p = pts[maxIdx];
+        inner += '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="3.2" fill="' + s.color + '" stroke="#fff" stroke-width="1.3"/>';
+      }
     });
-    if (o.dot !== false) {
-      const p = pts[maxIdx];
-      inner += '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="3.2" fill="' + color + '" stroke="#fff" stroke-width="1.3"/>';
-    }
-    inner += '<text x="' + padL + '" y="' + (h - 4) + '" font-size="9.5" fill="' + labelColor + '">' + xmlEscape(data.labels[0] || '') + '</text>' +
+    inner += '<text x="' + padL + '" y="' + (h - 4) + '" font-size="9.5" fill="' + labelColor + '">' + xmlEscape(labels[0] || '') + '</text>' +
       '<text x="' + (w - padR) + '" y="' + (h - 4) + '" text-anchor="end" font-size="9.5" fill="' + labelColor + '">' +
-      xmlEscape(data.labels[data.labels.length - 1] || '') + '</text>';
-
+      xmlEscape(labels[labels.length - 1] || '') + '</text>';
     el.innerHTML = svgOpen(w, h) + inner + '</svg>';
   }
 
