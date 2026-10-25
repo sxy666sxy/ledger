@@ -2407,3 +2407,21 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
 .bill-summary span { display: block; font-size: 9.5px; color: var(--text-3); }
 .bill-summary b { display: block; margin-top: 3px; font-size: 13.5px; font-variant-numeric: tabular-nums; }
 .bill-sheet .tx-list { margin: 0 -2px; }
+
+/* 日历月份滑动轨道 */
+.calendar-grid-card { overflow: hidden; position: relative; }
+.calendar-track {
+  display: flex;
+  width: 300%;
+  transform: translate3d(-33.3333%, 0, 0);
+  will-change: transform;
+}
+.cal-slide { flex: 0 0 33.3333%; min-width: 0; }
+.cal-slide.side { pointer-events: none; }
+.cal-slide-month {
+  text-align: center;
+  font-size: 10px;
+  color: var(--text-3);
+  font-weight: 600;
+  margin: 0 0 2px;
+}

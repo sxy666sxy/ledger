@@ -8,7 +8,7 @@
   const C = window.LedgerCore;
   const CH = window.LedgerCharts;
   const STORAGE_KEY = 'xingkong.ledger.v4';
-  const VERSION_TEXT = '2.1.6';
+  const VERSION_TEXT = '2.1.7';
   const THEMES = [
     { id: 'auto', name: '跟随系统', desc: '自动切换浅色 / 深色', emoji: '🌓', sw: 'auto' },
     { id: 'light', name: '星空浅色', desc: '靛蓝星夜', emoji: '✦', sw: 'light' },
@@ -630,47 +630,21 @@
     return '';
   }
 
-  function calendarHTML() {
-    const data = state.data;
-    const book = C.activeBook(data);
-    const month = state.calendarMonth;
-    let selected = state.calendarSelected;
-    if (C.monthKeyOf(selected) !== month) {
-      selected = month === C.thisMonthKey() ? C.todayISO() : month + '-01';
-      state.calendarSelected = selected;
-    }
-    const totals = C.monthTotals(data, book.id, month);
+  function calendarPageHTML(month, data, book, selected, showLunar, heat, today, center) {
     const daily = C.dayTotals(data, book.id, month);
-    const labels = {};
     const maxExpense = Object.keys(daily).reduce((m, d) => Math.max(m, daily[d].expense || 0), 0);
     const maxIncome = Object.keys(daily).reduce((m, d) => Math.max(m, daily[d].income || 0), 0);
-    const heat = data.settings.calendarHeat !== false;
-    const showLunar = data.settings.calendarLunar !== false;
-    const firstWeekday = C.weekdayIndex(month + '-01');
     const dim = C.daysInMonth(Number(month.slice(0, 4)), Number(month.slice(5, 7)));
-    const totalCells = Math.ceil((firstWeekday + dim) / 7) * 7;
-    const today = C.todayISO();
-    const currentMonth = C.thisMonthKey();
-    const dayList = C.sortTransactions(data.transactions.filter((t) => t.bookId === book.id && t.date === selected));
-    let selectedExpense = 0, selectedIncome = 0;
-    dayList.forEach((t) => {
-      if (t.type === 'expense') selectedExpense += C.toCents(t.amount);
-      if (t.type === 'income') selectedIncome += C.toCents(t.amount);
-    });
-
+    const first = C.weekdayIndex(month + '-01');
     let cells = '';
-    for (let i = 0; i < totalCells; i++) {
-      const dayNum = i - firstWeekday + 1;
-      if (dayNum < 1 || dayNum > dim) {
-        cells += '<span class="cal-cell empty"></span>';
-        continue;
-      }
+    for (let i = 0; i < 42; i++) {
+      const dayNum = i - first + 1;
+      if (dayNum < 1 || dayNum > dim) { cells += '<span class="cal-cell empty"></span>'; continue; }
       const day = month + '-' + pad2(dayNum);
       const rec = daily[dayNum] || { expense: 0, income: 0, count: 0 };
       const lab = C.calendarLabel(day);
-      labels[day] = lab;
       const isToday = day === today;
-      const isSelected = day === selected;
+      const isSelected = center && day === selected;
       const displayLabel = showLunar ? lab.text : (lab.festival || lab.term);
       const weekday = C.weekdayIndex(day);
       const style = calendarHeatStyle(rec.expense, rec.income, maxExpense, maxIncome, isSelected, heat);
@@ -686,6 +660,35 @@
         '<span class="cc-amounts"><i class="out">-' + shortMoney(rec.expense) + '</i><i class="in">+' + shortMoney(rec.income) + '</i></span>' +
       '</button>';
     }
+    return '<div class="cal-slide' + (center ? ' center' : ' side') + '">' +
+      '<div class="cal-slide-month">' + C.monthLabel(month) + '</div>' +
+      '<div class="cal-week"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>' +
+      '<div class="cal-grid">' + cells + '</div>' +
+    '</div>';
+  }
+
+  function calendarHTML() {
+    const data = state.data;
+    const book = C.activeBook(data);
+    const month = state.calendarMonth;
+    let selected = state.calendarSelected;
+    if (C.monthKeyOf(selected) !== month) {
+      selected = month === C.thisMonthKey() ? C.todayISO() : month + '-01';
+      state.calendarSelected = selected;
+    }
+    const totals = C.monthTotals(data, book.id, month);
+    const today = C.todayISO();
+    const currentMonth = C.thisMonthKey();
+    const heat = data.settings.calendarHeat !== false;
+    const showLunar = data.settings.calendarLunar !== false;
+    const dayList = C.sortTransactions(data.transactions.filter((t) => t.bookId === book.id && t.date === selected));
+    let selectedExpense = 0, selectedIncome = 0;
+    dayList.forEach((t) => {
+      if (t.type === 'expense') selectedExpense += C.toCents(t.amount);
+      if (t.type === 'income') selectedIncome += C.toCents(t.amount);
+    });
+    const pages = [C.addMonthsKey(month, -1), month, C.addMonthsKey(month, 1)]
+      .map((m, i) => calendarPageHTML(m, data, book, selected, showLunar, heat, today, i === 1)).join('');
 
     const dayTxHTML = dayList.length
       ? '<div class="tx-list">' + dayList.map((t) => txRowHTML(t)).join('') + '</div>'
@@ -709,8 +712,7 @@
         '</div>' +
       '</section>' +
       '<section class="calendar-grid-card">' +
-        '<div class="cal-week"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>' +
-        '<div class="cal-grid">' + cells + '</div>' +
+        '<div class="calendar-track" data-calendar-track>' + pages + '</div>' +
       '</section>' +
       '<section class="calendar-day-panel">' +
         '<div class="cal-day-head">' +
@@ -799,32 +801,57 @@
   }
 
   function wireCalendarSwipe() {
-    const grid = document.querySelector('.calendar-grid-card');
-    if (!grid || grid.dataset.swiped === '1') return;
-    grid.dataset.swiped = '1';
-    let sx = null, sy = null, horizontal = false;
-    grid.addEventListener('touchstart', (e) => {
-      sx = e.touches[0].clientX; sy = e.touches[0].clientY; horizontal = false;
+    const card = document.querySelector('.calendar-grid-card');
+    const track = card && card.querySelector('[data-calendar-track]');
+    if (!card || !track || card.dataset.swiped === '1') return;
+    card.dataset.swiped = '1';
+    let sx = null, sy = null, dx = 0, horizontal = false, animating = false;
+    let timer = null;
+    const center = 'translate3d(-33.3333%,0,0)';
+    const width = () => card.clientWidth || 320;
+
+    function reset() {
+      track.style.transition = 'transform .22s cubic-bezier(.22,.8,.28,1)';
+      track.style.transform = center;
+      horizontal = false;
+    }
+
+    card.addEventListener('touchstart', (e) => {
+      if (animating) return;
+      if (timer) { clearTimeout(timer); timer = null; }
+      sx = e.touches[0].clientX; sy = e.touches[0].clientY; dx = 0; horizontal = false;
+      track.style.transition = 'none';
     }, { passive: true });
-    grid.addEventListener('touchmove', (e) => {
-      if (sx == null) return;
-      const dx = e.touches[0].clientX - sx;
+
+    card.addEventListener('touchmove', (e) => {
+      if (sx == null || animating) return;
+      dx = e.touches[0].clientX - sx;
       const dy = e.touches[0].clientY - sy;
-      if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) {
+      if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
         horizontal = true;
         if (e.cancelable) e.preventDefault();
       }
+      if (!horizontal) return;
+      const max = width() * 0.86;
+      const clamped = Math.max(-max, Math.min(max, dx));
+      track.style.transform = 'translate3d(calc(-33.3333% + ' + clamped.toFixed(1) + 'px),0,0)';
     }, { passive: false });
-    grid.addEventListener('touchend', (e) => {
+
+    card.addEventListener('touchend', () => {
       if (sx == null) return;
-      const dx = e.changedTouches[0].clientX - sx;
-      const dy = e.changedTouches[0].clientY - sy;
+      const threshold = Math.min(72, width() * 0.18);
+      const should = horizontal && Math.abs(dx) > threshold;
       sx = null; sy = null;
-      if (horizontal && Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.2) {
-        state.suppressClickUntil = Date.now() + 350;
-        calendarStep(dx < 0 ? 1 : -1);
-      }
-      horizontal = false;
+      if (!should) { reset(); return; }
+      animating = true;
+      const dir = dx < 0 ? 1 : -1;
+      state.suppressClickUntil = Date.now() + 450;
+      track.style.transition = 'transform .24s cubic-bezier(.22,.8,.28,1)';
+      track.style.transform = dir > 0 ? 'translate3d(-66.6667%,0,0)' : 'translate3d(0%,0,0)';
+      timer = window.setTimeout(() => {
+        animating = false; timer = null;
+        calendarStep(dir);
+      }, 245);
     }, { passive: true });
   }
 
@@ -1319,20 +1346,18 @@
   function fullHeatMonth(c, year, month, type) {
     const key = year + '-' + pad2(month);
     const daily = C.dayTotals(c.data, c.book.id, key);
-    const first = C.weekdayIndex(key + '-01');
     const dim = C.daysInMonth(year, month);
     let max = 0;
     Object.keys(daily).forEach((d) => { max = Math.max(max, type === 'income' ? daily[d].income : daily[d].expense); });
     let cells = '';
-    for (let i = 0; i < 42; i++) {
-      const day = i - first + 1;
-      if (day < 1 || day > dim) { cells += '<span class="heat-full-cell empty"></span>'; continue; }
+    // 统一 5 行 x 7 列，按 1—31 日顺序排列，避免每周起始不同导致空白和长短不齐。
+    for (let day = 1; day <= 35; day++) {
+      if (day > dim) { cells += '<span class="heat-full-cell empty"></span>'; continue; }
       const rec = daily[day] || { expense: 0, income: 0 };
       const value = type === 'income' ? rec.income : rec.expense;
       cells += '<span class="heat-full-cell" style="' + heatStyle(value, max, type) + '"><b>' + day + '</b><i>' + (value ? (type === 'income' ? '+' : '-') + C.money(value, 0) : '') + '</i></span>';
     }
     return '<section class="heat-full-month"><h4>' + year + '年' + month + '月</h4>' +
-      '<div class="heat-full-week"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>' +
       '<div class="heat-full-grid">' + cells + '</div></section>';
   }
 

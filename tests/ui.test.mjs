@@ -427,7 +427,10 @@ test('日历左右滑动切换月份', async () => {
   const grid = document.querySelector('.calendar-grid-card');
   grid.dispatchEvent(touch(window, 'touchstart', 240, 420));
   grid.dispatchEvent(touch(window, 'touchmove', 90, 425));
+  const track = grid.querySelector('[data-calendar-track]');
+  assert.ok(track && track.style.transform.indexOf('calc') >= 0, '拖动时应同时露出相邻月份');
   grid.dispatchEvent(touch(window, 'touchend', 90, 425));
+  await sleep(320);
   assert.notEqual(document.querySelector('.cal-title').textContent, title, '月份应切换');
   assert.ok(document.querySelector('.calendar-grid-card'), '仍在日历页');
 });
