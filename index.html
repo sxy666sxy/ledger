@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="theme-color" content="#5b6cff" id="themeColor">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="星空记账">
+  <meta name="description" content="星空记账 · 极简本地记账。快速记账、分类图表、预算、资产、周期记账，数据只保存在本机。">
+  <title>星空记账 · 极简本地记账</title>
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+  <div id="app">
+    <header class="appbar" id="appbar"></header>
+    <main class="view" id="view" aria-live="polite"></main>
+    <nav class="tabbar" id="tabbar" aria-label="主导航"></nav>
+  </div>
+
+  <div id="overlay-root"></div>
+  <div id="toast-root" class="toast-root" role="status" aria-live="polite"></div>
+  <div id="lock-screen" class="lock-screen" hidden></div>
+
+  <noscript>
+    <div style="padding:40px;text-align:center;font-size:14px">请开启 JavaScript 后使用星空记账。</div>
+  </noscript>
+
+  <script src="assets/core.js"></script>
+  <script src="assets/charts.js"></script>
+  <script src="assets/xlsx.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>

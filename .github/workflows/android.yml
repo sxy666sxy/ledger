@@ -1,0 +1,96 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build web bundle
+        run: |
+          node build.mjs
+          mkdir -p android/app/src/main/assets
+          cp dist/*.html android/app/src/main/assets/index.html
+          ls -lh android/app/src/main/assets/index.html
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Ensure Android SDK
+        run: |
+          export ANDROID_HOME="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          export ANDROID_SDK_ROOT="$ANDROID_HOME"
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager | sort | tail -1)"
+          echo "SDKMANAGER=$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
+          "$SDKMANAGER" "platforms;android-34" "build-tools;34.0.0" "platform-tools" >/dev/null
+          echo "sdk.dir=$ANDROID_HOME" > android/local.properties
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.7'
+
+      - name: Decode signing keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          mkdir -p android/keystore
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > android/keystore/release.p12
+          test -s android/keystore/release.p12
+          ls -lh android/keystore/release.p12
+
+      - name: Build APK
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_FILE: ${{ github.workspace }}/android/keystore/release.p12
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: gradle assembleRelease --no-daemon --stacktrace
+
+      - name: Prepare artifact
+        run: |
+          mkdir -p out
+          cp android/app/build/outputs/apk/release/app-release.apk out/xingkong-ledger-v2.0.0.apk
+          ls -lh out
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: xingkong-ledger-apk
+          path: out/*.apk
+          if-no-files-found: error
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v2.0.0
+          name: 星空记账 v2.0.0
+          body: |
+            Android WebView 封装版（release 签名，可直接侧载）。
+
+            - 离线可用，数据保存在本机
+            - 新增日历页：农历 / 节假日 / 节气、热力背景、当日账单
+            - 明细支持长按多选导出/删除、下拉记一笔、账单时间与红绿金额
+            - 统计页月份左右双向切换，全局液态玻璃导航
+            - 安装后在「我的 → 数据与备份」可导出 JSON / CSV
+          files: out/xingkong-ledger-v2.0.0.apk

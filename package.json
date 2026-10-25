@@ -1,0 +1,14 @@
+{
+  "name": "xingkong-ledger",
+  "version": "2.0.0",
+  "private": true,
+  "description": "星空记账风格的单文件本地记账 Web App",
+  "scripts": {
+    "test": "node build.mjs && node tests/core.test.mjs && node tests/ui.test.mjs && node tests/xlsx.test.mjs && node tests/pwa.test.mjs && node tests/singlefile.test.mjs",
+    "build": "node build.mjs",
+    "serve": "python3 serve.py 8765"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0"
+  }
+}
