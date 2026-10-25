@@ -3,7 +3,7 @@
  * 预缓存应用外壳，离线可用；导航请求网络优先，失败回退缓存。
  * 修改前端资源后请提升 CACHE_VERSION，让旧缓存自动淘汰。
  */
-const CACHE_VERSION = 'xingkong-v2.1.1-1';
+const CACHE_VERSION = 'xingkong-v2.1.2-1';
 const CACHE_NAME = 'xingkong-cache-' + CACHE_VERSION;
 
 const PRECACHE = [

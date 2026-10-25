@@ -5,7 +5,7 @@
 
 - 仓库：<https://github.com/sxy666sxy/ledger>
 - APK 下载：<https://github.com/sxy666sxy/ledger/releases/latest>
-- 直链（v2.1.1）：<https://github.com/sxy666sxy/ledger/releases/download/v2.1.1/xingkong-ledger-v2.1.1.apk>
+- 直链（v2.1.2）：<https://github.com/sxy666sxy/ledger/releases/download/v2.1.2/xingkong-ledger-v2.1.2.apk>
 
 ## 预览
 
@@ -19,7 +19,7 @@
 
 ## 下载与安装（Android）
 
-1. 打开 [Releases](https://github.com/sxy666sxy/ledger/releases/latest)，下载 `xingkong-ledger-v2.1.1.apk`。
+1. 打开 [Releases](https://github.com/sxy666sxy/ledger/releases/latest)，下载 `xingkong-ledger-v2.1.2.apk`。
 2. 在手机上点击 APK，允许「安装未知来源应用」，安装完成即可使用。
 3. 首次打开会生成近 3 个月的示例账单，可在「我的 → 数据与备份」清空。
 
@@ -27,8 +27,8 @@
 
 - APK 是 **WebView 封装版**，不申请网络权限，完全离线。
 - v2.0.0 起更名为 **星空记账**，包名改为 `com.xingkong.ledger`，并使用新的 release 签名密钥；与 v1.x 不能覆盖升级。
-- v2.1.1 沿用同一包名与签名密钥，v2.0.0 可直接覆盖升级。
-- 从旧版升级：先在旧版「数据与备份」导出 JSON，卸载旧版，再安装 v2.1.1，最后导入 JSON。
+- v2.1.2 沿用同一包名与签名密钥，v2.0.0 可直接覆盖升级。
+- 从旧版升级：先在旧版「数据与备份」导出 JSON，卸载旧版，再安装 v2.1.2，最后导入 JSON。
 - 数据保存在 App 的 WebView `localStorage` 中，卸载会清除；重要数据请定期导出 JSON。
 - 导出 JSON / Excel / CSV 时会调用系统文件选择器（SAF）。
 
@@ -252,7 +252,8 @@ npm test
 
 ## 更新记录
 
-- v2.1.1：修复部分 Android 版本启动即退出；全屏实现改为兼容所有 API 的旧 UI flag，并移除不兼容的全屏 API 直接引用
+- v2.1.2：修复 v2.1.0 启动退出；并修正全面屏安全区把物理像素当 CSS px 使用的问题，顶部/底部间距恢复正常
+- v2.1.2 沿用同一包名与签名，可直接覆盖 v2.1.1
 
 ## 设计说明
 

@@ -8,7 +8,7 @@
   const C = window.LedgerCore;
   const CH = window.LedgerCharts;
   const STORAGE_KEY = 'xingkong.ledger.v4';
-  const VERSION_TEXT = '2.1.1';
+  const VERSION_TEXT = '2.1.2';
   const THEMES = [
     { id: 'auto', name: '跟随系统', desc: '自动切换浅色 / 深色', emoji: '🌓', sw: 'auto' },
     { id: 'light', name: '星空浅色', desc: '靛蓝星夜', emoji: '✦', sw: 'light' },
@@ -204,8 +204,10 @@
       if (!window.AndroidBridge) return;
       const st = window.AndroidBridge.getStatusBarHeight ? window.AndroidBridge.getStatusBarHeight() : 0;
       const nb = window.AndroidBridge.getNavigationBarHeight ? window.AndroidBridge.getNavigationBarHeight() : 0;
-      if (st > 0) document.documentElement.style.setProperty('--safe-t', st + 'px');
-      if (nb > 0) document.documentElement.style.setProperty('--safe-b', nb + 'px');
+      // 原生返回的是物理像素；CSS 需要 dp/CSS px，必须除以 devicePixelRatio。
+      const dpr = window.devicePixelRatio || 1;
+      if (st > 0) document.documentElement.style.setProperty('--safe-t', Math.round(st / dpr) + 'px');
+      if (nb > 0) document.documentElement.style.setProperty('--safe-b', Math.round(nb / dpr) + 'px');
     } catch (err) { /* web */ }
   }
 
