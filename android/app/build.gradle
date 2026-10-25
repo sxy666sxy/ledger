@@ -10,8 +10,8 @@ android {
         applicationId 'com.xingkong.ledger'
         minSdk 23
         targetSdk 34
-        versionCode 11
-        versionName '2.1.5'
+        versionCode 12
+        versionName '2.1.6'
     }
 
     def keystorePath = System.getenv('ANDROID_KEYSTORE_FILE')

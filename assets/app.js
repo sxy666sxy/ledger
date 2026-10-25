@@ -8,7 +8,7 @@
   const C = window.LedgerCore;
   const CH = window.LedgerCharts;
   const STORAGE_KEY = 'xingkong.ledger.v4';
-  const VERSION_TEXT = '2.1.5';
+  const VERSION_TEXT = '2.1.6';
   const THEMES = [
     { id: 'auto', name: '跟随系统', desc: '自动切换浅色 / 深色', emoji: '🌓', sw: 'auto' },
     { id: 'light', name: '星空浅色', desc: '靛蓝星夜', emoji: '✦', sw: 'light' },
@@ -1324,7 +1324,7 @@
     let max = 0;
     Object.keys(daily).forEach((d) => { max = Math.max(max, type === 'income' ? daily[d].income : daily[d].expense); });
     let cells = '';
-    for (let i = 0; i < Math.ceil((first + dim) / 7) * 7; i++) {
+    for (let i = 0; i < 42; i++) {
       const day = i - first + 1;
       if (day < 1 || day > dim) { cells += '<span class="heat-full-cell empty"></span>'; continue; }
       const rec = daily[day] || { expense: 0, income: 0 };
