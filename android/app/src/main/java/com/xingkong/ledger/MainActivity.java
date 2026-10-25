@@ -10,8 +10,6 @@ import android.os.Bundle;
 import android.util.Base64;
 import android.view.View;
 import android.view.Window;
-import android.view.WindowInsets;
-import android.view.WindowInsetsController;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -43,25 +41,26 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        Window window = getWindow();
-        if (Build.VERSION.SDK_INT >= 30) {
-            window.setDecorFitsSystemWindows(false);
+        try {
+            Window window = getWindow();
             window.setStatusBarColor(Color.TRANSPARENT);
             window.setNavigationBarColor(Color.TRANSPARENT);
-            if (Build.VERSION.SDK_INT >= 29) window.setNavigationBarContrastEnforced(false);
-            WindowInsetsController controller = window.getInsetsController();
-            if (controller != null) {
-                controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+            // 全面屏：只使用各版本都存在的旧 UI flag；API 30+ 用反射，避免类校验崩溃。
+            int uiFlags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE |
+                          View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+                          View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
+                          View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                uiFlags |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
             }
-        } else {
-            window.getDecorView().setSystemUiVisibility(
-                View.SYSTEM_UI_FLAG_LAYOUT_STABLE |
-                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
-                View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-            );
-            window.setStatusBarColor(Color.TRANSPARENT);
-            window.setNavigationBarColor(Color.TRANSPARENT);
-        }
+            window.getDecorView().setSystemUiVisibility(uiFlags);
+            if (Build.VERSION.SDK_INT >= 30) {
+                try {
+                    java.lang.reflect.Method m = Window.class.getMethod("setDecorFitsSystemWindows", boolean.class);
+                    m.invoke(window, false);
+                } catch (Throwable ignored) { }
+            }
+        } catch (Throwable ignored) { }
 
         webView = new WebView(this);
         webView.setBackgroundColor(Color.TRANSPARENT);
@@ -208,25 +207,21 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void setSystemBars(final boolean dark) {
             runOnUiThread(() -> {
+                try {
                 Window window = getWindow();
-                if (Build.VERSION.SDK_INT >= 30) {
-                    WindowInsetsController controller = window.getInsetsController();
-                    if (controller != null) {
-                        int mask = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS |
-                                   WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
-                        controller.setSystemBarsAppearance(dark ? 0 : mask, mask);
+                int flags = window.getDecorView().getSystemUiVisibility();
+                flags &= ~(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+                if (!dark) {
+                    flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        flags |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
                     }
-                } else {
-                    int flags = window.getDecorView().getSystemUiVisibility();
-                    flags &= ~(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
-                    if (!dark) {
-                        flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
-                    }
-                    flags |= View.SYSTEM_UI_FLAG_LAYOUT_STABLE |
-                             View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
-                             View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
-                    window.getDecorView().setSystemUiVisibility(flags);
                 }
+                flags |= View.SYSTEM_UI_FLAG_LAYOUT_STABLE |
+                         View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+                         View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
+                window.getDecorView().setSystemUiVisibility(flags);
+                } catch (Throwable ignored) { }
             });
         }
 
