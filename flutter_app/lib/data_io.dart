@@ -269,6 +269,9 @@ ExcelImportResult importExcelBytes(AppStore store, List<int> bytes) {
       createdAt: DateTime.now().millisecondsSinceEpoch,
     ));
   }
-  if (imported.isNotEmpty) store.importTransactions(imported);
-  return ExcelImportResult(imported: imported.length, skipped: skipped);
+  final inserted = imported.isEmpty ? 0 : store.importTransactions(imported);
+  return ExcelImportResult(
+    imported: inserted,
+    skipped: skipped + (imported.length - inserted),
+  );
 }

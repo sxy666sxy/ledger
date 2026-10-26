@@ -659,10 +659,24 @@ class AppStore extends ChangeNotifier {
     save();
   }
 
-  void importTransactions(List<Txn> list) {
-    transactions.addAll(list);
+  int importTransactions(List<Txn> list) {
+    final seen = transactions.map(_importKey).toSet();
+    final added = <Txn>[];
+    for (final t in list) {
+      final key = _importKey(t);
+      if (seen.contains(key)) continue;
+      seen.add(key);
+      added.add(t);
+    }
+    transactions.addAll(added);
     notifyListeners();
     save();
+    return added.length;
+  }
+
+  String _importKey(Txn t) {
+    return '${t.date}|${t.type.name}|${t.amount.toStringAsFixed(2)}|'
+        '${t.categoryId}|${t.accountId}|${t.toAccountId}|${t.note}';
   }
 
   void importJsonString(String raw) {
