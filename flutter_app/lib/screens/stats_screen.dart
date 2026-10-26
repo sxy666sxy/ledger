@@ -455,24 +455,30 @@ class _StatsScreenState extends State<StatsScreen>
   }
 
   Widget _summaryCard(BuildContext context, String prefix, MoneyTotals totals) {
+    final fg = themeHeroFg(context);
     return ThemeHeroCard(
       radius: 22,
       child: Row(
         children: [
-          _summary('$prefix支出', formatMoney(totals.expense), Colors.white),
-          _summary('$prefix收入', formatMoney(totals.income), const Color(0xFF8FE3C8)),
-          _summary('$prefix结余', formatMoney(totals.balance), Colors.white),
+          _summary(context, '$prefix支出', formatMoney(totals.expense), fg),
+          _summary(context, '$prefix收入', formatMoney(totals.income), themeHeroIncome(context)),
+          _summary(context, '$prefix结余', formatMoney(totals.balance), fg),
         ],
       ),
     );
   }
 
-  Widget _summary(String label, String value, Color color) {
+  Widget _summary(
+    BuildContext context,
+    String label,
+    String value,
+    Color color,
+  ) {
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: Colors.white54, fontSize: 10)),
+          Text(label, style: TextStyle(color: themeHeroMuted(context), fontSize: 10)),
           const SizedBox(height: 4),
           Text(value, style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.w800)),
         ],
@@ -522,11 +528,11 @@ class _StatsScreenState extends State<StatsScreen>
             const SizedBox(height: 12),
             LayoutBuilder(
               builder: (context, constraints) {
-                final dense = values.length > 14;
-                final chartWidth =
-                    dense ? values.length * 22.0 : constraints.maxWidth;
+                final effectiveLabelEvery = values.length > 14
+                    ? (values.length / 6).ceil()
+                    : labelEvery;
                 final chart = SizedBox(
-                  width: chartWidth,
+                  width: constraints.maxWidth,
                   height: 150,
                   child: AnimatedBuilder(
                     animation: _growthController,
@@ -537,7 +543,7 @@ class _StatsScreenState extends State<StatsScreen>
                               labels: labels,
                               color: color,
                               textColor: Colors.grey.shade600,
-                              labelEvery: labelEvery,
+                              labelEvery: effectiveLabelEvery,
                               progress: _growthController.value,
                             )
                           : _BarsPainter(
@@ -545,22 +551,18 @@ class _StatsScreenState extends State<StatsScreen>
                               labels: labels,
                               color: color,
                               textColor: Colors.grey.shade600,
-                              labelEvery: labelEvery,
+                              labelEvery: effectiveLabelEvery,
                               progress: _growthController.value,
                             ),
                     ),
                   ),
                 );
-                if (!dense) return chart;
-                return SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: chart,
-                );
+                return chart;
               },
             ),
             const SizedBox(height: 4),
             Text(
-              '单位：${unit ?? (_view == _StatsView.year ? (_yearAll ? '年' : '月') : '日')} · 点击柱/点查看明细${values.length > 14 ? ' · 左右滑动' : ''}',
+              '单位：${unit ?? (_view == _StatsView.year ? (_yearAll ? '年' : '月') : '日')} · 点击柱/点查看明细',
               style: TextStyle(fontSize: 9, color: Colors.grey.shade600),
             ),
             const SizedBox(height: 5),

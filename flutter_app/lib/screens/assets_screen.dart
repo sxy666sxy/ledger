@@ -24,6 +24,8 @@ class AssetsScreen extends StatelessWidget {
         final debts = accounts
             .where((a) => a.include && store.accountBalance(a) < 0)
             .fold<double>(0, (s, a) => s + store.accountBalance(a).abs());
+        final heroFg = themeHeroFg(context);
+        final heroMuted = themeHeroMuted(context);
         return SafeArea(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
@@ -34,18 +36,18 @@ class AssetsScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('净资产', style: TextStyle(color: Colors.white60, fontSize: 11)),
+                    Text('净资产', style: TextStyle(color: heroMuted, fontSize: 11)),
                     const SizedBox(height: 4),
                     Text(
                       formatMoney(net),
-                      style: const TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.w800, letterSpacing: -1),
+                      style: TextStyle(color: heroFg, fontSize: 34, fontWeight: FontWeight.w800, letterSpacing: -1),
                     ),
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        Expanded(child: _heroCell('总资产', formatMoney(totalAssets))),
-                        Expanded(child: _heroCell('总负债', formatMoney(debts))),
-                        Expanded(child: _heroCell('账户', '${accounts.length} 个')),
+                        Expanded(child: _heroCell(context, '总资产', formatMoney(totalAssets))),
+                        Expanded(child: _heroCell(context, '总负债', formatMoney(debts))),
+                        Expanded(child: _heroCell(context, '账户', '${accounts.length} 个')),
                       ],
                     ),
                   ],
@@ -132,13 +134,13 @@ class AssetsScreen extends StatelessWidget {
     );
   }
 
-  Widget _heroCell(String label, String value) {
+  Widget _heroCell(BuildContext context, String label, String value) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: Colors.white54, fontSize: 10)),
+        Text(label, style: TextStyle(color: themeHeroMuted(context), fontSize: 10)),
         const SizedBox(height: 2),
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+        Text(value, style: TextStyle(color: themeHeroFg(context), fontSize: 13, fontWeight: FontWeight.w700)),
       ],
     );
   }

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 
@@ -80,22 +81,50 @@ double themeHeroRadius(double base) {
   }
 }
 
+bool themeHeroIsGlass() => AppStore.instance.cardStyle == 'glass';
+
+/// 顶部汇总卡在玻璃样式下改用深色/浅色表面字色，保证可读性。
+Color themeHeroFg(BuildContext context) =>
+    themeHeroIsGlass() ? Theme.of(context).colorScheme.onSurface : Colors.white;
+
+Color themeHeroMuted(BuildContext context) => themeHeroIsGlass()
+    ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55)
+    : Colors.white.withValues(alpha: 0.54);
+
+Color themeHeroIncome(BuildContext context) => themeHeroIsGlass()
+    ? const Color(0xFF0E9F6E)
+    : const Color(0xFF8FE3C8);
+
 BoxDecoration themeHeroDecoration(BuildContext context, {double radius = 22}) {
   final colors = themeHeroColors(context);
   final style = AppStore.instance.cardStyle;
   final custom = AppStore.instance.themeId == 'custom';
-  final translucent = custom || style == 'glass';
   final effectiveRadius = themeHeroRadius(radius);
+  if (style == 'glass') {
+    final scheme = Theme.of(context).colorScheme;
+    return BoxDecoration(
+      color: scheme.surface.withValues(alpha: 0.55),
+      borderRadius: BorderRadius.circular(effectiveRadius),
+      border: Border.all(color: Colors.white.withValues(alpha: 0.45)),
+      boxShadow: [
+        BoxShadow(
+          color: scheme.shadow.withValues(alpha: 0.10),
+          blurRadius: 18,
+          offset: const Offset(0, 8),
+        ),
+      ],
+    );
+  }
   return BoxDecoration(
     borderRadius: BorderRadius.circular(effectiveRadius),
     gradient: LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
       colors: colors
-          .map((c) => translucent ? c.withValues(alpha: custom ? 0.78 : 0.88) : c)
+          .map((c) => custom ? c.withValues(alpha: 0.78) : c)
           .toList(growable: false),
     ),
-    border: translucent
+    border: custom
         ? Border.all(color: Colors.white.withValues(alpha: 0.28))
         : null,
     boxShadow: style == 'minimal'
@@ -127,20 +156,31 @@ class ThemeHeroCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final style = AppStore.instance.cardStyle;
     final effectiveRadius = themeHeroRadius(radius);
-    return Container(
+    final content = Container(
       decoration: themeHeroDecoration(context, radius: radius),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(effectiveRadius),
         child: Stack(
           children: [
-            Positioned.fill(
-              child: IgnorePointer(
-                child: CustomPaint(painter: _ThemeHeroArtPainter(style: style)),
+            if (style != 'glass')
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(
+                    painter: _ThemeHeroArtPainter(style: style),
+                  ),
+                ),
               ),
-            ),
             Padding(padding: padding, child: child),
           ],
         ),
+      ),
+    );
+    if (style != 'glass') return content;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(effectiveRadius),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: content,
       ),
     );
   }
