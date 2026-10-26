@@ -145,6 +145,7 @@ class Txn {
     required this.amount,
     required this.categoryId,
     required this.accountId,
+    this.toAccountId = '',
     required this.bookId,
     this.subcategory = '',
     this.note = '',
@@ -269,7 +270,6 @@ class RecurringRule {
   double amount;
   String categoryId;
   String accountId;
-  String toAccountId;
   String bookId;
   String frequency;
   String startDate;
