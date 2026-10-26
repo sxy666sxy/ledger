@@ -180,9 +180,21 @@ class _OrbitMonthCardState extends State<OrbitMonthCard> {
                   const SizedBox(height: 5),
                   Row(
                     children: [
-                      _tiny('收入', formatMoney(widget.totals.income, symbol: false)),
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: _tiny('收入', formatMoney(widget.totals.income, symbol: false)),
+                        ),
+                      ),
                       const SizedBox(width: 9),
-                      _tiny('结余', formatMoney(widget.totals.balance, symbol: false)),
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: _tiny('结余', formatMoney(widget.totals.balance, symbol: false)),
+                        ),
+                      ),
                     ],
                   ),
                 ],
