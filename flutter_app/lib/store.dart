@@ -340,6 +340,13 @@ class AppStore extends ChangeNotifier {
     save();
   }
 
+  void updateBook(Book book) {
+    final index = books.indexWhere((b) => b.id == book.id);
+    if (index >= 0) books[index] = book;
+    notifyListeners();
+    save();
+  }
+
   void setActiveBook(String id) {
     activeBookId = id;
     notifyListeners();

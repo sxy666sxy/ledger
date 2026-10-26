@@ -41,7 +41,14 @@ jobs:
           rm -rf flutter_app/android
           cp -R /tmp/xk_flutter_android/android flutter_app/android
 
-      - name: Patch Android label
+      - name: Decode signing keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/xk-release.jks"
+          ls -lh "$RUNNER_TEMP/xk-release.jks"
+
+      - name: Patch Android label/icon/signing
         run: python3 tool/patch_android.py
 
       - name: Get dependencies
@@ -54,32 +61,38 @@ jobs:
         run: flutter test
 
       - name: Build release APK
+        env:
+          XK_KEYSTORE_PATH: ${{ runner.temp }}/xk-release.jks
+          XK_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          XK_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          XK_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: flutter build apk --release
 
       - name: Prepare asset
         run: |
           mkdir -p ../dist_flutter
-          cp build/app/outputs/flutter-apk/app-release.apk "../dist_flutter/星空记账-flutter-v0.1.0.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "../dist_flutter/星空记账-flutter-v0.2.0.apk"
           ls -lh ../dist_flutter
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: xingkong-flutter-v0.1.0
-          path: dist_flutter/星空记账-flutter-v0.1.0.apk
+          name: xingkong-flutter-v0.2.0
+          path: dist_flutter/星空记账-flutter-v0.2.0.apk
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: flutter-v0.1.0
-          name: 星空记账 Flutter v0.1.0（核心记账版）
+          tag_name: flutter-v0.2.0
+          name: 星空记账 Flutter v0.2.0（核心记账版）
           body: |
-            纯 Flutter 原生重写第一阶段：核心记账。
+            纯 Flutter 原生重写：核心记账 + 分类管理 + 预算。
             - 明细 / 记账 / 日历 / 月统计 / 资产 / 我的
-            - 本地存储、账户余额、分类统计
+            - 分类管理、月预算、账户余额、分类统计
+            - 使用固定发布签名，后续版本可直接覆盖升级
             - 与原 WebView 版为不同包名，可并存安装
             后续阶段迁移：年统计、热力图、主题/自定义图片、Excel 导入导出、周期记账。
-          files: dist_flutter/星空记账-flutter-v0.1.0.apk
+          files: dist_flutter/星空记账-flutter-v0.2.0.apk
           draft: false
           prerelease: true
           allowUpdates: true

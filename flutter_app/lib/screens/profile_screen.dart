@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../store.dart';
 import '../utils.dart';
+import 'budget_screen.dart';
+import 'categories_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -62,7 +64,7 @@ class ProfileScreen extends StatelessWidget {
                         color: Colors.white.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(99),
                       ),
-                      child: const Text('v0.1.0', style: TextStyle(color: Colors.white70, fontSize: 9)),
+                      child: Text('v$appVersion', style: const TextStyle(color: Colors.white70, fontSize: 9)),
                     ),
                   ],
                 ),
@@ -81,7 +83,7 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 14),
-              const _SectionTitle('偏好'),
+              const _SectionTitle('账本与偏好'),
               Card(
                 child: Column(
                   children: [
@@ -93,8 +95,28 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     const Divider(height: 1),
                     ListTile(
+                      leading: const _MenuIcon('🏷️'),
+                      title: const Text('分类管理'),
+                      subtitle: Text('${store.categories.length} 个分类'),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const CategoriesScreen()),
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const _MenuIcon('🎯'),
+                      title: const Text('预算设置'),
+                      subtitle: Text(store.activeBook.budget > 0
+                          ? '每月 ${formatMoney(store.activeBook.budget)}'
+                          : '未设置'),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const BudgetScreen()),
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
                       leading: const _MenuIcon('📒'),
-                      title: const Text('账本'),
+                      title: const Text('当前账本'),
                       subtitle: Text(store.activeBook.name),
                       onTap: () {},
                     ),
@@ -128,11 +150,11 @@ class ProfileScreen extends StatelessWidget {
                 child: ListTile(
                   leading: const _MenuIcon('✦'),
                   title: const Text('星空记账 Flutter'),
-                  subtitle: const Text('核心版 v0.1.0 · 纯 Flutter 原生'),
+                  subtitle: Text('核心版 v$appVersion · 纯 Flutter 原生'),
                   onTap: () => showAboutDialog(
                     context: context,
                     applicationName: '星空记账',
-                    applicationVersion: '0.1.0',
+                    applicationVersion: appVersion,
                     applicationLegalese: '本地记账，数据自持。',
                   ),
                 ),
