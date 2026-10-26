@@ -1,0 +1,207 @@
+import 'dart:convert';
+
+enum TxnType { expense, income }
+
+TxnType txnTypeFromString(String? value) {
+  return value == 'income' ? TxnType.income : TxnType.expense;
+}
+
+String txnTypeString(TxnType type) => type == TxnType.income ? 'income' : 'expense';
+
+class Book {
+  Book({
+    required this.id,
+    required this.name,
+    this.icon = '📒',
+    this.color = 0xFF0E9F6E,
+    this.budget = 0,
+  });
+
+  String id;
+  String name;
+  String icon;
+  int color;
+  double budget;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'icon': icon,
+        'color': color,
+        'budget': budget,
+      };
+
+  factory Book.fromJson(Map<String, dynamic> map) => Book(
+        id: map['id'] as String? ?? 'b_main',
+        name: map['name'] as String? ?? '日常账本',
+        icon: map['icon'] as String? ?? '📒',
+        color: (map['color'] as num?)?.toInt() ?? 0xFF0E9F6E,
+        budget: (map['budget'] as num?)?.toDouble() ?? 0,
+      );
+}
+
+class Category {
+  Category({
+    required this.id,
+    required this.name,
+    required this.type,
+    this.icon = '🏷️',
+    this.color = 0xFF94A3B8,
+    this.order = 0,
+  });
+
+  String id;
+  String name;
+  TxnType type;
+  String icon;
+  int color;
+  int order;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'type': txnTypeString(type),
+        'icon': icon,
+        'color': color,
+        'order': order,
+      };
+
+  factory Category.fromJson(Map<String, dynamic> map) => Category(
+        id: map['id'] as String? ?? '',
+        name: map['name'] as String? ?? '未分类',
+        type: txnTypeFromString(map['type'] as String?),
+        icon: map['icon'] as String? ?? '🏷️',
+        color: (map['color'] as num?)?.toInt() ?? 0xFF94A3B8,
+        order: (map['order'] as num?)?.toInt() ?? 0,
+      );
+}
+
+class Account {
+  Account({
+    required this.id,
+    required this.name,
+    this.type = 'other',
+    this.icon = '💳',
+    this.color = 0xFF5B6CFF,
+    this.initial = 0,
+    this.include = true,
+    this.bookkeeping = true,
+    this.order = 0,
+  });
+
+  String id;
+  String name;
+  String type;
+  String icon;
+  int color;
+  double initial;
+  bool include;
+  bool bookkeeping;
+  int order;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'type': type,
+        'icon': icon,
+        'color': color,
+        'initial': initial,
+        'include': include,
+        'bookkeeping': bookkeeping,
+        'order': order,
+      };
+
+  factory Account.fromJson(Map<String, dynamic> map) => Account(
+        id: map['id'] as String? ?? '',
+        name: map['name'] as String? ?? '账户',
+        type: map['type'] as String? ?? 'other',
+        icon: map['icon'] as String? ?? '💳',
+        color: (map['color'] as num?)?.toInt() ?? 0xFF5B6CFF,
+        initial: (map['initial'] as num?)?.toDouble() ?? 0,
+        include: map['include'] != false,
+        bookkeeping: map['bookkeeping'] != false,
+        order: (map['order'] as num?)?.toInt() ?? 0,
+      );
+}
+
+class Txn {
+  Txn({
+    required this.id,
+    required this.date,
+    required this.time,
+    required this.type,
+    required this.amount,
+    required this.categoryId,
+    required this.accountId,
+    required this.bookId,
+    this.subcategory = '',
+    this.note = '',
+    this.tags = const [],
+    this.refund = 0,
+    this.discount = 0,
+    this.reimburseAmount = 0,
+    this.reimburseAccountId = '',
+    this.createdAt = 0,
+  });
+
+  String id;
+  String date;
+  String time;
+  TxnType type;
+  double amount;
+  String categoryId;
+  String subcategory;
+  String accountId;
+  String bookId;
+  String note;
+  List<String> tags;
+  double refund;
+  double discount;
+  double reimburseAmount;
+  String reimburseAccountId;
+  int createdAt;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'date': date,
+        'time': time,
+        'type': txnTypeString(type),
+        'amount': amount,
+        'categoryId': categoryId,
+        'subcategory': subcategory,
+        'accountId': accountId,
+        'bookId': bookId,
+        'note': note,
+        'tags': tags,
+        'refund': refund,
+        'discount': discount,
+        'reimburseAmount': reimburseAmount,
+        'reimburseAccountId': reimburseAccountId,
+        'createdAt': createdAt,
+      };
+
+  factory Txn.fromJson(Map<String, dynamic> map) => Txn(
+        id: map['id'] as String? ?? '',
+        date: map['date'] as String? ?? '1970-01-01',
+        time: map['time'] as String? ?? '12:00',
+        type: txnTypeFromString(map['type'] as String?),
+        amount: (map['amount'] as num?)?.toDouble() ?? 0,
+        categoryId: map['categoryId'] as String? ?? '',
+        subcategory: map['subcategory'] as String? ?? '',
+        accountId: map['accountId'] as String? ?? '',
+        bookId: map['bookId'] as String? ?? '',
+        note: map['note'] as String? ?? '',
+        tags: (map['tags'] as List?)?.whereType<String>().toList() ?? const [],
+        refund: (map['refund'] as num?)?.toDouble() ?? 0,
+        discount: (map['discount'] as num?)?.toDouble() ?? 0,
+        reimburseAmount: (map['reimburseAmount'] as num?)?.toDouble() ?? 0,
+        reimburseAccountId: map['reimburseAccountId'] as String? ?? '',
+        createdAt: (map['createdAt'] as num?)?.toInt() ?? 0,
+      );
+}
+
+Map<String, dynamic> decodeJsonMap(String value) {
+  final decoded = jsonDecode(value);
+  if (decoded is Map<String, dynamic>) return decoded;
+  return <String, dynamic>{};
+}

@@ -1,0 +1,85 @@
+name: Build Flutter APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'flutter_app/**'
+      - '.github/workflows/flutter.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: flutter_app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.35.1'
+          cache: true
+
+      - name: Generate Android platform
+        run: |
+          cd ..
+          flutter create --platforms=android --org com.xingkong --project-name xingkong_ledger /tmp/xk_flutter_android
+          rm -rf flutter_app/android
+          cp -R /tmp/xk_flutter_android/android flutter_app/android
+
+      - name: Patch Android label
+        run: python3 tool/patch_android.py
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Test
+        run: flutter test
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Prepare asset
+        run: |
+          mkdir -p ../dist_flutter
+          cp build/app/outputs/flutter-apk/app-release.apk "../dist_flutter/星空记账-flutter-v0.1.0.apk"
+          ls -lh ../dist_flutter
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: xingkong-flutter-v0.1.0
+          path: dist_flutter/星空记账-flutter-v0.1.0.apk
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: flutter-v0.1.0
+          name: 星空记账 Flutter v0.1.0（核心记账版）
+          body: |
+            纯 Flutter 原生重写第一阶段：核心记账。
+            - 明细 / 记账 / 日历 / 月统计 / 资产 / 我的
+            - 本地存储、账户余额、分类统计
+            - 与原 WebView 版为不同包名，可并存安装
+            后续阶段迁移：年统计、热力图、主题/自定义图片、Excel 导入导出、周期记账。
+          files: dist_flutter/星空记账-flutter-v0.1.0.apk
+          draft: false
+          prerelease: true
+          allowUpdates: true

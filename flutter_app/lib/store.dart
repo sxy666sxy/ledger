@@ -1,0 +1,364 @@
+import 'dart:convert';
+import 'dart:math';
+
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'models.dart';
+import 'utils.dart';
+
+class MoneyTotals {
+  const MoneyTotals({this.expense = 0, this.income = 0});
+  final double expense;
+  final double income;
+  double get balance => income - expense;
+}
+
+class CategoryTotal {
+  const CategoryTotal({required this.category, required this.value, required this.count});
+  final Category category;
+  final double value;
+  final int count;
+}
+
+class AppStore extends ChangeNotifier {
+  AppStore._();
+
+  static final AppStore instance = AppStore._();
+  static const String _storageKey = 'xingkong.flutter.v1';
+
+  late SharedPreferences _prefs;
+  bool loaded = false;
+  List<Book> books = [];
+  String activeBookId = 'b_main';
+  List<Category> categories = [];
+  List<Account> accounts = [];
+  List<Txn> transactions = [];
+  ThemeMode themeMode = ThemeMode.system;
+
+  Book get activeBook {
+    for (final book in books) {
+      if (book.id == activeBookId) return book;
+    }
+    if (books.isNotEmpty) return books.first;
+    final fallback = Book(id: 'b_main', name: '日常账本');
+    books = [fallback];
+    activeBookId = fallback.id;
+    return fallback;
+  }
+
+  List<Category> categoriesFor(TxnType type) {
+    final list = categories.where((c) => c.type == type).toList()
+      ..sort((a, b) => a.order.compareTo(b.order));
+    return list;
+  }
+
+  List<Account> get bookkeepingAccounts =>
+      accounts.where((a) => a.bookkeeping).toList();
+
+  Category? categoryById(String id) {
+    for (final c in categories) {
+      if (c.id == id) return c;
+    }
+    return null;
+  }
+
+  Account? accountById(String id) {
+    for (final a in accounts) {
+      if (a.id == id) return a;
+    }
+    return null;
+  }
+
+  List<Txn> get activeTransactions =>
+      transactions.where((t) => t.bookId == activeBookId).toList()
+        ..sort(_sortTxn);
+
+  int _sortTxn(Txn a, Txn b) {
+    final d = b.date.compareTo(a.date);
+    if (d != 0) return d;
+    final t = b.time.compareTo(a.time);
+    if (t != 0) return t;
+    return b.createdAt.compareTo(a.createdAt);
+  }
+
+  List<Txn> txnsForMonth(DateTime month) {
+    final prefix = monthKey(month);
+    final list = transactions
+        .where((t) => t.bookId == activeBookId && t.date.startsWith(prefix))
+        .toList()
+      ..sort(_sortTxn);
+    return list;
+  }
+
+  List<Txn> txnsForDate(String date) {
+    final list = transactions
+        .where((t) => t.bookId == activeBookId && t.date == date)
+        .toList()
+      ..sort(_sortTxn);
+    return list;
+  }
+
+  MoneyTotals totalsForMonth(DateTime month) {
+    double expense = 0;
+    double income = 0;
+    for (final t in txnsForMonth(month)) {
+      if (t.type == TxnType.expense) {
+        expense += t.amount;
+      } else {
+        income += t.amount;
+      }
+    }
+    return MoneyTotals(expense: expense, income: income);
+  }
+
+  double accountBalance(Account account) {
+    double value = account.initial;
+    for (final t in transactions) {
+      if (t.accountId != account.id) continue;
+      if (t.type == TxnType.expense) {
+        value -= t.amount;
+      } else {
+        value += t.amount;
+      }
+    }
+    return value;
+  }
+
+  double get netAssets {
+    double value = 0;
+    for (final a in accounts) {
+      if (a.include) value += accountBalance(a);
+    }
+    return value;
+  }
+
+  Map<String, double> dailyExpense(DateTime month) {
+    final result = <String, double>{};
+    for (final t in txnsForMonth(month)) {
+      if (t.type != TxnType.expense) continue;
+      result[t.date] = (result[t.date] ?? 0) + t.amount;
+    }
+    return result;
+  }
+
+  Map<String, double> dailyIncome(DateTime month) {
+    final result = <String, double>{};
+    for (final t in txnsForMonth(month)) {
+      if (t.type != TxnType.income) continue;
+      result[t.date] = (result[t.date] ?? 0) + t.amount;
+    }
+    return result;
+  }
+
+  List<CategoryTotal> categoryTotals(DateTime month, TxnType type) {
+    final map = <String, CategoryTotal>{};
+    for (final t in txnsForMonth(month)) {
+      if (t.type != type) continue;
+      final category = categoryById(t.categoryId) ??
+          Category(id: t.categoryId, name: '未分类', type: type);
+      final old = map[category.id];
+      map[category.id] = CategoryTotal(
+        category: category,
+        value: (old?.value ?? 0) + t.amount,
+        count: (old?.count ?? 0) + 1,
+      );
+    }
+    final list = map.values.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    return list;
+  }
+
+  Future<void> load() async {
+    _prefs = await SharedPreferences.getInstance();
+    final raw = _prefs.getString(_storageKey);
+    if (raw == null || raw.isEmpty) {
+      _seed();
+    } else {
+      try {
+        _readJson(jsonDecode(raw) as Map<String, dynamic>);
+      } catch (_) {
+        _seed();
+      }
+    }
+    if (books.isEmpty) _seed();
+    loaded = true;
+    notifyListeners();
+  }
+
+  void _seed() {
+    books = [Book(id: 'b_main', name: '日常账本')];
+    activeBookId = 'b_main';
+    categories = [
+      Category(id: 'c_food', name: '餐饮', type: TxnType.expense, icon: '🍜', color: 0xFFF59E0B, order: 0),
+      Category(id: 'c_shop', name: '购物', type: TxnType.expense, icon: '🛍️', color: 0xFFEC4899, order: 1),
+      Category(id: 'c_transport', name: '交通', type: TxnType.expense, icon: '🚌', color: 0xFF3B82F6, order: 2),
+      Category(id: 'c_home', name: '居住', type: TxnType.expense, icon: '🏠', color: 0xFF8B5CF6, order: 3),
+      Category(id: 'c_fun', name: '娱乐', type: TxnType.expense, icon: '🎮', color: 0xFF14B8A6, order: 4),
+      Category(id: 'c_health', name: '医疗', type: TxnType.expense, icon: '💊', color: 0xFFEF4444, order: 5),
+      Category(id: 'c_study', name: '学习', type: TxnType.expense, icon: '📚', color: 0xFF06B6D4, order: 6),
+      Category(id: 'c_phone', name: '通讯', type: TxnType.expense, icon: '📱', color: 0xFF6366F1, order: 7),
+      Category(id: 'c_pet', name: '宠物', type: TxnType.expense, icon: '🐶', color: 0xFFB45309, order: 8),
+      Category(id: 'c_other', name: '其他', type: TxnType.expense, icon: '🏷️', color: 0xFF94A3B8, order: 9),
+      Category(id: 'i_salary', name: '工资', type: TxnType.income, icon: '💼', color: 0xFF0E9F6E, order: 0),
+      Category(id: 'i_invest', name: '理财', type: TxnType.income, icon: '📈', color: 0xFF3B82F6, order: 1),
+      Category(id: 'i_part', name: '兼职', type: TxnType.income, icon: '💻', color: 0xFF8B5CF6, order: 2),
+      Category(id: 'i_gift', name: '红包', type: TxnType.income, icon: '🧧', color: 0xFFEF4444, order: 3),
+      Category(id: 'i_other', name: '其他收入', type: TxnType.income, icon: '💰', color: 0xFF94A3B8, order: 4),
+    ];
+    accounts = [
+      Account(id: 'a_cash', name: '现金', type: 'cash', icon: '💵', color: 0xFF10B981, order: 0),
+      Account(id: 'a_alipay', name: '支付宝', type: 'alipay', icon: '🔵', color: 0xFF3B82F6, order: 1),
+      Account(id: 'a_wechat', name: '微信', type: 'wechat', icon: '💚', color: 0xFF22C55E, order: 2),
+      Account(id: 'a_bank', name: '银行卡', type: 'bank', icon: '💳', color: 0xFF8B5CF6, order: 3),
+    ];
+    transactions = [];
+    themeMode = ThemeMode.system;
+  }
+
+  void _readJson(Map<String, dynamic> map) {
+    books = (map['books'] as List? ?? [])
+        .whereType<Map>()
+        .map((e) => Book.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
+    if (books.isEmpty) books = [Book(id: 'b_main', name: '日常账本')];
+    activeBookId = map['activeBookId'] as String? ?? books.first.id;
+    categories = (map['categories'] as List? ?? [])
+        .whereType<Map>()
+        .map((e) => Category.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
+    if (categories.isEmpty) {
+      _seed();
+      return;
+    }
+    accounts = (map['accounts'] as List? ?? [])
+        .whereType<Map>()
+        .map((e) => Account.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
+    if (accounts.isEmpty) {
+      accounts = [Account(id: 'a_cash', name: '现金', type: 'cash', icon: '💵')];
+    }
+    transactions = (map['transactions'] as List? ?? [])
+        .whereType<Map>()
+        .map((e) => Txn.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
+    final theme = map['themeMode'] as String? ?? 'system';
+    themeMode = theme == 'dark'
+        ? ThemeMode.dark
+        : theme == 'light'
+            ? ThemeMode.light
+            : ThemeMode.system;
+  }
+
+  Map<String, dynamic> _toJson() => {
+        'version': 1,
+        'books': books.map((e) => e.toJson()).toList(),
+        'activeBookId': activeBookId,
+        'categories': categories.map((e) => e.toJson()).toList(),
+        'accounts': accounts.map((e) => e.toJson()).toList(),
+        'transactions': transactions.map((e) => e.toJson()).toList(),
+        'themeMode': themeMode.name,
+      };
+
+  Future<void> save() async {
+    if (!loaded) return;
+    await _prefs.setString(_storageKey, jsonEncode(_toJson()));
+  }
+
+  String _id(String prefix) =>
+      '$prefix${DateTime.now().microsecondsSinceEpoch}${Random().nextInt(999)}';
+
+  void addTxn(Txn txn) {
+    transactions.add(txn);
+    notifyListeners();
+    save();
+  }
+
+  void updateTxn(Txn txn) {
+    final index = transactions.indexWhere((t) => t.id == txn.id);
+    if (index >= 0) {
+      transactions[index] = txn;
+    } else {
+      transactions.add(txn);
+    }
+    notifyListeners();
+    save();
+  }
+
+  void deleteTxn(String id) {
+    transactions.removeWhere((t) => t.id == id);
+    notifyListeners();
+    save();
+  }
+
+  void addCategory(Category category) {
+    if (category.id.isEmpty) category.id = _id('c');
+    categories.add(category);
+    notifyListeners();
+    save();
+  }
+
+  void updateCategory(Category category) {
+    final index = categories.indexWhere((c) => c.id == category.id);
+    if (index >= 0) categories[index] = category;
+    notifyListeners();
+    save();
+  }
+
+  void deleteCategory(String id) {
+    categories.removeWhere((c) => c.id == id);
+    notifyListeners();
+    save();
+  }
+
+  void addAccount(Account account) {
+    if (account.id.isEmpty) account.id = _id('a');
+    accounts.add(account);
+    notifyListeners();
+    save();
+  }
+
+  void updateAccount(Account account) {
+    final index = accounts.indexWhere((a) => a.id == account.id);
+    if (index >= 0) accounts[index] = account;
+    notifyListeners();
+    save();
+  }
+
+  void deleteAccount(String id) {
+    accounts.removeWhere((a) => a.id == id);
+    transactions.removeWhere((t) => t.accountId == id);
+    notifyListeners();
+    save();
+  }
+
+  void addBook(Book book) {
+    if (book.id.isEmpty) book.id = _id('b');
+    books.add(book);
+    activeBookId = book.id;
+    notifyListeners();
+    save();
+  }
+
+  void setActiveBook(String id) {
+    activeBookId = id;
+    notifyListeners();
+    save();
+  }
+
+  void setTheme(ThemeMode mode) {
+    themeMode = mode;
+    notifyListeners();
+    save();
+  }
+
+  void resetAll() {
+    _seed();
+    notifyListeners();
+    save();
+  }
+
+  String newTxnId() => _id('t');
+
+  void touch() => notifyListeners();
+}
