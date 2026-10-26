@@ -1,6 +1,6 @@
 import 'package:intl/intl.dart';
 
-const String appVersion = '0.9.0';
+const String appVersion = '0.9.1';
 
 final NumberFormat _money = NumberFormat('#,##0.00', 'en_US');
 

@@ -38,7 +38,7 @@ class _StatsScreenState extends State<StatsScreen> {
     return AnimatedBuilder(
       animation: store,
       builder: (context, _) {
-        final topInset = MediaQuery.of(context).padding.top + kToolbarHeight - 28;
+        final topInset = MediaQuery.of(context).padding.top + kToolbarHeight - 2;
         return Padding(
           padding: EdgeInsets.only(top: topInset),
           child: Column(
