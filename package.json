@@ -1,6 +1,6 @@
 {
   "name": "xingkong-ledger",
-  "version": "2.1.13",
+  "version": "2.1.14",
   "private": true,
   "description": "星空记账风格的单文件本地记账 Web App",
   "scripts": {

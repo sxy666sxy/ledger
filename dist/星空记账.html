@@ -2066,7 +2066,7 @@ body[data-route="calendar"] #view, body[data-route="profile"] #view { overscroll
   from { opacity: .65; transform: translateX(-26px); }
   to { opacity: 1; transform: translateX(0); }
 }
-body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
+.profile { padding-top: calc(var(--safe-t) + 14px); }
 .month-rail.swipe-next { animation: monthSwipeNext .22s ease; }
 .month-rail.swipe-prev { animation: monthSwipePrev .22s ease; }
 @keyframes monthSwipeNext {
@@ -4927,7 +4927,7 @@ body[data-route="assets"] #view {
   const C = window.LedgerCore;
   const CH = window.LedgerCharts;
   const STORAGE_KEY = 'xingkong.ledger.v4';
-  const VERSION_TEXT = '2.1.13';
+  const VERSION_TEXT = '2.1.14';
   const THEMES = [
     { id: 'auto', name: '跟随系统', desc: '自动切换浅色 / 深色', emoji: '🌓', sw: 'auto' },
     { id: 'light', name: '星空浅色', desc: '靛蓝星夜', emoji: '✦', sw: 'light' },
