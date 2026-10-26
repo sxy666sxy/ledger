@@ -185,6 +185,59 @@ class _EntrySheetState extends State<EntrySheet> {
     controller.dispose();
   }
 
+  Future<void> _addCategory() async {
+    final name = TextEditingController();
+    final icon = TextEditingController(text: '🏷️');
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(_type == TxnType.income ? '新增收入分类' : '新增支出分类'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: icon,
+              textAlign: TextAlign.center,
+              maxLength: 2,
+              decoration: const InputDecoration(labelText: '图标', counterText: ''),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: name,
+              autofocus: true,
+              textInputAction: TextInputAction.done,
+              decoration: const InputDecoration(labelText: '分类名称', hintText: '例如：咖啡'),
+              onSubmitted: (_) => Navigator.of(ctx).pop(true),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('取消')),
+          FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('添加')),
+        ],
+      ),
+    );
+    final label = name.text.trim();
+    final iconText = icon.text.trim();
+    name.dispose();
+    icon.dispose();
+    if (result != true || label.isEmpty || !mounted) return;
+    final order = store.categories
+            .where((c) => c.type == _type)
+            .fold<int>(0, (a, c) => c.order > a ? c.order : a) +
+        1;
+    final category = Category(
+      id: '',
+      name: label,
+      type: _type,
+      icon: iconText.isEmpty ? '🏷️' : iconText,
+      color: 0xFF5B6CFF,
+      order: order,
+    );
+    store.addCategory(category);
+    if (mounted) setState(() => _categoryId = category.id);
+  }
+
   void _pressKey(String key) {
     setState(() {
       if (key == 'C') {
@@ -197,9 +250,20 @@ class _EntrySheetState extends State<EntrySheet> {
         }
         return;
       }
+      if (const ['+', '-', '×', '÷'].contains(key)) {
+        final op = key == '×' ? '*' : (key == '÷' ? '/' : key);
+        if (_amountText.isEmpty) return;
+        if (const ['+', '-', '*', '/'].contains(_amountText[_amountText.length - 1])) {
+          _amountText = '${_amountText.substring(0, _amountText.length - 1)}$op';
+        } else {
+          _amountText += op;
+        }
+        return;
+      }
       if (key == '.') {
-        if (_amountText.contains('.')) return;
-        _amountText = _amountText.isEmpty ? '0.' : '$_amountText.';
+        final last = _lastNumber;
+        if (last.contains('.')) return;
+        _amountText = last.isEmpty ? '${_amountText}0.' : '$_amountText.';
         return;
       }
       if (key == '00') {
@@ -211,20 +275,66 @@ class _EntrySheetState extends State<EntrySheet> {
     });
   }
 
+  String get _lastNumber {
+    final match = RegExp(r'(\d*\.?\d*)$').firstMatch(_amountText);
+    return match?.group(1) ?? '';
+  }
+
   void _appendDigit(String digit) {
-    final dot = _amountText.indexOf('.');
-    if (dot >= 0 && _amountText.length - dot - 1 >= 2) return;
-    if (dot < 0 && _amountText.length >= 9) return;
-    if (_amountText == '0') {
+    final number = _lastNumber;
+    final dot = number.indexOf('.');
+    if (dot >= 0 && number.length - dot - 1 >= 2) return;
+    if (dot < 0 && number.length >= 9) return;
+    if (number == '0') {
       if (digit == '0') return;
-      _amountText = digit;
+      _amountText = '${_amountText.substring(0, _amountText.length - 1)}$digit';
       return;
     }
+    if (_amountText.length >= 18) return;
     _amountText += digit;
   }
 
+  double? _evaluateAmount(String text) {
+    if (text.isEmpty) return null;
+    final tokens = RegExp(r'\d+\.?\d*|[+\-*/]')
+        .allMatches(text)
+        .map((m) => m.group(0)!)
+        .toList();
+    if (tokens.isEmpty) return null;
+    final values = <double>[];
+    final ops = <String>[];
+    for (var i = 0; i < tokens.length; i++) {
+      final token = tokens[i];
+      if (i.isEven) {
+        final value = double.tryParse(token);
+        if (value == null) return null;
+        values.add(value);
+      } else {
+        if (!const ['+', '-', '*', '/'].contains(token)) return null;
+        ops.add(token);
+      }
+    }
+    if (values.length != ops.length + 1) return null;
+    for (var i = 0; i < ops.length;) {
+      if (ops[i] == '*' || ops[i] == '/') {
+        final right = values[i + 1];
+        if (ops[i] == '/' && right == 0) return null;
+        values[i] = ops[i] == '*' ? values[i] * right : values[i] / right;
+        values.removeAt(i + 1);
+        ops.removeAt(i);
+      } else {
+        i++;
+      }
+    }
+    var result = values.first;
+    for (var i = 0; i < ops.length; i++) {
+      result = ops[i] == '+' ? result + values[i + 1] : result - values[i + 1];
+    }
+    return result;
+  }
+
   void _save() {
-    final amount = double.tryParse(_amountText) ?? 0;
+    final amount = _evaluateAmount(_amountText) ?? 0;
     if (amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('请输入有效金额')),
@@ -417,7 +527,7 @@ class _EntrySheetState extends State<EntrySheet> {
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: cats.length,
+                    itemCount: cats.length + 1,
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 5,
                       childAspectRatio: 0.92,
@@ -425,6 +535,41 @@ class _EntrySheetState extends State<EntrySheet> {
                       mainAxisSpacing: 4,
                     ),
                     itemBuilder: (context, i) {
+                      if (i == cats.length) {
+                        return InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: _addCategory,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: theme.colorScheme.primary.withValues(alpha: 0.45),
+                                  ),
+                                ),
+                                child: Icon(
+                                  Icons.add,
+                                  color: theme.colorScheme.primary,
+                                  size: 21,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                '新增',
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
                       final c = cats[i];
                       final selected = c.id == _categoryId;
                       return InkWell(
@@ -470,11 +615,6 @@ class _EntrySheetState extends State<EntrySheet> {
                       label: _accountName,
                       onTap: () => _pickAccount(to: false),
                     ),
-                    _SelectorItem(
-                      icon: Icons.edit_note,
-                      label: _noteController.text.trim().isEmpty ? '备注' : _noteController.text.trim(),
-                      onTap: _editNote,
-                    ),
                   ]),
                 ] else ...[
                   _accountPickerTile('从账户', _accountName, () => _pickAccount(to: false)),
@@ -483,40 +623,73 @@ class _EntrySheetState extends State<EntrySheet> {
                   const SizedBox(height: 8),
                   _selectorRow([
                     _SelectorItem(icon: Icons.calendar_today_outlined, label: _dateLabel, onTap: _pickDate),
-                    _SelectorItem(
-                      icon: Icons.edit_note,
-                      label: _noteController.text.trim().isEmpty ? '备注' : _noteController.text.trim(),
-                      onTap: _editNote,
-                    ),
                   ]),
                 ],
               ],
             ),
           ),
           Container(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            padding: const EdgeInsets.fromLTRB(12, 5, 12, 4),
             decoration: BoxDecoration(
               color: panel,
               border: Border(top: BorderSide(color: theme.dividerTheme.color ?? Colors.black12)),
             ),
             child: Row(
               children: [
+                Expanded(
+                  flex: 5,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(9),
+                    onTap: _editNote,
+                    child: Container(
+                      height: 38,
+                      padding: const EdgeInsets.symmetric(horizontal: 9),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(9),
+                        border: Border.all(color: theme.dividerTheme.color ?? Colors.black12),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit_note, size: 16, color: theme.colorScheme.primary),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              _noteController.text.trim().isEmpty
+                                  ? '添加备注'
+                                  : _noteController.text.trim(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                color: _noteController.text.trim().isEmpty
+                                    ? theme.colorScheme.onSurface.withValues(alpha: 0.42)
+                                    : theme.colorScheme.onSurface,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
                 Text(
                   '¥',
                   style: TextStyle(
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.w700,
                     color: theme.colorScheme.primary,
                   ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 3),
                 Expanded(
+                  flex: 6,
                   child: Text(
                     amount,
                     textAlign: TextAlign.right,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800, letterSpacing: -0.8),
+                    style: const TextStyle(fontSize: 27, fontWeight: FontWeight.w800, letterSpacing: -0.6),
                   ),
                 ),
               ],
@@ -525,9 +698,9 @@ class _EntrySheetState extends State<EntrySheet> {
           _Keypad(
             onKey: _pressKey,
             onSave: _save,
+            onCancel: () => Navigator.of(context).pop(),
             saveLabel: existing == null ? '保存' : '更新',
           ),
-          const SizedBox(height: 4),
         ],
       ),
     );
@@ -607,10 +780,16 @@ class _SelectorItem {
 }
 
 class _Keypad extends StatelessWidget {
-  const _Keypad({required this.onKey, required this.onSave, required this.saveLabel});
+  const _Keypad({
+    required this.onKey,
+    required this.onSave,
+    required this.onCancel,
+    required this.saveLabel,
+  });
 
   final ValueChanged<String> onKey;
   final VoidCallback onSave;
+  final VoidCallback onCancel;
   final String saveLabel;
 
   @override
@@ -618,19 +797,21 @@ class _Keypad extends StatelessWidget {
     final keys = <List<String>>[
       ['1', '2', '3', '⌫'],
       ['4', '5', '6', 'C'],
-      ['7', '8', '9', '.'],
+      ['7', '8', '9', '÷'],
+      ['00', '0', '.', '×'],
     ];
+    final bottom = MediaQuery.viewPaddingOf(context).bottom;
     return Container(
-      padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+      padding: EdgeInsets.fromLTRB(10, 4, 10, bottom + 16),
       child: Column(
         children: [
           for (final row in keys)
             Padding(
-              padding: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.only(bottom: 5),
               child: Row(
                 children: [
                   for (var i = 0; i < row.length; i++) ...[
-                    if (i > 0) const SizedBox(width: 6),
+                    if (i > 0) const SizedBox(width: 5),
                     Expanded(
                       child: _KeyButton(
                         label: row[i],
@@ -643,22 +824,31 @@ class _Keypad extends StatelessWidget {
             ),
           Row(
             children: [
+              Expanded(child: _KeyButton(label: '+', onTap: () => onKey('+'))),
+              const SizedBox(width: 5),
+              Expanded(child: _KeyButton(label: '-', onTap: () => onKey('-'))),
+              const SizedBox(width: 5),
               Expanded(
-                child: _KeyButton(label: '00', onTap: () => onKey('00')),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: _KeyButton(label: '0', onTap: () => onKey('0')),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                flex: 2,
                 child: SizedBox(
-                  height: 43,
+                  height: 39,
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                    ),
+                    onPressed: onCancel,
+                    child: const Text('取消'),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 5),
+              Expanded(
+                child: SizedBox(
+                  height: 39,
                   child: FilledButton(
                     style: FilledButton.styleFrom(
                       padding: EdgeInsets.zero,
-                      textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+                      textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
                     ),
                     onPressed: onSave,
                     child: Text(saveLabel),
@@ -689,11 +879,11 @@ class _KeyButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(9),
         onTap: onTap,
         child: SizedBox(
-          height: 43,
+          height: 38,
           child: Center(
             child: Text(
               label,
-              style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
           ),
         ),

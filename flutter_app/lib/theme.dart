@@ -50,39 +50,160 @@ const List<ThemeSpec> themeSpecs = [
 ];
 
 
-/// 顶部汇总卡使用当前主题种子色生成的深色渐变，避免固定深蓝。
+/// 顶部汇总卡使用当前主题色盘生成渐变，不再固定混入紫色。
 List<Color> themeHeroColors(BuildContext context) {
   final scheme = Theme.of(context).colorScheme;
   final spec = themeSpec(AppStore.instance.themeId);
-  final base = spec.custom ? Color.lerp(spec.seed, scheme.primary, 0.25)! : scheme.primary;
+  final accent = spec.custom
+      ? Color.lerp(scheme.primary, spec.preview.last, 0.50)!
+      : spec.preview.last;
   return [
-    Color.lerp(base, Colors.black, 0.62)!,
-    Color.lerp(base, Colors.black, 0.80)!,
-    Color.lerp(base, const Color(0xFF8B5CF6), 0.42)!,
+    Color.lerp(accent, Colors.black, 0.56)!,
+    Color.lerp(accent, Colors.black, 0.74)!,
+    Color.lerp(accent, Colors.black, 0.38)!,
   ];
+}
+
+/// 汇总卡的圆角跟随“外观主题”里选择的卡片样式。
+double themeHeroRadius(double base) {
+  switch (AppStore.instance.cardStyle) {
+    case 'orbit':
+      return base + 10;
+    case 'classic':
+      return base - 6;
+    case 'minimal':
+      return base - 10;
+    case 'glass':
+      return base + 2;
+    default:
+      return base;
+  }
 }
 
 BoxDecoration themeHeroDecoration(BuildContext context, {double radius = 22}) {
   final colors = themeHeroColors(context);
+  final style = AppStore.instance.cardStyle;
   final custom = AppStore.instance.themeId == 'custom';
+  final translucent = custom || style == 'glass';
+  final effectiveRadius = themeHeroRadius(radius);
   return BoxDecoration(
-    borderRadius: BorderRadius.circular(radius),
+    borderRadius: BorderRadius.circular(effectiveRadius),
     gradient: LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
       colors: colors
-          .map((c) => custom ? c.withValues(alpha: 0.86) : c)
+          .map((c) => translucent ? c.withValues(alpha: custom ? 0.78 : 0.88) : c)
           .toList(growable: false),
     ),
-    border: custom ? Border.all(color: Colors.white.withValues(alpha: 0.26)) : null,
-    boxShadow: [
-      BoxShadow(
-        color: colors.first.withValues(alpha: 0.20),
-        blurRadius: 18,
-        offset: const Offset(0, 8),
-      ),
-    ],
+    border: translucent
+        ? Border.all(color: Colors.white.withValues(alpha: 0.28))
+        : null,
+    boxShadow: style == 'minimal'
+        ? const []
+        : [
+            BoxShadow(
+              color: colors.first.withValues(alpha: 0.20),
+              blurRadius: style == 'classic' ? 10 : 18,
+              offset: Offset(0, style == 'classic' ? 4 : 8),
+            ),
+          ],
   );
+}
+
+/// 带主题装饰纹理的顶部汇总卡，统计 / 资产 / 我的共用。
+class ThemeHeroCard extends StatelessWidget {
+  const ThemeHeroCard({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.all(18),
+    this.radius = 22,
+  });
+
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = AppStore.instance.cardStyle;
+    final effectiveRadius = themeHeroRadius(radius);
+    return Container(
+      decoration: themeHeroDecoration(context, radius: radius),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(effectiveRadius),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(painter: _ThemeHeroArtPainter(style: style)),
+              ),
+            ),
+            Padding(padding: padding, child: child),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ThemeHeroArtPainter extends CustomPainter {
+  _ThemeHeroArtPainter({required this.style});
+
+  final String style;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (style == 'minimal') return;
+    final white = Colors.white.withValues(alpha: 0.10);
+    if (style == 'orbit') {
+      final ring = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = white;
+      final center = Offset(size.width * 0.82, size.height * 0.28);
+      for (var i = 0; i < 3; i++) {
+        canvas.drawOval(
+          Rect.fromCenter(
+            center: center,
+            width: size.width * (0.42 + i * 0.18),
+            height: size.height * (0.62 + i * 0.26),
+          ),
+          ring,
+        );
+      }
+      final star = Paint()..color = Colors.white.withValues(alpha: 0.30);
+      for (final p in const [
+        Offset(0.68, 0.18),
+        Offset(0.90, 0.48),
+        Offset(0.74, 0.74),
+      ]) {
+        canvas.drawCircle(Offset(size.width * p.dx, size.height * p.dy), 1.2, star);
+      }
+    } else if (style == 'glass') {
+      canvas.drawCircle(
+        Offset(size.width * 0.84, size.height * 0.30),
+        size.width * 0.30,
+        Paint()..color = Colors.white.withValues(alpha: 0.06),
+      );
+      canvas.drawCircle(
+        Offset(size.width * 0.95, size.height * 0.80),
+        size.width * 0.22,
+        Paint()..color = Colors.white.withValues(alpha: 0.05),
+      );
+    } else if (style == 'classic') {
+      final line = Paint()
+        ..color = Colors.white.withValues(alpha: 0.06)
+        ..strokeWidth = 1;
+      for (var i = 0; i < 3; i++) {
+        final x = size.width * (0.70 + i * 0.09);
+        canvas.drawLine(Offset(x, 0), Offset(size.width, size.height * 0.32), line);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ThemeHeroArtPainter oldDelegate) =>
+      oldDelegate.style != style;
 }
 
 ThemeSpec themeSpec(String id) {

@@ -26,9 +26,8 @@ class ProfileScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 110),
             children: [
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: themeHeroDecoration(context, radius: 24),
+              ThemeHeroCard(
+                radius: 24,
                 child: Row(
                   children: [
                     Container(

@@ -11,14 +11,18 @@ import '../widgets/year_heatmap.dart';
 enum _StatsView { week, month, year, custom }
 
 class StatsScreen extends StatefulWidget {
-  const StatsScreen({super.key});
+  const StatsScreen({super.key, this.active = true});
+
+  final bool active;
 
   @override
   State<StatsScreen> createState() => _StatsScreenState();
 }
 
-class _StatsScreenState extends State<StatsScreen> {
+class _StatsScreenState extends State<StatsScreen>
+    with SingleTickerProviderStateMixin {
   DateTime _month = monthStart(DateTime.now());
+  late final AnimationController _growthController;
   DateTime _weekStart = _monday(DateTime.now());
   DateTime _customStart = DateTime.now().subtract(const Duration(days: 29));
   DateTime _customEnd = DateTime.now();
@@ -31,6 +35,33 @@ class _StatsScreenState extends State<StatsScreen> {
   static DateTime _monday(DateTime d) {
     final day = DateTime(d.year, d.month, d.day);
     return day.subtract(Duration(days: day.weekday - 1));
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _growthController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+      value: widget.active ? 0 : 1,
+    );
+    if (widget.active) _growthController.forward();
+  }
+
+  @override
+  void didUpdateWidget(covariant StatsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.active && !oldWidget.active) {
+      _growthController.forward(from: 0);
+    } else if (!widget.active) {
+      _growthController.value = 1;
+    }
+  }
+
+  @override
+  void dispose() {
+    _growthController.dispose();
+    super.dispose();
   }
 
   @override
@@ -361,7 +392,15 @@ class _StatsScreenState extends State<StatsScreen> {
           const SizedBox(height: 14),
           YearHeatmapCard(store: store, year: _year, type: _type),
           const SizedBox(height: 14),
-          YearAdvancedCards(store: store, year: _year, type: _type),
+          AnimatedBuilder(
+            animation: _growthController,
+            builder: (context, _) => YearAdvancedCards(
+              store: store,
+              year: _year,
+              type: _type,
+              progress: _growthController.value,
+            ),
+          ),
           const SizedBox(height: 14),
           _bottomSummary(
             totals,
@@ -416,9 +455,8 @@ class _StatsScreenState extends State<StatsScreen> {
   }
 
   Widget _summaryCard(BuildContext context, String prefix, MoneyTotals totals) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: themeHeroDecoration(context, radius: 22),
+    return ThemeHeroCard(
+      radius: 22,
       child: Row(
         children: [
           _summary('$prefix支出', formatMoney(totals.expense), Colors.white),
@@ -482,24 +520,47 @@ class _StatsScreenState extends State<StatsScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            SizedBox(
-              height: 150,
-              width: double.infinity,
-              child: CustomPaint(
-                painter: _lineChart
-                    ? _StatsLinePainter(values: values, labels: labels, color: color, textColor: Colors.grey.shade600, labelEvery: labelEvery)
-                    : _BarsPainter(
-                        values: values,
-                        labels: labels,
-                        color: color,
-                        textColor: Colors.grey.shade600,
-                        labelEvery: labelEvery,
-                      ),
-              ),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final dense = values.length > 14;
+                final chartWidth =
+                    dense ? values.length * 22.0 : constraints.maxWidth;
+                final chart = SizedBox(
+                  width: chartWidth,
+                  height: 150,
+                  child: AnimatedBuilder(
+                    animation: _growthController,
+                    builder: (context, _) => CustomPaint(
+                      painter: _lineChart
+                          ? _StatsLinePainter(
+                              values: values,
+                              labels: labels,
+                              color: color,
+                              textColor: Colors.grey.shade600,
+                              labelEvery: labelEvery,
+                              progress: _growthController.value,
+                            )
+                          : _BarsPainter(
+                              values: values,
+                              labels: labels,
+                              color: color,
+                              textColor: Colors.grey.shade600,
+                              labelEvery: labelEvery,
+                              progress: _growthController.value,
+                            ),
+                    ),
+                  ),
+                );
+                if (!dense) return chart;
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: chart,
+                );
+              },
             ),
             const SizedBox(height: 4),
             Text(
-              '单位：${unit ?? (_view == _StatsView.year ? (_yearAll ? '年' : '月') : '日')} · 点击柱/点查看明细',
+              '单位：${unit ?? (_view == _StatsView.year ? (_yearAll ? '年' : '月') : '日')} · 点击柱/点查看明细${values.length > 14 ? ' · 左右滑动' : ''}',
               style: TextStyle(fontSize: 9, color: Colors.grey.shade600),
             ),
             const SizedBox(height: 5),
@@ -714,11 +775,18 @@ class _StatsScreenState extends State<StatsScreen> {
                       const SizedBox(height: 5),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: ratio.clamp(0.0, 1.0).toDouble(),
-                          minHeight: 5,
-                          color: Color(c.category.color),
-                          backgroundColor: const Color(0xFFEEF0FF),
+                        child: AnimatedBuilder(
+                          animation: _growthController,
+                          builder: (context, _) => LinearProgressIndicator(
+                            value: ratio.clamp(0.0, 1.0).toDouble() *
+                                _growthController.value,
+                            minHeight: 5,
+                            color: Color(c.category.color),
+                            backgroundColor: Theme.of(context)
+                                .colorScheme
+                                .primary
+                                .withValues(alpha: 0.10),
+                          ),
                         ),
                       ),
                     ],
@@ -732,6 +800,13 @@ class _StatsScreenState extends State<StatsScreen> {
   }
 }
 
+String _shortAmount(double value) {
+  if (value >= 10000) return '${(value / 10000).toStringAsFixed(1)}万';
+  if (value >= 1000) return value.toStringAsFixed(0);
+  if (value >= 100) return value.toStringAsFixed(0);
+  return value.toStringAsFixed(value % 1 == 0 ? 0 : 2);
+}
+
 class _StatsLinePainter extends CustomPainter {
   _StatsLinePainter({
     required this.values,
@@ -739,6 +814,7 @@ class _StatsLinePainter extends CustomPainter {
     required this.color,
     required this.textColor,
     required this.labelEvery,
+    required this.progress,
   });
 
   final List<double> values;
@@ -746,6 +822,7 @@ class _StatsLinePainter extends CustomPainter {
   final Color color;
   final Color textColor;
   final int labelEvery;
+  final double progress;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -760,10 +837,11 @@ class _StatsLinePainter extends CustomPainter {
     if (values.isEmpty) return;
     final maxV = values.fold<double>(0, (a, b) => a > b ? a : b);
     if (maxV <= 0) return;
+    final p = progress.clamp(0.0, 1.0).toDouble();
     final path = Path();
     for (var i = 0; i < values.length; i++) {
       final x = values.length == 1 ? size.width / 2 : size.width * i / (values.length - 1);
-      final y = baseY - (values[i] / maxV) * (size.height - 34);
+      final y = baseY - (values[i] / maxV) * (size.height - 48) * p;
       if (i == 0) {
         path.moveTo(x, y);
       } else {
@@ -782,12 +860,22 @@ class _StatsLinePainter extends CustomPainter {
     final dot = Paint()..color = color;
     for (var i = 0; i < values.length; i++) {
       final x = values.length == 1 ? size.width / 2 : size.width * i / (values.length - 1);
-      final y = baseY - (values[i] / maxV) * (size.height - 34);
+      final y = baseY - (values[i] / maxV) * (size.height - 48) * p;
       canvas.drawCircle(Offset(x, y), 2.5, dot);
     }
     final tp = TextPainter(textDirection: TextDirection.ltr);
     for (var i = 0; i < values.length; i += labelEvery) {
       final x = values.length == 1 ? size.width / 2 : size.width * i / (values.length - 1);
+      final y = baseY - (values[i] / maxV) * (size.height - 48) * p;
+      if (values[i] > 0) {
+        tp.text = TextSpan(
+          text: _shortAmount(values[i]),
+          style: TextStyle(fontSize: 8, color: color, fontWeight: FontWeight.w600),
+        );
+        tp.layout();
+        final ax = (x - tp.width / 2).clamp(0.0, size.width - tp.width).toDouble();
+        tp.paint(canvas, Offset(ax, (y - 13).clamp(0.0, baseY - 10).toDouble()));
+      }
       tp.text = TextSpan(text: labels.length > i ? labels[i] : '', style: TextStyle(fontSize: 8, color: textColor));
       tp.layout();
       final tx = (x - tp.width / 2).clamp(0.0, size.width - tp.width).toDouble();
@@ -797,7 +885,8 @@ class _StatsLinePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _StatsLinePainter old) =>
-      old.values != values || old.labels != labels || old.color != color;
+      old.values != values || old.labels != labels || old.color != color ||
+      old.progress != progress;
 }
 
 class _BarsPainter extends CustomPainter {
@@ -807,6 +896,7 @@ class _BarsPainter extends CustomPainter {
     required this.color,
     required this.textColor,
     required this.labelEvery,
+    required this.progress,
   });
 
   final List<double> values;
@@ -814,6 +904,7 @@ class _BarsPainter extends CustomPainter {
   final Color color;
   final Color textColor;
   final int labelEvery;
+  final double progress;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -826,12 +917,13 @@ class _BarsPainter extends CustomPainter {
     if (values.isEmpty) return;
     final maxValue = values.fold<double>(0, (a, b) => a > b ? a : b);
     if (maxValue <= 0) return;
+    final p = progress.clamp(0.0, 1.0).toDouble();
     final slot = size.width / values.length;
     final barWidth = (slot * 0.55).clamp(2.0, 16.0).toDouble();
     for (var i = 0; i < values.length; i++) {
       final v = values[i];
       if (v <= 0) continue;
-      final h = (v / maxValue) * (size.height - 30);
+      final h = (v / maxValue) * (size.height - 48) * p;
       final x = slot * i + (slot - barWidth) / 2;
       canvas.drawRRect(
         RRect.fromRectAndRadius(
@@ -843,16 +935,33 @@ class _BarsPainter extends CustomPainter {
     }
     final textPainter = TextPainter(textDirection: TextDirection.ltr);
     for (var i = 0; i < values.length; i += labelEvery) {
+      final x = slot * i;
+      if (values[i] > 0) {
+        final h = (values[i] / maxValue) * (size.height - 48) * p;
+        textPainter.text = TextSpan(
+          text: _shortAmount(values[i]),
+          style: TextStyle(fontSize: 8, color: color, fontWeight: FontWeight.w600),
+        );
+        textPainter.layout();
+        final ax = (slot * i + (slot - textPainter.width) / 2)
+            .clamp(0.0, size.width - textPainter.width)
+            .toDouble();
+        textPainter.paint(
+          canvas,
+          Offset(ax, (baseY - h - 13).clamp(0.0, baseY - 10).toDouble()),
+        );
+      }
       textPainter.text = TextSpan(
         text: labels.length > i ? labels[i] : '',
         style: TextStyle(fontSize: 8, color: textColor),
       );
       textPainter.layout();
-      textPainter.paint(canvas, Offset(slot * i, baseY + 5));
+      textPainter.paint(canvas, Offset(x, baseY + 5));
     }
   }
 
   @override
   bool shouldRepaint(covariant _BarsPainter old) =>
-      old.values != values || old.labels != labels || old.color != color;
+      old.values != values || old.labels != labels || old.color != color ||
+      old.progress != progress;
 }

@@ -262,12 +262,12 @@ class _RootShellState extends State<RootShell> with SingleTickerProviderStateMix
                 controller: _pageController,
                 onPageChanged: (i) => setState(() => _index = i),
                 physics: const BouncingScrollPhysics(),
-                children: const [
-                  HomeScreen(),
-                  CalendarScreen(),
-                  StatsScreen(),
-                  AssetsScreen(),
-                  ProfileScreen(),
+                children: [
+                  HomeScreen(active: _index == 0),
+                  const CalendarScreen(),
+                  StatsScreen(active: _index == 2),
+                  const AssetsScreen(),
+                  const ProfileScreen(),
                 ],
               ),
               Positioned(

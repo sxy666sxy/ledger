@@ -10,14 +10,45 @@ import '../widgets/swipe_delete_tile.dart';
 import 'entry_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.active = true});
+
+  final bool active;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
   DateTime _month = monthStart(DateTime.now());
+  late final AnimationController _budgetController;
+
+  @override
+  void initState() {
+    super.initState();
+    _budgetController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+      value: widget.active ? 0 : 1,
+    );
+    if (widget.active) _budgetController.forward();
+  }
+
+  @override
+  void didUpdateWidget(covariant HomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.active && !oldWidget.active) {
+      _budgetController.forward(from: 0);
+    } else if (!widget.active) {
+      _budgetController.value = 1;
+    }
+  }
+
+  @override
+  void dispose() {
+    _budgetController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -107,12 +138,18 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
             const SizedBox(height: 5),
-            LinearProgressIndicator(
-              value: ratio,
-              minHeight: 4,
-              borderRadius: BorderRadius.circular(4),
-              color: over ? Colors.red : const Color(0xFF5B6CFF),
-              backgroundColor: const Color(0xFFEEF0FF),
+            AnimatedBuilder(
+              animation: _budgetController,
+              builder: (context, _) => LinearProgressIndicator(
+                value: ratio * _budgetController.value,
+                minHeight: 4,
+                borderRadius: BorderRadius.circular(4),
+                color: over ? Colors.red : Theme.of(context).colorScheme.primary,
+                backgroundColor: Theme.of(context)
+                    .colorScheme
+                    .primary
+                    .withValues(alpha: 0.12),
+              ),
             ),
           ],
         ),

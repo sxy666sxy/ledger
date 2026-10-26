@@ -28,9 +28,9 @@ class AssetsScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
             children: [
-              Container(
+              ThemeHeroCard(
+                radius: 24,
                 padding: const EdgeInsets.all(20),
-                decoration: themeHeroDecoration(context, radius: 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

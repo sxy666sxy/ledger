@@ -11,11 +11,13 @@ class YearAdvancedCards extends StatelessWidget {
     required this.store,
     required this.year,
     required this.type,
+    required this.progress,
   });
 
   final AppStore store;
   final int year;
   final TxnType type;
+  final double progress;
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +65,11 @@ class YearAdvancedCards extends StatelessWidget {
               height: 130,
               width: double.infinity,
               child: CustomPaint(
-                painter: _LinePainter(values: values, textColor: Colors.grey.shade600),
+                painter: _LinePainter(
+                  values: values,
+                  textColor: Colors.grey.shade600,
+                  progress: progress,
+                ),
               ),
             ),
             const SizedBox(height: 5),
@@ -93,6 +99,7 @@ class YearAdvancedCards extends StatelessWidget {
                   expense: months.map((m) => m.expense).toList(),
                   income: months.map((m) => m.income).toList(),
                   textColor: Colors.grey.shade600,
+                  progress: progress,
                 ),
               ),
             ),
@@ -196,10 +203,14 @@ class YearAdvancedCards extends StatelessWidget {
                             ClipRRect(
                               borderRadius: BorderRadius.circular(3),
                               child: LinearProgressIndicator(
-                                value: ratio.clamp(0.0, 1.0).toDouble(),
+                                value: ratio.clamp(0.0, 1.0).toDouble() *
+                                    progress,
                                 minHeight: 4,
                                 color: Color(c.category.color),
-                                backgroundColor: const Color(0xFFEEF0FF),
+                                backgroundColor: Theme.of(context)
+                                    .colorScheme
+                                    .primary
+                                    .withValues(alpha: 0.10),
                               ),
                             ),
                           ],
@@ -262,9 +273,15 @@ class YearAdvancedCards extends StatelessWidget {
 }
 
 class _LinePainter extends CustomPainter {
-  _LinePainter({required this.values, required this.textColor});
+  _LinePainter({
+    required this.values,
+    required this.textColor,
+    required this.progress,
+  });
+
   final List<double> values;
   final Color textColor;
+  final double progress;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -280,10 +297,12 @@ class _LinePainter extends CustomPainter {
       final y = baseY - (size.height - 28) * i / 2;
       canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
     }
+    final p = progress.clamp(0.0, 1.0).toDouble();
     final path = Path();
     for (var i = 0; i < values.length; i++) {
       final x = values.length == 1 ? size.width / 2 : size.width * i / (values.length - 1);
-      final y = baseY - ((values[i] - minV) / (maxV - minV)) * (size.height - 30);
+      final y = baseY -
+          ((values[i] - minV) / (maxV - minV)) * (size.height - 30) * p;
       if (i == 0) { path.moveTo(x, y); } else { path.lineTo(x, y); }
     }
     canvas.drawPath(path, Paint()
@@ -296,8 +315,20 @@ class _LinePainter extends CustomPainter {
     final textPainter = TextPainter(textDirection: TextDirection.ltr);
     for (var i = 0; i < values.length; i++) {
       final x = values.length == 1 ? size.width / 2 : size.width * i / (values.length - 1);
-      final y = baseY - ((values[i] - minV) / (maxV - minV)) * (size.height - 30);
+      final y = baseY -
+          ((values[i] - minV) / (maxV - minV)) * (size.height - 30) * p;
       canvas.drawCircle(Offset(x, y), 2.4, dot);
+      if (i % 3 == 0 || i == values.length - 1) {
+        textPainter.text = TextSpan(
+          text: _assetAmount(values[i]),
+          style: const TextStyle(fontSize: 7.5, color: Color(0xFF3B82F6), fontWeight: FontWeight.w600),
+        );
+        textPainter.layout();
+        final tx = (x - textPainter.width / 2)
+            .clamp(0.0, size.width - textPainter.width)
+            .toDouble();
+        textPainter.paint(canvas, Offset(tx, (y - 12).clamp(0.0, baseY - 8).toDouble()));
+      }
       if (i == 0 || i == values.length - 1) {
         textPainter.text = TextSpan(text: '${i + 1}月', style: TextStyle(fontSize: 8, color: textColor));
         textPainter.layout();
@@ -307,14 +338,29 @@ class _LinePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _LinePainter old) => old.values != values;
+  bool shouldRepaint(covariant _LinePainter old) =>
+      old.values != values || old.progress != progress;
+}
+
+String _assetAmount(double value) {
+  final abs = value.abs();
+  if (abs >= 10000) return '${(value / 10000).toStringAsFixed(1)}万';
+  if (abs >= 1000) return value.toStringAsFixed(0);
+  return value.toStringAsFixed(abs % 1 == 0 ? 0 : 2);
 }
 
 class _GroupedBarsPainter extends CustomPainter {
-  _GroupedBarsPainter({required this.expense, required this.income, required this.textColor});
+  _GroupedBarsPainter({
+    required this.expense,
+    required this.income,
+    required this.textColor,
+    required this.progress,
+  });
+
   final List<double> expense;
   final List<double> income;
   final Color textColor;
+  final double progress;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -323,14 +369,15 @@ class _GroupedBarsPainter extends CustomPainter {
     final grid = Paint()..color = textColor.withValues(alpha: 0.12)..strokeWidth = 1;
     canvas.drawLine(Offset(0, baseY), Offset(size.width, baseY), grid);
     if (maxValue <= 0 || expense.isEmpty) return;
+    final p = progress.clamp(0.0, 1.0).toDouble();
     final slot = size.width / expense.length;
     final barWidth = (slot * 0.32).clamp(1.5, 10.0).toDouble();
     final ePaint = Paint()..color = const Color(0xFFE5484D).withValues(alpha: 0.78);
     final iPaint = Paint()..color = const Color(0xFF0E9F6E).withValues(alpha: 0.78);
     for (var i = 0; i < expense.length; i++) {
       final groupX = slot * i + slot * 0.18;
-      final eh = (expense[i] / maxValue) * (size.height - 30);
-      final ih = (income[i] / maxValue) * (size.height - 30);
+      final eh = (expense[i] / maxValue) * (size.height - 36) * p;
+      final ih = (income[i] / maxValue) * (size.height - 36) * p;
       if (eh > 0) {
         canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(groupX, baseY - eh, barWidth, eh), const Radius.circular(2)), ePaint);
       }
@@ -339,7 +386,19 @@ class _GroupedBarsPainter extends CustomPainter {
       }
     }
     final textPainter = TextPainter(textDirection: TextDirection.ltr);
-    for (var i = 0; i < expense.length; i += 3) {
+    for (var i = 0; i < expense.length; i += 2) {
+      final eh = (expense[i] / maxValue) * (size.height - 36) * p;
+      if (expense[i] > 0) {
+        textPainter.text = TextSpan(
+          text: _assetAmount(expense[i]),
+          style: const TextStyle(fontSize: 7, color: Color(0xFFE5484D), fontWeight: FontWeight.w600),
+        );
+        textPainter.layout();
+        final tx = (slot * i + slot * 0.22 - textPainter.width / 2)
+            .clamp(0.0, size.width - textPainter.width)
+            .toDouble();
+        textPainter.paint(canvas, Offset(tx, (baseY - eh - 11).clamp(0.0, baseY - 8).toDouble()));
+      }
       textPainter.text = TextSpan(text: '${i + 1}', style: TextStyle(fontSize: 8, color: textColor));
       textPainter.layout();
       textPainter.paint(canvas, Offset(slot * i + slot * 0.3, baseY + 4));
@@ -347,5 +406,7 @@ class _GroupedBarsPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _GroupedBarsPainter old) => old.expense != expense || old.income != income;
+  bool shouldRepaint(covariant _GroupedBarsPainter old) =>
+      old.expense != expense || old.income != income ||
+      old.progress != progress;
 }
