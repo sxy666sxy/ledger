@@ -104,14 +104,17 @@ List<List<String>> readXlsxRows(Uint8List bytes) {
         final col = _columnIndex(ref);
         final t = c.getAttribute('t');
         final style = int.tryParse(c.getAttribute('s') ?? '');
-        final v = _first(c, 'v');
-        final is = _first(c, 'is');
+        final vElement = _first(c, 'v');
+        final inlineElement = _first(c, 'is');
+        final v = vElement?.innerText.trim();
         String value = '';
         if (t == 's') {
           final idx = int.tryParse(v ?? '');
           if (idx != null && idx >= 0 && idx < shared.length) value = shared[idx];
         } else if (t == 'inlineStr') {
-          value = is == null ? (v ?? '') : is.findAllElements('t').map((e) => e.innerText).join();
+          value = inlineElement == null
+              ? (v ?? '')
+              : inlineElement.findAllElements('t').map((e) => e.innerText).join();
         } else if (t == 'b') {
           value = (v == '1') ? 'TRUE' : 'FALSE';
         } else if (t == 'str' || t == 'e') {
