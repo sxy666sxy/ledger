@@ -183,18 +183,23 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     else
                       ...selectedTxns.map((t) {
                         final cat = store.categoryById(t.categoryId);
+                        final to = store.accountById(t.toAccountId);
+                        final acc = store.accountById(t.accountId);
                         final isExpense = t.type == TxnType.expense;
+                        final isTransfer = t.type == TxnType.transfer;
                         return Card(
                           margin: const EdgeInsets.only(bottom: 6),
                           child: ListTile(
-                            leading: Text(cat?.icon ?? '🏷️', style: const TextStyle(fontSize: 20)),
-                            title: Text(cat?.name ?? '未分类'),
-                            subtitle: Text([t.time, t.note].where((e) => e.isNotEmpty).join(' · ')),
+                            leading: Text(isTransfer ? '🔁' : (cat?.icon ?? '🏷️'), style: const TextStyle(fontSize: 20)),
+                            title: Text(isTransfer ? '转账' : (cat?.name ?? '未分类')),
+                            subtitle: Text(isTransfer ? '${acc?.name ?? '?'} → ${to?.name ?? '?'}' : [t.time, t.note].where((e) => e.isNotEmpty).join(' · ')),
                             trailing: Text(
-                              '${isExpense ? '-' : '+'}${formatMoney(t.amount)}',
+                              isTransfer ? formatMoney(t.amount) : '${isExpense ? '-' : '+'}${formatMoney(t.amount)}',
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
-                                color: isExpense ? const Color(0xFFE5484D) : const Color(0xFF0E9F6E),
+                                color: isTransfer
+                                    ? const Color(0xFF5B6CFF)
+                                    : (isExpense ? const Color(0xFFE5484D) : const Color(0xFF0E9F6E)),
                               ),
                             ),
                             onTap: () => showEntrySheet(context, existing: t),

@@ -111,7 +111,7 @@ class AppStore extends ChangeNotifier {
     for (final t in txnsForMonth(month)) {
       if (t.type == TxnType.expense) {
         expense += t.amount;
-      } else {
+      } else if (t.type == TxnType.income) {
         income += t.amount;
       }
     }
@@ -121,6 +121,11 @@ class AppStore extends ChangeNotifier {
   double accountBalance(Account account) {
     double value = account.initial;
     for (final t in transactions) {
+      if (t.type == TxnType.transfer) {
+        if (t.accountId == account.id) value -= t.amount;
+        if (t.toAccountId == account.id) value += t.amount;
+        continue;
+      }
       if (t.accountId != account.id) continue;
       if (t.type == TxnType.expense) {
         value -= t.amount;
@@ -172,7 +177,7 @@ class AppStore extends ChangeNotifier {
     for (final t in txnsForYear(year)) {
       if (t.type == TxnType.expense) {
         expense += t.amount;
-      } else {
+      } else if (t.type == TxnType.income) {
         income += t.amount;
       }
     }
@@ -185,7 +190,7 @@ class AppStore extends ChangeNotifier {
     for (final t in transactions.where((t) => t.bookId == activeBookId)) {
       if (t.type == TxnType.expense) {
         expense += t.amount;
-      } else {
+      } else if (t.type == TxnType.income) {
         income += t.amount;
       }
     }
@@ -201,7 +206,7 @@ class AppStore extends ChangeNotifier {
       if (month == null || month < 1 || month > 12) continue;
       if (t.type == TxnType.expense) {
         expense[month - 1] += t.amount;
-      } else {
+      } else if (t.type == TxnType.income) {
         income[month - 1] += t.amount;
       }
     }
@@ -254,6 +259,12 @@ class AppStore extends ChangeNotifier {
     for (final t in transactions) {
       if (t.bookId != activeBookId || t.date.compareTo(endKey) > 0) continue;
       final account = accountById(t.accountId);
+      if (t.type == TxnType.transfer) {
+        final to = accountById(t.toAccountId);
+        if (account != null && account.include) total -= t.amount;
+        if (to != null && to.include) total += t.amount;
+        continue;
+      }
       if (account == null || !account.include) continue;
       if (t.type == TxnType.expense) {
         total -= t.amount;

@@ -71,22 +71,22 @@ jobs:
       - name: Prepare asset
         run: |
           mkdir -p ../dist_flutter
-          cp build/app/outputs/flutter-apk/app-release.apk "../dist_flutter/星空记账-flutter-v0.5.0.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "../dist_flutter/星空记账-flutter-v0.6.0.apk"
           ls -lh ../dist_flutter
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: xingkong-flutter-v0.5.0
-          path: dist_flutter/星空记账-flutter-v0.5.0.apk
+          name: xingkong-flutter-v0.6.0
+          path: dist_flutter/星空记账-flutter-v0.6.0.apk
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: flutter-v0.5.0
-          name: 星空记账 Flutter v0.5.0（数据备份与完整功能）
+          tag_name: flutter-v0.6.0
+          name: 星空记账 Flutter v0.6.0（转账/预算/报表导出）
           body: |
-            纯 Flutter 原生重写：数据备份、周期记账、隐私锁与完整报表。
+            纯 Flutter 原生重写：转账、分类预算、完整 Excel、报表图片/PDF 与资产区间。
             - 明细 / 记账 / 日历 / 月统计 / 资产 / 我的
             - 分类管理、月预算、账户余额、分类统计
             - 年统计：12 个月柱状图、近十年收支、所有年份汇总
@@ -97,10 +97,15 @@ jobs:
             - 周期记账（每天 / 每周 / 每月）
             - 隐私锁
             - 资产走势、收支对比、支出排行、完整报表
+            - 账户间转账
+            - 分类预算
+            - Excel 23 列完整字段映射
+            - 年度报表导出图片 / PDF
+            - 资产走势 30 天 / 12 月 / 全部区间
             - 使用固定发布签名，后续版本可直接覆盖升级
             - 与原 WebView 版为不同包名，可并存安装
             后续阶段迁移：更完整的 Excel 字段映射、资产转移、分类预算与高级统计。
-          files: dist_flutter/星空记账-flutter-v0.5.0.apk
+          files: dist_flutter/星空记账-flutter-v0.6.0.apk
           draft: false
           prerelease: true
           allowUpdates: true

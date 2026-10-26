@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models.dart';
 import '../store.dart';
+import '../screens/asset_trend_screen.dart';
 import '../utils.dart';
 
 class YearAdvancedCards extends StatelessWidget {
@@ -45,8 +46,17 @@ class YearAdvancedCards extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('资产走势', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 2),
+            Row(
+              children: [
+                const Expanded(child: Text('资产走势', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800))),
+                TextButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const AssetTrendScreen()),
+                  ),
+                  child: const Text('完整走势'),
+                ),
+              ],
+            ),
             Text('每月末净资产', style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
             const SizedBox(height: 12),
             SizedBox(

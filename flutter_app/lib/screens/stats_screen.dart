@@ -4,6 +4,7 @@ import '../models.dart';
 import '../store.dart';
 import '../utils.dart';
 import '../widgets/year_advanced.dart';
+import 'report_export_screen.dart';
 import '../widgets/year_heatmap.dart';
 
 enum _StatsView { month, year }
@@ -126,6 +127,14 @@ class _StatsScreenState extends State<StatsScreen> {
               IconButton(
                 onPressed: () => setState(() => _year++),
                 icon: const Icon(Icons.chevron_right),
+              ),
+            if (!_yearAll)
+              IconButton(
+                tooltip: '导出报表',
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => ReportExportScreen(year: _year)),
+                ),
+                icon: const Icon(Icons.ios_share, size: 20),
               ),
             FilterChip(
               label: const Text('所有'),

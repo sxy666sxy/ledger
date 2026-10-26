@@ -221,7 +221,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _txnTile(BuildContext context, Txn t, AppStore store) {
     final cat = store.categoryById(t.categoryId);
     final acc = store.accountById(t.accountId);
+    final to = store.accountById(t.toAccountId);
     final isExpense = t.type == TxnType.expense;
+    final isTransfer = t.type == TxnType.transfer;
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Dismissible(
@@ -260,7 +262,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: Color(cat?.color ?? 0xFF94A3B8).withValues(alpha: 0.13),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text(cat?.icon ?? '🏷️', style: const TextStyle(fontSize: 19)),
+                    child: Text(isTransfer ? '🔁' : (cat?.icon ?? '🏷️'), style: const TextStyle(fontSize: 19)),
                   ),
                   const SizedBox(width: 11),
                   Expanded(
@@ -268,12 +270,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${cat?.name ?? '未分类'}${t.subcategory.isNotEmpty ? ' · ${t.subcategory}' : ''}',
+                          isTransfer
+                              ? '转账'
+                              : '${cat?.name ?? '未分类'}${t.subcategory.isNotEmpty ? ' · ${t.subcategory}' : ''}',
                           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          [t.time, acc?.name ?? '', t.note].where((e) => e.isNotEmpty).join(' · '),
+                          isTransfer
+                              ? [t.time, '${acc?.name ?? '?'} → ${to?.name ?? '?'}', t.note]
+                                  .where((e) => e.isNotEmpty)
+                                  .join(' · ')
+                              : [t.time, acc?.name ?? '', t.note].where((e) => e.isNotEmpty).join(' · '),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600),
@@ -283,11 +291,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    '${isExpense ? '-' : '+'}${formatMoney(t.amount)}',
+                    isTransfer
+                        ? formatMoney(t.amount)
+                        : '${isExpense ? '-' : '+'}${formatMoney(t.amount)}',
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
-                      color: isExpense ? const Color(0xFFE5484D) : const Color(0xFF0E9F6E),
+                      color: isTransfer
+                          ? const Color(0xFF5B6CFF)
+                          : (isExpense ? const Color(0xFFE5484D) : const Color(0xFF0E9F6E)),
                     ),
                   ),
                 ],

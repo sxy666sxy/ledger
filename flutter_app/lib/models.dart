@@ -1,12 +1,18 @@
 import 'dart:convert';
 
-enum TxnType { expense, income }
+enum TxnType { expense, income, transfer }
 
 TxnType txnTypeFromString(String? value) {
-  return value == 'income' ? TxnType.income : TxnType.expense;
+  if (value == 'income') return TxnType.income;
+  if (value == 'transfer') return TxnType.transfer;
+  return TxnType.expense;
 }
 
-String txnTypeString(TxnType type) => type == TxnType.income ? 'income' : 'expense';
+String txnTypeString(TxnType type) {
+  if (type == TxnType.income) return 'income';
+  if (type == TxnType.transfer) return 'transfer';
+  return 'expense';
+}
 
 class Book {
   Book({
@@ -15,13 +21,15 @@ class Book {
     this.icon = '📒',
     this.color = 0xFF0E9F6E,
     this.budget = 0,
-  });
+    Map<String, double>? categoryBudgets,
+  }) : categoryBudgets = categoryBudgets ?? {};
 
   String id;
   String name;
   String icon;
   int color;
   double budget;
+  Map<String, double> categoryBudgets;
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -29,6 +37,7 @@ class Book {
         'icon': icon,
         'color': color,
         'budget': budget,
+        'categoryBudgets': categoryBudgets,
       };
 
   factory Book.fromJson(Map<String, dynamic> map) => Book(
@@ -37,6 +46,9 @@ class Book {
         icon: map['icon'] as String? ?? '📒',
         color: (map['color'] as num?)?.toInt() ?? 0xFF0E9F6E,
         budget: (map['budget'] as num?)?.toDouble() ?? 0,
+        categoryBudgets: (map['categoryBudgets'] as Map?)
+                ?.map((key, value) => MapEntry(key.toString(), (value as num?)?.toDouble() ?? 0)) ??
+            {},
       );
 }
 
@@ -142,6 +154,13 @@ class Txn {
     this.reimburseAmount = 0,
     this.reimburseAccountId = '',
     this.recurringId = '',
+    this.reimburseDetail = '',
+    this.currency = '',
+    this.foreignAmount = 0,
+    this.address = '',
+    this.createdBy = '',
+    this.other = '',
+    this.attachments = const [],
     this.createdAt = 0,
   });
 
@@ -153,6 +172,7 @@ class Txn {
   String categoryId;
   String subcategory;
   String accountId;
+  String toAccountId;
   String bookId;
   String note;
   List<String> tags;
@@ -161,6 +181,13 @@ class Txn {
   double reimburseAmount;
   String reimburseAccountId;
   String recurringId;
+  String reimburseDetail;
+  String currency;
+  double foreignAmount;
+  String address;
+  String createdBy;
+  String other;
+  List<String> attachments;
   int createdAt;
 
   Map<String, dynamic> toJson() => {
@@ -172,6 +199,7 @@ class Txn {
         'categoryId': categoryId,
         'subcategory': subcategory,
         'accountId': accountId,
+        'toAccountId': toAccountId,
         'bookId': bookId,
         'note': note,
         'tags': tags,
@@ -180,6 +208,13 @@ class Txn {
         'reimburseAmount': reimburseAmount,
         'reimburseAccountId': reimburseAccountId,
         'recurringId': recurringId,
+        'reimburseDetail': reimburseDetail,
+        'currency': currency,
+        'foreignAmount': foreignAmount,
+        'address': address,
+        'createdBy': createdBy,
+        'other': other,
+        'attachments': attachments,
         'createdAt': createdAt,
       };
 
@@ -192,6 +227,7 @@ class Txn {
         categoryId: map['categoryId'] as String? ?? '',
         subcategory: map['subcategory'] as String? ?? '',
         accountId: map['accountId'] as String? ?? '',
+        toAccountId: map['toAccountId'] as String? ?? '',
         bookId: map['bookId'] as String? ?? '',
         note: map['note'] as String? ?? '',
         tags: (map['tags'] as List?)?.whereType<String>().toList() ?? const [],
@@ -200,6 +236,13 @@ class Txn {
         reimburseAmount: (map['reimburseAmount'] as num?)?.toDouble() ?? 0,
         reimburseAccountId: map['reimburseAccountId'] as String? ?? '',
         recurringId: map['recurringId'] as String? ?? '',
+        reimburseDetail: map['reimburseDetail'] as String? ?? '',
+        currency: map['currency'] as String? ?? '',
+        foreignAmount: (map['foreignAmount'] as num?)?.toDouble() ?? 0,
+        address: map['address'] as String? ?? '',
+        createdBy: map['createdBy'] as String? ?? '',
+        other: map['other'] as String? ?? '',
+        attachments: (map['attachments'] as List?)?.whereType<String>().toList() ?? const [],
         createdAt: (map['createdAt'] as num?)?.toInt() ?? 0,
       );
 }
@@ -226,6 +269,7 @@ class RecurringRule {
   double amount;
   String categoryId;
   String accountId;
+  String toAccountId;
   String bookId;
   String frequency;
   String startDate;
@@ -240,6 +284,7 @@ class RecurringRule {
         'amount': amount,
         'categoryId': categoryId,
         'accountId': accountId,
+        'toAccountId': toAccountId,
         'bookId': bookId,
         'frequency': frequency,
         'startDate': startDate,
@@ -255,6 +300,7 @@ class RecurringRule {
         amount: (map['amount'] as num?)?.toDouble() ?? 0,
         categoryId: map['categoryId'] as String? ?? '',
         accountId: map['accountId'] as String? ?? '',
+        toAccountId: map['toAccountId'] as String? ?? '',
         bookId: map['bookId'] as String? ?? '',
         frequency: map['frequency'] as String? ?? 'monthly',
         startDate: map['startDate'] as String? ?? '2026-01-01',

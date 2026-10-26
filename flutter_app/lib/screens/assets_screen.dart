@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../models.dart';
 import '../store.dart';
 import '../utils.dart';
+import 'asset_trend_screen.dart';
+import 'entry_sheet.dart';
 
 class AssetsScreen extends StatelessWidget {
   const AssetsScreen({super.key});
@@ -53,11 +55,27 @@ class AssetsScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const AssetTrendScreen()),
+                  ),
+                  icon: const Icon(Icons.show_chart, size: 17),
+                  label: const Text('完整资产走势'),
+                ),
+              ),
+              const SizedBox(height: 2),
               Row(
                 children: [
                   const Text('资金账户', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                   const Spacer(),
+                  TextButton.icon(
+                    onPressed: () => showEntrySheet(context, initialType: TxnType.transfer),
+                    icon: const Icon(Icons.swap_horiz, size: 17),
+                    label: const Text('转账'),
+                  ),
                   TextButton.icon(
                     onPressed: () => _editAccount(context, store, null),
                     icon: const Icon(Icons.add, size: 17),

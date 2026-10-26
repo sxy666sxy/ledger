@@ -8,6 +8,7 @@ Future<void> showEntrySheet(
   BuildContext context, {
   Txn? existing,
   String? initialDate,
+  TxnType? initialType,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -17,15 +18,17 @@ Future<void> showEntrySheet(
     builder: (sheetContext) => EntrySheet(
       existing: existing,
       initialDate: initialDate,
+      initialType: initialType,
     ),
   );
 }
 
 class EntrySheet extends StatefulWidget {
-  const EntrySheet({super.key, this.existing, this.initialDate});
+  const EntrySheet({super.key, this.existing, this.initialDate, this.initialType});
 
   final Txn? existing;
   final String? initialDate;
+  final TxnType? initialType;
 
   @override
   State<EntrySheet> createState() => _EntrySheetState();
@@ -37,6 +40,7 @@ class _EntrySheetState extends State<EntrySheet> {
   late String _date;
   String _categoryId = '';
   String _accountId = '';
+  String _toAccountId = '';
   late TextEditingController _amountController;
   late TextEditingController _noteController;
 
@@ -44,7 +48,7 @@ class _EntrySheetState extends State<EntrySheet> {
   void initState() {
     super.initState();
     final existing = widget.existing;
-    _type = existing?.type ?? TxnType.expense;
+    _type = existing?.type ?? widget.initialType ?? TxnType.expense;
     _date = existing?.date ?? widget.initialDate ?? dateKey(DateTime.now());
     _amountController = TextEditingController(
       text: existing == null ? '' : existing.amount.toStringAsFixed(2),
@@ -56,6 +60,10 @@ class _EntrySheetState extends State<EntrySheet> {
     final accts = _availableAccounts;
     _accountId = existing?.accountId ??
         (accts.isNotEmpty ? accts.first.id : '');
+    _toAccountId = existing?.toAccountId ??
+        (accts.length > 1
+            ? accts.firstWhere((a) => a.id != _accountId, orElse: () => accts.first).id
+            : '');
   }
 
   List<Account> get _availableAccounts {
@@ -76,6 +84,12 @@ class _EntrySheetState extends State<EntrySheet> {
       final cats = store.categoriesFor(type);
       if (cats.isNotEmpty && !cats.any((c) => c.id == _categoryId)) {
         _categoryId = cats.first.id;
+      }
+      if (type == TxnType.transfer && _toAccountId.isEmpty) {
+        final list = _availableAccounts;
+        if (list.isNotEmpty) {
+          _toAccountId = list.firstWhere((a) => a.id != _accountId, orElse: () => list.first).id;
+        }
       }
     });
   }
@@ -101,7 +115,7 @@ class _EntrySheetState extends State<EntrySheet> {
       );
       return;
     }
-    if (_categoryId.isEmpty) {
+    if (_type != TxnType.transfer && _categoryId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('请选择分类')),
       );
@@ -110,6 +124,12 @@ class _EntrySheetState extends State<EntrySheet> {
     if (_accountId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('请选择账户')),
+      );
+      return;
+    }
+    if (_type == TxnType.transfer && (_toAccountId.isEmpty || _toAccountId == _accountId)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请选择不同的转入账户')),
       );
       return;
     }
@@ -122,8 +142,9 @@ class _EntrySheetState extends State<EntrySheet> {
       time: existing?.time ?? time,
       type: _type,
       amount: amount,
-      categoryId: _categoryId,
+      categoryId: _type == TxnType.transfer ? '' : _categoryId,
       accountId: _accountId,
+      toAccountId: _type == TxnType.transfer ? _toAccountId : '',
       bookId: store.activeBookId,
       note: _noteController.text.trim(),
       subcategory: existing?.subcategory ?? '',
@@ -208,7 +229,7 @@ class _EntrySheetState extends State<EntrySheet> {
               Row(
                 children: [
                   Text(
-                    widget.existing == null ? '记一笔' : '编辑账单',
+                    widget.existing == null ? (_type == TxnType.transfer ? '转账' : '记一笔') : '编辑账单',
                     style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
                   ),
                   const Spacer(),
@@ -230,6 +251,7 @@ class _EntrySheetState extends State<EntrySheet> {
                 segments: const [
                   ButtonSegment(value: TxnType.expense, label: Text('支出')),
                   ButtonSegment(value: TxnType.income, label: Text('收入')),
+                  ButtonSegment(value: TxnType.transfer, label: Text('转账')),
                 ],
                 selected: {_type},
                 onSelectionChanged: (set) => _setType(set.first),
@@ -247,48 +269,51 @@ class _EntrySheetState extends State<EntrySheet> {
                 ),
               ),
               const SizedBox(height: 18),
-              const Text('分类', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 8),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: cats.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 4,
-                  childAspectRatio: 1.15,
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
-                ),
-                itemBuilder: (context, i) {
-                  final c = cats[i];
-                  final selected = c.id == _categoryId;
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(14),
-                    onTap: () => setState(() => _categoryId = c.id),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: selected
-                            ? Color(c.color).withValues(alpha: 0.15)
-                            : (dark ? const Color(0xFF141B34) : const Color(0xFFF7F8FF)),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: selected ? Color(c.color) : Colors.transparent,
+              if (_type != TxnType.transfer) ...[
+                const Text('分类', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 8),
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: cats.length,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 4,
+                    childAspectRatio: 1.15,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                  ),
+                  itemBuilder: (context, i) {
+                    final c = cats[i];
+                    final selected = c.id == _categoryId;
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(14),
+                      onTap: () => setState(() => _categoryId = c.id),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? Color(c.color).withValues(alpha: 0.15)
+                              : (dark ? const Color(0xFF141B34) : const Color(0xFFF7F8FF)),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: selected ? Color(c.color) : Colors.transparent,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(c.icon, style: const TextStyle(fontSize: 22)),
+                            const SizedBox(height: 3),
+                            Text(c.name, style: const TextStyle(fontSize: 11)),
+                          ],
                         ),
                       ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(c.icon, style: const TextStyle(fontSize: 22)),
-                          const SizedBox(height: 3),
-                          Text(c.name, style: const TextStyle(fontSize: 11)),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-              const Text('账户', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+              ],
+              Text(_type == TxnType.transfer ? '从账户' : '账户',
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -303,6 +328,24 @@ class _EntrySheetState extends State<EntrySheet> {
                   );
                 }).toList(),
               ),
+              if (_type == TxnType.transfer) ...[
+                const SizedBox(height: 14),
+                const Text('到账户', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: accounts.where((a) => a.id != _accountId).map((a) {
+                    final selected = a.id == _toAccountId;
+                    return ChoiceChip(
+                      selected: selected,
+                      onSelected: (_) => setState(() => _toAccountId = a.id),
+                      avatar: Text(a.icon),
+                      label: Text(a.name),
+                    );
+                  }).toList(),
+                ),
+              ],
               const SizedBox(height: 16),
               Row(
                 children: [

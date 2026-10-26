@@ -46,13 +46,29 @@ Future<Uint8List> buildExcelBytes(AppStore store) async {
     final account = accountMap[t.accountId];
     final book = bookMap[t.bookId];
     final reimburseAccount = accountMap[t.reimburseAccountId];
+    final toAccount = accountMap[t.toAccountId];
+    final typeLabel = t.type == TxnType.expense
+        ? '支出'
+        : t.type == TxnType.income
+            ? '收入'
+            : '转账';
+    final accountLabel = t.type == TxnType.transfer
+        ? '${account?.name ?? '?'} → ${toAccount?.name ?? '?'}'
+        : (account?.name ?? '');
+    final attachments = List<String>.from(t.attachments);
+    while (attachments.length < 5) {
+      attachments.add('');
+    }
+    final multiCurrency = t.currency.isEmpty
+        ? ''
+        : '${t.currency} ${t.foreignAmount.toStringAsFixed(2)}';
     sheet.appendRow([
       TextCellValue(t.date),
-      TextCellValue(t.type == TxnType.expense ? '支出' : '收入'),
+      TextCellValue(typeLabel),
       DoubleCellValue(t.amount),
       TextCellValue(cat?.name ?? ''),
       TextCellValue(t.subcategory),
-      TextCellValue(account?.name ?? ''),
+      TextCellValue(accountLabel),
       TextCellValue(book?.name ?? ''),
       DoubleCellValue(t.refund),
       DoubleCellValue(t.discount),
@@ -60,16 +76,16 @@ Future<Uint8List> buildExcelBytes(AppStore store) async {
       TextCellValue(t.tags.join(',')),
       TextCellValue(reimburseAccount?.name ?? ''),
       DoubleCellValue(t.reimburseAmount),
-      TextCellValue(''),
-      TextCellValue(''),
-      TextCellValue(''),
-      TextCellValue(''),
-      TextCellValue(''),
-      TextCellValue(''),
-      TextCellValue(''),
-      TextCellValue(''),
-      TextCellValue(''),
-      TextCellValue(''),
+      TextCellValue(t.reimburseDetail),
+      TextCellValue(multiCurrency),
+      TextCellValue(t.address),
+      TextCellValue(t.createdBy),
+      TextCellValue(t.other),
+      TextCellValue(attachments[0]),
+      TextCellValue(attachments[1]),
+      TextCellValue(attachments[2]),
+      TextCellValue(attachments[3]),
+      TextCellValue(attachments[4]),
     ]);
   }
   try {
@@ -161,53 +177,85 @@ ExcelImportResult importExcelBytes(AppStore store, List<int> bytes) {
       type = TxnType.income;
     } else if (typeText == '支出' || typeText.toLowerCase() == 'expense') {
       type = TxnType.expense;
+    } else if (typeText == '转账' || typeText.toLowerCase() == 'transfer') {
+      type = TxnType.transfer;
     } else {
       skipped++;
       continue;
     }
-    final categoryName = cell(row, '类别').isEmpty ? '未分类' : cell(row, '类别');
-    final categoryKey = '${type.name}:$categoryName';
-    var category = categoryMap[categoryKey];
-    if (category == null) {
-      category = Category(
-        id: 'c_import_${seq}_$r',
-        name: categoryName,
-        type: type,
-        icon: '🏷️',
-        color: 0xFF94A3B8,
-        order: store.categories.where((c) => c.type == type).length,
-      );
-      store.categories.add(category);
-      categoryMap[categoryKey] = category;
+    Category? category;
+    if (type != TxnType.transfer) {
+      final categoryName = cell(row, '类别').isEmpty ? '未分类' : cell(row, '类别');
+      final categoryKey = '${type.name}:$categoryName';
+      category = categoryMap[categoryKey];
+      if (category == null) {
+        category = Category(
+          id: 'c_import_${seq}_$r',
+          name: categoryName,
+          type: type,
+          icon: '🏷️',
+          color: 0xFF94A3B8,
+          order: store.categories.where((c) => c.type == type).length,
+        );
+        store.categories.add(category);
+        categoryMap[categoryKey] = category;
+      }
     }
-    final accountName = cell(row, '账户').isEmpty ? '导入账户' : cell(row, '账户');
-    var account = accountMap[accountName];
+    final accountCell = cell(row, '账户');
+    final arrowIndex = accountCell.indexOf('→');
+    final fromName = (arrowIndex >= 0 ? accountCell.substring(0, arrowIndex) : accountCell).trim();
+    final toName = arrowIndex >= 0 ? accountCell.substring(arrowIndex + 1).trim() : '';
+    Account? ensureAccount(String name, int suffix) {
+      if (name.isEmpty) return null;
+      var a = accountMap[name];
+      if (a == null) {
+        a = Account(
+          id: 'a_import_${seq}_${r}_$suffix',
+          name: name,
+          type: 'other',
+          icon: '💳',
+          color: 0xFF5B6CFF,
+          order: store.accounts.length,
+        );
+        store.accounts.add(a);
+        accountMap[name] = a;
+      }
+      return a;
+    }
+    final account = ensureAccount(fromName.isEmpty ? '导入账户' : fromName, 1);
     if (account == null) {
-      account = Account(
-        id: 'a_import_${seq}_$r',
-        name: accountName,
-        type: 'other',
-        icon: '💳',
-        color: 0xFF5B6CFF,
-        order: store.accounts.length,
-      );
-      store.accounts.add(account);
-      accountMap[accountName] = account;
+      skipped++;
+      continue;
+    }
+    final toAccount = type == TxnType.transfer ? ensureAccount(toName, 2) : null;
+    if (type == TxnType.transfer && toAccount == null) {
+      skipped++;
+      continue;
     }
     final bookName = cell(row, '账本');
     final book = bookMap[bookName] ?? store.activeBook;
     final reimburseName = cell(row, '报销账户');
     final reimburse = reimburseName.isEmpty ? null : accountMap[reimburseName];
     final tags = cell(row, '标签').split(RegExp(r'[,，;；\s]+')).where((e) => e.isNotEmpty).toList();
+    final multi = cell(row, '多币种');
+    final multiParts = multi.split(RegExp(r'\s+')).where((e) => e.isNotEmpty).toList();
+    final currency = multiParts.isEmpty ? '' : multiParts.first;
+    final foreignAmount = multiParts.length > 1 ? _num(multiParts[1]) : 0.0;
+    final attachments = <String>[];
+    for (var i = 1; i <= 5; i++) {
+      final a = cell(row, '附件$i');
+      if (a.isNotEmpty) attachments.add(a);
+    }
     imported.add(Txn(
       id: 't_import_${seq}_$r',
       date: date,
       time: '12:00',
       type: type,
       amount: amount,
-      categoryId: category.id,
+      categoryId: category?.id ?? '',
       subcategory: cell(row, '二级分类'),
       accountId: account.id,
+      toAccountId: toAccount?.id ?? '',
       bookId: book.id,
       note: cell(row, '备注'),
       tags: tags,
@@ -215,6 +263,13 @@ ExcelImportResult importExcelBytes(AppStore store, List<int> bytes) {
       discount: _num(cell(row, '优惠')),
       reimburseAmount: _num(cell(row, '报销金额')),
       reimburseAccountId: reimburse?.id ?? '',
+      reimburseDetail: cell(row, '报销明细'),
+      currency: currency,
+      foreignAmount: foreignAmount,
+      address: cell(row, '地址'),
+      createdBy: cell(row, '创建用户'),
+      other: cell(row, '其他'),
+      attachments: attachments,
       createdAt: DateTime.now().millisecondsSinceEpoch,
     ));
   }
