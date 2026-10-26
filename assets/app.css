@@ -2526,6 +2526,7 @@ html, body { overflow-x: hidden; }
   will-change: transform;
 }
 .page-preview-pane {
+  position: relative;
   flex: 0 0 50%;
   min-width: 0;
   height: 100%;
