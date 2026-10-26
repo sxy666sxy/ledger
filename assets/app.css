@@ -2425,3 +2425,86 @@ body[data-route="profile"] .profile { padding-top: calc(var(--safe-t) + 14px); }
   font-weight: 600;
   margin: 0 0 2px;
 }
+
+/* 统计模式四页滑动 */
+.stats-carousel { overflow: hidden; position: relative; }
+.stats-track {
+  display: flex;
+  width: 400%;
+  align-items: flex-start;
+  will-change: transform;
+}
+.stats-pane {
+  flex: 0 0 25%;
+  min-width: 0;
+  align-self: flex-start;
+}
+.stats-pane > .stats { min-width: 0; }
+
+/* 五页整页左右滑动过渡：旧页滑出、新页滑入 */
+html, body { overflow-x: hidden; }
+.page-ghost {
+  position: fixed;
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  z-index: 20;
+  pointer-events: none;
+  background: var(--bg);
+  will-change: transform;
+}
+.page-ghost > .view {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+}
+.page-ghost.to-left { animation: ghostSlideLeft .3s cubic-bezier(.22,.8,.28,1) both; }
+.page-ghost.to-right { animation: ghostSlideRight .3s cubic-bezier(.22,.8,.28,1) both; }
+@keyframes ghostSlideLeft { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+@keyframes ghostSlideRight { from { transform: translateX(0); } to { transform: translateX(100%); } }
+#view.page-slide-next { animation: pageSlideNext .3s cubic-bezier(.22,.8,.28,1); }
+#view.page-slide-prev { animation: pageSlidePrev .3s cubic-bezier(.22,.8,.28,1); }
+@keyframes pageSlideNext { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes pageSlidePrev { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+
+/* 自定义图片主题 */
+[data-theme="custom"] {
+  --bg: #eef2f9;
+  --theme-bg: transparent;
+  --surface: rgba(255, 255, 255, 0.80);
+  --surface-2: rgba(255, 255, 255, 0.58);
+  --surface-3: rgba(148, 163, 184, 0.15);
+  --text: #151a33;
+  --text-2: #5c6684;
+  --text-3: #8892aa;
+  --line: rgba(21, 26, 51, 0.08);
+  --line-strong: rgba(21, 26, 51, 0.16);
+  --glass-bg: rgba(255, 255, 255, 0.62);
+  --glass-nav: rgba(255, 255, 255, 0.70);
+  --glass-border: rgba(255, 255, 255, 0.66);
+}
+[data-theme="custom"] html,
+[data-theme="custom"] body,
+[data-theme="custom"] #app { background: transparent; }
+[data-theme="custom"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: var(--custom-image, linear-gradient(135deg, #dfe7ff, #f7e8ef));
+  background-size: cover;
+  background-position: center;
+  z-index: -2;
+}
+[data-theme="custom"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.26));
+  z-index: -1;
+  pointer-events: none;
+}
+.sw-custom { background: linear-gradient(135deg, #b8c4ff, #ffd4e6); }
+.theme-custom-actions { display: flex; gap: 8px; margin-top: 10px; }
+.theme-custom-actions .btn { flex: 1; height: 42px; font-size: 12.5px; }
+.theme-upload { color: var(--primary); }

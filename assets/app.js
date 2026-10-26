@@ -8,7 +8,7 @@
   const C = window.LedgerCore;
   const CH = window.LedgerCharts;
   const STORAGE_KEY = 'xingkong.ledger.v4';
-  const VERSION_TEXT = '2.1.7';
+  const VERSION_TEXT = '2.1.8';
   const THEMES = [
     { id: 'auto', name: '跟随系统', desc: '自动切换浅色 / 深色', emoji: '🌓', sw: 'auto' },
     { id: 'light', name: '星空浅色', desc: '靛蓝星夜', emoji: '✦', sw: 'light' },
@@ -21,7 +21,8 @@
     { id: 'snow', name: '白雪', desc: '雪落无声', emoji: '❄️', sw: 'snow' },
     { id: 'storm', name: '闪电', desc: '雷雨夜行', emoji: '⚡', sw: 'storm' },
     { id: 'wave', name: '波浪', desc: '潮汐海岸', emoji: '🌊', sw: 'wave' },
-    { id: 'ocean', name: '海底', desc: '深海微光', emoji: '🐚', sw: 'ocean' }
+    { id: 'ocean', name: '海底', desc: '深海微光', emoji: '🐚', sw: 'ocean' },
+    { id: 'custom', name: '自定义图片', desc: '导入一张图片作为背景', emoji: '🖼️', sw: 'custom' }
   ];
   const THEME_META = {
     light: { dark: false, color: '#5b6cff' }, dark: { dark: true, color: '#070a17' },
@@ -29,7 +30,8 @@
     cloud: { dark: false, color: '#6c8ab8' }, castle: { dark: false, color: '#d65a9a' },
     wheat: { dark: false, color: '#c08a2e' }, snow: { dark: false, color: '#5b8ec9' },
     storm: { dark: true, color: '#141821' }, wave: { dark: false, color: '#168a9e' },
-    ocean: { dark: true, color: '#071a2c' }
+    ocean: { dark: true, color: '#071a2c' },
+    custom: { dark: false, color: '#5b6cff' }
   };
   function themeById(id) { return THEMES.find((t) => t.id === id) || THEMES[0]; }
   function isDarkTheme(id) { return !!(THEME_META[id] && THEME_META[id].dark); }
@@ -184,6 +186,11 @@
   function applyTheme() {
     const theme = resolveTheme();
     document.documentElement.setAttribute('data-theme', theme);
+    try {
+      const img = state.data && state.data.settings && state.data.settings.customThemeImage;
+      if (theme === 'custom' && img) document.documentElement.style.setProperty('--custom-image', 'url("' + img + '")');
+      else document.documentElement.style.removeProperty('--custom-image');
+    } catch (err) { /* ignore */ }
     document.documentElement.setAttribute('data-dark', isDarkTheme(theme) ? '1' : '0');
     const meta = document.getElementById('themeColor');
     const metaInfo = THEME_META[theme] || THEME_META.light;
@@ -198,7 +205,7 @@
     const theme = resolveTheme();
     const map = {
       grass: '🌿', sky: '☁️', cloud: '☁️', castle: '🏰', wheat: '🌾',
-      snow: '❄️', storm: '⚡', wave: '🌊', ocean: '🐚'
+      snow: '❄️', storm: '⚡', wave: '🌊', ocean: '🐚', custom: '🖼️'
     };
     return map[theme] || '✦';
   }
@@ -398,10 +405,108 @@
       '<button class="fab-add" data-act="open-entry" aria-label="记一笔">' + svg('plus', 25) + '</button>');
   }
 
+  function statsCarouselHTML() {
+    const modes = ['daily', 'month', 'year', 'custom'];
+    const index = Math.max(0, modes.indexOf(state.statsMode));
+    return '<div class="stats-carousel" data-stats-carousel>' +
+      '<div class="stats-track" data-stats-track style="transform:translate3d(-' + (index * 25) + '%,0,0)">' +
+        modes.map((m) => '<div class="stats-pane" data-stats-pane="' + m + '">' + statsHTML(m, '-' + m) + '</div>').join('') +
+      '</div>' +
+    '</div>';
+  }
+
+  function statsCarouselHeight() {
+    const carousel = document.querySelector('[data-stats-carousel]');
+    if (!carousel) return;
+    const active = carousel.querySelector('[data-stats-pane="' + state.statsMode + '"]');
+    if (active) carousel.style.height = active.offsetHeight + 'px';
+  }
+
+  function mountStatsCarousel() {
+    ['daily', 'month', 'year', 'custom'].forEach((m) => mountStatsCharts(m, '-' + m));
+    wireStatsSwipe();
+    window.requestAnimationFrame(() => {
+      statsCarouselHeight();
+      window.setTimeout(statsCarouselHeight, 80);
+    });
+  }
+
+  function remountStatsPanes() {
+    if (state.route !== 'stats') return;
+    ['daily', 'month', 'year', 'custom'].forEach((m) => mountStatsCharts(m, '-' + m));
+    statsCarouselHeight();
+  }
+
+  function wireStatsSwipe() {
+    const carousel = document.querySelector('[data-stats-carousel]');
+    const track = carousel && carousel.querySelector('[data-stats-track]');
+    if (!carousel || !track || carousel.dataset.swiped === '1') return;
+    carousel.dataset.swiped = '1';
+    const modes = ['daily', 'month', 'year', 'custom'];
+    let index = Math.max(0, modes.indexOf(state.statsMode));
+    let sx = null, sy = null, dx = 0, horizontal = false, animating = false;
+    const width = () => carousel.clientWidth || 320;
+
+    function apply(i, extra) {
+      track.style.transform = 'translate3d(calc(-' + (i * 25) + '% + ' + (extra || 0) + 'px),0,0)';
+    }
+    function reset() {
+      track.style.transition = 'transform .22s cubic-bezier(.22,.8,.28,1)';
+      apply(index, 0);
+      horizontal = false;
+    }
+
+    carousel.addEventListener('touchstart', (e) => {
+      if (animating) return;
+      if (e.target.closest('button, input, .month-rail, .stats-chart-controls, .stats-chart-type, .stats-tabs, .heat-year-grid, .sheet, .stats-table')) return;
+      sx = e.touches[0].clientX; sy = e.touches[0].clientY; dx = 0; horizontal = false;
+      track.style.transition = 'none';
+    }, { passive: true });
+
+    carousel.addEventListener('touchmove', (e) => {
+      if (sx == null || animating) return;
+      dx = e.touches[0].clientX - sx;
+      const dy = e.touches[0].clientY - sy;
+      if (Math.abs(dx) > 9 && Math.abs(dx) > Math.abs(dy)) {
+        horizontal = true;
+        if (e.cancelable) e.preventDefault();
+      }
+      if (!horizontal) return;
+      const max = width() * 0.86;
+      const clamped = Math.max(-max, Math.min(max, dx));
+      apply(index, clamped);
+    }, { passive: false });
+
+    carousel.addEventListener('touchend', () => {
+      if (sx == null) return;
+      const threshold = Math.min(72, width() * 0.18);
+      const target = dx < 0 ? Math.min(modes.length - 1, index + 1) : Math.max(0, index - 1);
+      const should = horizontal && Math.abs(dx) > threshold && target !== index;
+      sx = null; sy = null;
+      if (!should) {
+        if (target !== index) { reset(); return; }
+        reset(); return;
+      }
+      animating = true;
+      state.suppressClickUntil = Date.now() + 450;
+      track.style.transition = 'transform .24s cubic-bezier(.22,.8,.28,1)';
+      apply(target, 0);
+      window.setTimeout(() => {
+        animating = false;
+        index = target;
+        state.statsMode = modes[target];
+        renderAppbar();
+        statsCarouselHeight();
+        window.scrollTo(0, 0);
+      }, 245);
+      horizontal = false;
+    }, { passive: true });
+  }
+
   function renderView() {
     if (state.route === 'home') viewEl.innerHTML = homeHTML();
     else if (state.route === 'calendar') { viewEl.innerHTML = calendarHTML(); wireCalendarSwipe(); }
-    else if (state.route === 'stats') { viewEl.innerHTML = statsHTML(); mountStatsCharts(); }
+    else if (state.route === 'stats') { viewEl.innerHTML = statsCarouselHTML(); statsCarouselHeight(); mountStatsCarousel(); }
     else if (state.route === 'assets') viewEl.innerHTML = assetsHTML();
     else viewEl.innerHTML = profileHTML();
   }
@@ -418,16 +523,34 @@
       window.scrollTo(0, 0);
       return;
     }
+    let ghost = null;
+    if (dir && viewEl.innerHTML) {
+      try {
+        const rect = viewEl.getBoundingClientRect();
+        ghost = document.createElement('div');
+        ghost.className = 'page-ghost ' + (dir > 0 ? 'to-left' : 'to-right');
+        ghost.style.top = Math.max(0, rect.top) + 'px';
+        ghost.style.height = 'calc(100vh - ' + Math.max(0, rect.top) + 'px)';
+        const clone = viewEl.cloneNode(true);
+        clone.removeAttribute('id');
+        clone.style.transform = 'translateY(' + (-window.scrollY) + 'px)';
+        ghost.appendChild(clone);
+        document.body.appendChild(ghost);
+      } catch (err) { ghost = null; }
+    }
     state.selectMode = false;
     state.selectedIds = [];
     state.route = route;
     render();
     window.scrollTo(0, 0);
     if (dir) {
-      viewEl.classList.remove('page-next', 'page-prev');
+      viewEl.classList.remove('page-slide-next', 'page-slide-prev');
       void viewEl.offsetWidth;
-      viewEl.classList.add(dir > 0 ? 'page-next' : 'page-prev');
-      window.setTimeout(() => viewEl.classList.remove('page-next', 'page-prev'), 260);
+      viewEl.classList.add(dir > 0 ? 'page-slide-next' : 'page-slide-prev');
+      window.setTimeout(() => viewEl.classList.remove('page-slide-next', 'page-slide-prev'), 330);
+      if (ghost) window.setTimeout(() => ghost.remove(), 340);
+    } else if (ghost) {
+      ghost.remove();
     }
   }
 
@@ -889,12 +1012,12 @@
     return top;
   }
 
-  function statsContext() {
+  function statsContext(modeOverride) {
     const data = state.data;
     const book = C.activeBook(data);
     const today = C.todayISO();
     const currentMonth = C.thisMonthKey();
-    const mode = state.statsMode;
+    const mode = modeOverride || state.statsMode;
     let from, to, monthKey = null, year = null, yearAll = false;
     if (mode === 'month') {
       monthKey = state.statsMonth;
@@ -1198,7 +1321,7 @@
     '</section>';
   }
 
-  function statsShareHTML(c) {
+  function statsShareHTML(c, sfx) {
     const typeCN = state.statsShareType === 'income' ? '收入' : '支出';
     const list = c.breakdown;
     const top = list.slice(0, 6);
@@ -1210,7 +1333,7 @@
     return '<section class="card stats-share-card">' +
       '<div class="card-title">' + typeCN + '占比' + statsToggleHTML(state.statsShareType, [['expense', '支出'], ['income', '收入']], 'stats-share-type') + '</div>' +
       (items.length ? '<div class="donut-box stats-donut-box">' +
-        '<div class="donut-svg" id="statsDonut"></div>' +
+        '<div class="donut-svg" id="statsDonut' + sfx + '"></div>' +
         '<div class="donut-center"><span class="t">总' + typeCN + '</span><span class="v">¥' + (total >= 1000000 ? compactMoney(total) : C.money(total, 2)) + '</span><span class="s">' + count + ' 笔</span></div>' +
       '</div>' +
       '<div class="stats-share-legend">' + items.map((x) => (
@@ -1375,8 +1498,9 @@
     });
   }
 
-  function statsHTML() {
-    const c = statsContext();
+  function statsHTML(paneMode, suffix) {
+    const c = statsContext(paneMode);
+    const sfx = suffix || '';
     const parts = [statsDatebarHTML(c), statsSummaryBoxHTML(c)];
     if (!c.totals.count) {
       parts.push('<div class="card"><div class="empty" style="padding:34px 16px"><div class="empty-emoji theme-symbol">' + themeEmptyIcon() + '</div>' +
@@ -1388,7 +1512,7 @@
     const chartTitle = c.mode === 'year' ? (c.yearAll ? '近十年收支' : c.year + ' 年 · 月度收支') : c.mode === 'month' ? '收支统计' : c.mode === 'daily' ? '近 7 天收支' : '区间收支';
     parts.push('<section class="card stats-chart-card">' +
       '<div class="stats-chart-head"><div class="card-title">' + chartTitle + '</div>' + statsChartControlsHTML() + '</div>' +
-      '<div class="chart-bars stats-bars" id="statsBars"></div>' +
+      '<div class="chart-bars stats-bars" id="statsBars' + sfx + '"></div>' +
       '<div class="chart-note">单位：' + (c.mode === 'year' && c.yearAll ? '年' : c.mode === 'year' || (c.mode === 'custom' && c.rangeDays > 31) ? '月' : '日') + ' · 点击柱/点查看明细</div>' +
     '</section>');
 
@@ -1397,14 +1521,14 @@
     if (c.mode === 'month' || c.mode === 'year') {
       parts.push('<section class="card">' +
         '<div class="card-title">资产走势<span>' + (c.mode === 'year' ? '每日净资产' : '每日净资产') + '</span></div>' +
-        '<div class="chart-line stats-line" id="assetChart"></div>' +
+        '<div class="chart-line stats-line" id="assetChart' + sfx + '"></div>' +
       '</section>');
       parts.push('<section class="card">' +
         '<div class="card-title">收支对比' +
           '<div class="stats-mini-seg"><button class="' + (state.statsSankey === 'category' ? 'active' : '') + '" data-act="stats-sankey" data-value="category">一级分类</button>' +
           '<button class="' + (state.statsSankey === 'all' ? 'active' : '') + '" data-act="stats-sankey" data-value="all">全部</button></div>' +
         '</div>' +
-        '<div class="sankey-chart" id="sankeyChart"></div>' +
+        '<div class="sankey-chart" id="sankeyChart' + sfx + '"></div>' +
         '<div class="sankey-legend">' + c.sankeyNodes.map((n) => (
           '<span><i style="background:' + n.color + '"></i>' + esc(n.name) + '<b>¥' + C.money(n.value, 0) + '</b></span>'
         )).join('') +
@@ -1414,7 +1538,7 @@
       '</section>');
     }
 
-    parts.push(statsShareHTML(c));
+    parts.push(statsShareHTML(c, sfx));
     parts.push(statsExpenseDataHTML(c));
     parts.push(statsRankHTML(c));
     parts.push(statsTableHTML(c));
@@ -1486,8 +1610,9 @@
     };
   }
 
-  function mountStatsCharts() {
-    const c = statsContext();
+  function mountStatsCharts(paneMode, suffix) {
+    const c = statsContext(paneMode);
+    const sfx = suffix || '';
     const theme = document.documentElement.getAttribute('data-theme');
     const dark = isDarkTheme(theme);
     const labelColor = dark ? 'rgba(200,208,230,.85)' : 'rgba(91,109,100,.85)';
@@ -1495,7 +1620,7 @@
     const gridColor = dark ? 'rgba(255,255,255,.09)' : 'rgba(16,28,22,.08)';
     const barColor = state.statsType === 'income' ? '#0e9f6e' : state.statsType === 'balance' ? '#3b82f6' : '#ef6c5a';
 
-    const barsEl = document.getElementById('statsBars');
+    const barsEl = document.getElementById('statsBars' + sfx);
     if (barsEl) {
       const chartData = c.series ? { labels: c.labels, series: c.series, highlight: c.highlight } : { labels: c.labels, values: c.values, highlight: c.highlight };
       if (state.statsChartType === 'line') {
@@ -1522,7 +1647,7 @@
       attachChartNav(barsEl, c);
     }
 
-    const donutEl = document.getElementById('statsDonut');
+    const donutEl = document.getElementById('statsDonut' + sfx);
     if (donutEl) {
       const list = c.breakdown.slice(0, 6).map((x) => ({ value: x.value, color: x.color }));
       const rest = c.breakdown.slice(6).reduce((sum, x) => sum + x.value, 0);
@@ -1531,7 +1656,7 @@
     }
 
     if (c.mode === 'month' || c.mode === 'year') {
-      const assetEl = document.getElementById('assetChart');
+      const assetEl = document.getElementById('assetChart' + sfx);
       if (assetEl && c.asset) {
         const first = c.mode === 'month' ? '1 日' : (c.asset[0] ? c.asset[0].date.slice(5) : '');
         const last = c.mode === 'month' ? c.asset.length + ' 日' : (c.asset[c.asset.length - 1] ? c.asset[c.asset.length - 1].date.slice(5) : '');
@@ -1544,7 +1669,7 @@
           labelColor, gridColor
         });
       }
-      const sankeyEl = document.getElementById('sankeyChart');
+      const sankeyEl = document.getElementById('sankeyChart' + sfx);
       if (sankeyEl) {
         CH.sankey(sankeyEl, {
           income: c.totals.income,
@@ -3676,30 +3801,83 @@
     else if (action === 'stats') window.setTimeout(() => go('stats'), 260);
   }
 
+  function compressThemeImage(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('读取图片失败'));
+      reader.onload = () => {
+        const img = new Image();
+        img.onerror = () => reject(new Error('图片格式不支持'));
+        img.onload = () => {
+          try {
+            const max = 1440;
+            const scale = Math.min(1, max / Math.max(img.width, img.height));
+            const w = Math.max(1, Math.round(img.width * scale));
+            const h = Math.max(1, Math.round(img.height * scale));
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h);
+            ctx.drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL('image/jpeg', 0.82));
+          } catch (err) { reject(err); }
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   function openTheme() {
     const current = state.data.settings.theme;
+    const customImage = state.data.settings.customThemeImage;
     openSheet({
-      title: '外观主题', subtitle: '星空、草原、天空与更多场景', content:
+      title: '外观主题', subtitle: '星空、草原、天空、自定义图片', content:
         '<div class="theme-grid">' + THEMES.map((o) => (
           '<button class="theme-card' + (current === o.id ? ' active' : '') + '" data-theme-opt="' + o.id + '">' +
-            '<span class="theme-swatch sw-' + o.sw + '">' + o.emoji + '</span>' +
+            '<span class="theme-swatch sw-' + o.sw + '"' + (o.id === 'custom' && customImage ? ' style="background-image:url(' + customImage + ');background-size:cover;background-position:center"' : '') + '>' + (o.id === 'custom' && customImage ? '' : o.emoji) + '</span>' +
             '<span class="theme-card-name">' + o.name + '</span>' +
-            '<span class="theme-card-desc">' + o.desc + '</span>' +
+            '<span class="theme-card-desc">' + (o.id === 'custom' ? (customImage ? '已导入图片' : '导入一张图片') : o.desc) + '</span>' +
             (current === o.id ? '<span class="theme-check">' + svg('check', 14) + '</span>' : '') +
           '</button>'
         )).join('') + '</div>' +
-        '<div class="hint-box" style="margin-top:12px">每个主题都有独立的背景、卡片、主色与玻璃质感。</div>',
+        '<div class="theme-custom-actions">' +
+          '<button class="btn ghost theme-upload" data-theme-upload>🖼️ ' + (customImage ? '更换图片' : '导入图片') + '</button>' +
+          (customImage ? '<button class="btn ghost theme-clear" data-theme-clear>移除</button>' : '') +
+        '</div>' +
+        '<input type="file" accept="image/*" data-theme-file hidden>' +
+        '<div class="hint-box" style="margin-top:12px">导入的图片会作为页面背景，并自动压缩后保存在本机，不会上传。</div>',
       onMount(root, close) {
+        const fileInput = root.querySelector('[data-theme-file]');
         root.addEventListener('click', (e) => {
+          const upload = e.target.closest('[data-theme-upload]');
+          if (upload) { fileInput.click(); return; }
+          const clear = e.target.closest('[data-theme-clear]');
+          if (clear) {
+            state.data.settings.customThemeImage = '';
+            if (state.data.settings.theme === 'custom') state.data.settings.theme = 'light';
+            saveData(); applyTheme(); close(); render(); toast('已移除自定义图片');
+            return;
+          }
           const btn = e.target.closest('[data-theme-opt]');
           if (!btn) return;
+          if (btn.dataset.themeOpt === 'custom' && !customImage) { fileInput.click(); return; }
           state.data.settings.theme = btn.dataset.themeOpt;
-          saveData();
-          applyTheme();
-          close();
-          render();
+          saveData(); applyTheme(); close(); render();
           toast('已切换为「' + themeById(btn.dataset.themeOpt).name + '」');
-          if (state.route === 'stats') mountStatsCharts();
+        });
+        fileInput.addEventListener('change', async () => {
+          const file = fileInput.files && fileInput.files[0];
+          if (!file) return;
+          try {
+            const dataUrl = await compressThemeImage(file);
+            state.data.settings.customThemeImage = dataUrl;
+            state.data.settings.theme = 'custom';
+            saveData(); applyTheme(); close(); render();
+            toast('自定义图片已应用');
+          } catch (err) {
+            toast(err.message || '导入图片失败');
+          }
         });
       }
     });
@@ -4218,7 +4396,7 @@
   window.addEventListener('resize', () => {
     if (state.route !== 'stats') return;
     window.clearTimeout(resizeTimer);
-    resizeTimer = window.setTimeout(mountStatsCharts, 180);
+    resizeTimer = window.setTimeout(remountStatsPanes, 180);
   });
 
   const mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
@@ -4226,7 +4404,7 @@
     mq.addEventListener('change', () => {
       if (state.data && state.data.settings.theme === 'auto') {
         applyTheme();
-        if (state.route === 'stats') mountStatsCharts();
+        if (state.route === 'stats') remountStatsPanes();
       }
     });
   }
@@ -4313,7 +4491,7 @@
   let pageHorizontal = false;
 
   function pageTouchBlocked(target) {
-    return !!(target && target.closest('.month-rail, .month-stepper, .calendar-grid-card, .tabbar, .fab-add, .select-bar, .appbar, .sheet, .modal, .pull-hint, input, textarea, select'));
+    return !!(target && target.closest('.month-rail, .month-stepper, .calendar-grid-card, .stats-carousel, .tabbar, .fab-add, .select-bar, .appbar, .sheet, .modal, .pull-hint, input, textarea, select'));
   }
 
   function pageStep(dir) {

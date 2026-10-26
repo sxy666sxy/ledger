@@ -77,10 +77,10 @@ test('导航到统计 / 资产 / 我的', () => {
   const { window, document } = boot();
   click(document, '[data-route="stats"]');
   assert.equal(document.querySelectorAll('.stats-tab').length, 4);
-  assert.ok(document.querySelector('.stats-summary'));
-  assert.ok(document.querySelector('#statsBars'));
-  assert.ok(document.querySelector('#assetChart'));
-  assert.ok(document.querySelector('#sankeyChart'));
+  assert.ok(document.querySelector('[data-stats-pane="month"] .stats-summary'));
+  assert.ok(document.querySelector('[data-stats-pane="month"] #statsBars-month'));
+  assert.ok(document.querySelector('[data-stats-pane="month"] #assetChart-month'));
+  assert.ok(document.querySelector('[data-stats-pane="month"] #sankeyChart-month'));
   assert.match(document.querySelector('.view').textContent, /收支统计/);
   assert.match(document.querySelector('.view').textContent, /报表统计/);
   click(document, '[data-route="assets"]');
@@ -94,7 +94,7 @@ test('导航到统计 / 资产 / 我的', () => {
 test('统计页：四种模式、月份切换与图表切换', async () => {
   const { window, document } = boot();
   click(document, '[data-route="stats"]');
-  assert.match(document.querySelector('.stats-summary').textContent, /月支出/);
+  assert.match(document.querySelector('[data-stats-pane="month"] .stats-summary').textContent, /月支出/);
 
   click(document, '[data-act="stats-mode"][data-mode="daily"]');
   assert.match(document.querySelector('.view').textContent, /近 7 天/);
@@ -115,16 +115,17 @@ test('统计页：四种模式、月份切换与图表切换', async () => {
   assert.ok(monthBtn, '年月选择器');
   click(document, '[data-picker-month="2026-09"]');
   await sleep(20);
-  assert.match(document.querySelector('.ss-foot').textContent, /2026年9月/);
+  assert.match(document.querySelector('[data-stats-pane="month"] .ss-foot').textContent, /2026年9月/);
 
   click(document, '[data-act="stats-month-step"][data-step="1"]');
-  assert.match(document.querySelector('.ss-foot').textContent, /2026年10月/);
+  assert.match(document.querySelector('[data-stats-pane="month"] .ss-foot').textContent, /2026年10月/);
   click(document, '[data-act="stats-month-step"][data-step="-1"]');
-  assert.match(document.querySelector('.ss-foot').textContent, /2026年9月/);
+  assert.match(document.querySelector('[data-stats-pane="month"] .ss-foot').textContent, /2026年9月/);
 
   click(document, '[data-act="stats-type"][data-type="balance"]');
   assert.match(document.querySelector('.stats-mini-seg .active').textContent, /结余/);
-  assert.ok(document.querySelector('#statsBars svg'));
+  const monthPane = document.querySelector('[data-stats-pane="month"]');
+  assert.ok(monthPane.querySelector('#statsBars-month svg'));
 });
 
 test('新增一笔支出并写入本地存储', async () => {
@@ -339,17 +340,17 @@ test('统计月份滑轨：左右各只切换一个月', async () => {
   const { window, document } = boot();
   click(document, '[data-route="stats"]');
   await sleep(130);
-  const rail1 = document.querySelector('.month-rail');
+  const rail1 = document.querySelector('[data-stats-pane="month"] .month-rail');
   rail1.dispatchEvent(touch(window, 'touchstart', 300, 420));
   rail1.dispatchEvent(touch(window, 'touchmove', 100, 425));
   rail1.dispatchEvent(touch(window, 'touchend', 100, 425));
-  assert.match(document.querySelector('.ss-foot').textContent, /2026年9月/);
+  assert.match(document.querySelector('[data-stats-pane="month"] .ss-foot').textContent, /2026年9月/);
   await sleep(120);
-  const rail2 = document.querySelector('.month-rail');
+  const rail2 = document.querySelector('[data-stats-pane="month"] .month-rail');
   rail2.dispatchEvent(touch(window, 'touchstart', 100, 420));
   rail2.dispatchEvent(touch(window, 'touchmove', 300, 425));
   rail2.dispatchEvent(touch(window, 'touchend', 300, 425));
-  assert.match(document.querySelector('.ss-foot').textContent, /2026年10月/);
+  assert.match(document.querySelector('[data-stats-pane="month"] .ss-foot').textContent, /2026年10月/);
 });
 
 test('日历页向下拖动不会回弹', () => {
@@ -367,6 +368,7 @@ test('五个主界面左右滑动切换', () => {
   document.body.dispatchEvent(touch(window, 'touchmove', 90, 425));
   document.body.dispatchEvent(touch(window, 'touchend', 90, 425));
   assert.ok(document.querySelector('.calendar-glass'), '向左滑应进入日历');
+  assert.ok(document.querySelector('.page-ghost'), '页面切换有旧页滑出过渡');
   document.body.dispatchEvent(touch(window, 'touchstart', 80, 420));
   document.body.dispatchEvent(touch(window, 'touchmove', 220, 425));
   document.body.dispatchEvent(touch(window, 'touchend', 220, 425));
@@ -395,11 +397,23 @@ test('资产余额编辑与长按删除账户', async () => {
   assert.equal(document.querySelectorAll('.acct-row').length, before - 1);
 });
 
+test('统计页左右滑动切换统计方式', async () => {
+  const { window, document } = boot();
+  click(document, '[data-route="stats"]');
+  const carousel = document.querySelector('[data-stats-carousel]');
+  assert.ok(carousel);
+  carousel.dispatchEvent(touch(window, 'touchstart', 300, 430));
+  carousel.dispatchEvent(touch(window, 'touchmove', 80, 432));
+  carousel.dispatchEvent(touch(window, 'touchend', 80, 432));
+  await sleep(320);
+  assert.match(document.querySelector('.stats-tab.active').textContent, /年统计/);
+  assert.match(document.querySelector('[data-stats-pane="year"] .year-rail-bar') ? 'year' : '', /year/);
+});
 test('月统计汇总可展开更多数据', async () => {
   const { window, document } = boot();
   click(document, '[data-route="stats"]');
-  assert.ok(document.querySelector('[data-act="stats-summary-toggle"]'), '月统计更多数据按钮');
-  click(document, '[data-act="stats-summary-toggle"]');
+  assert.ok(document.querySelector('[data-stats-pane="month"] [data-act="stats-summary-toggle"]'), '月统计更多数据按钮');
+  click(document, '[data-stats-pane="month"] [data-act="stats-summary-toggle"]');
   const extra = document.querySelector('.ss-extra.open');
   assert.ok(extra, '月统计展开');
   assert.match(extra.textContent, /日均支出/);
@@ -410,10 +424,11 @@ test('年统计按月份展示，点击柱状图进入该月账单', async () =>
   const { window, document } = boot();
   click(document, '[data-route="stats"]');
   click(document, '[data-act="stats-mode"][data-mode="year"]');
-  const chart = document.querySelector('#statsBars');
+  const yearPane = document.querySelector('[data-stats-pane="year"]');
+  const chart = yearPane.querySelector('#statsBars-year');
   assert.match(chart.textContent, /12月/);
-  assert.match(document.querySelector('.stats-table .st-head').textContent, /月份/);
-  click(document, '#statsBars');
+  assert.match(yearPane.querySelector('.stats-table .st-head').textContent, /月份/);
+  click(document, '[data-stats-pane="year"] #statsBars-year');
   const sheet = document.querySelector('.bill-sheet');
   assert.ok(sheet, '账单列表');
   assert.match(sheet.textContent, /2026年1月账单/);
@@ -444,17 +459,21 @@ test('年统计：所有年份、十年图表、热力图、展开数据与曲�
   assert.ok(document.querySelector('.heat-year-grid'), '年度热力图');
   assert.ok(document.querySelectorAll('.year-chip').length >= 8);
 
-  click(document, '[data-act="stats-summary-toggle"]');
-  assert.ok(document.querySelector('.ss-extra.open'), '展开更多年度数据');
-  assert.match(document.querySelector('.ss-extra').textContent, /月均支出/);
-  assert.match(document.querySelector('.ss-extra').textContent, /退款/);
+  let yp = document.querySelector('[data-stats-pane="year"]');
+  yp.querySelector('[data-act="stats-summary-toggle"]').click();
+  yp = document.querySelector('[data-stats-pane="year"]');
+  assert.ok(yp.querySelector('.ss-extra.open'), '展开更多年度数据');
+  assert.match(yp.querySelector('.ss-extra').textContent, /月均支出/);
+  assert.match(yp.querySelector('.ss-extra').textContent, /退款/);
 
-  click(document, '[data-act="stats-chart-type"][data-value="line"]');
-  assert.ok(document.querySelector('.stats-chart-type .active').textContent.length > 0);
-  assert.ok(document.querySelector('#statsBars svg'));
+  yp.querySelector('[data-act="stats-chart-type"][data-value="line"]').click();
+  yp = document.querySelector('[data-stats-pane="year"]');
+  assert.ok(yp.querySelector('.stats-chart-type .active').textContent.length > 0);
+  assert.ok(yp.querySelector('#statsBars-year svg'));
 
-  click(document, '[data-act="stats-type"][data-type="all"]');
-  assert.ok(document.querySelector('#statsBars svg'));
+  yp.querySelector('[data-act="stats-type"][data-type="all"]').click();
+  yp = document.querySelector('[data-stats-pane="year"]');
+  assert.ok(yp.querySelector('#statsBars-year svg'));
 
   click(document, '[data-act="open-year-heatmap"]');
   const full = document.querySelector('.heat-full');
@@ -464,16 +483,18 @@ test('年统计：所有年份、十年图表、热力图、展开数据与曲�
   await sleep(20);
 
   click(document, '[data-act="stats-year-all"]');
-  assert.match(document.querySelector('.ss-foot').textContent, /全部年份/);
+  assert.match(document.querySelector('[data-stats-pane="year"] .ss-foot').textContent, /全部年份/);
   assert.ok(!document.querySelector('.heat-year-grid'), '所有年份隐藏月度热力图');
 });
 test('主题中心包含九个新主题并可切换', async () => {
   const { window, document } = boot();
   click(document, '[data-route="profile"]');
   click(document, '[data-act="open-theme"]');
-  assert.equal(document.querySelectorAll('[data-theme-opt]').length, 12);
+  assert.equal(document.querySelectorAll('[data-theme-opt]').length, 13);
   assert.ok(document.querySelector('[data-theme-opt="grass"]'));
   assert.ok(document.querySelector('[data-theme-opt="ocean"]'));
+  assert.ok(document.querySelector('[data-theme-opt="custom"]'));
+  assert.ok(document.querySelector('[data-theme-upload]'));
   click(document, '[data-theme-opt="grass"]');
   await sleep(30);
   assert.equal(document.documentElement.dataset.theme, 'grass');
