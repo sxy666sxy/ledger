@@ -39,6 +39,7 @@ class AppStore extends ChangeNotifier {
   String themeId = 'system';
   String customImagePath = '';
   String cardStyle = 'orbit';
+  double billCardAlpha = 1.0;
   bool showLunar = true;
   List<RecurringRule> recurringRules = [];
   String pinHash = '';
@@ -123,6 +124,26 @@ class AppStore extends ChangeNotifier {
   double accountBalance(Account account) {
     double value = account.initial;
     for (final t in transactions) {
+      if (t.type == TxnType.transfer) {
+        if (t.accountId == account.id) value -= t.amount;
+        if (t.toAccountId == account.id) value += t.amount;
+        continue;
+      }
+      if (t.accountId != account.id) continue;
+      if (t.type == TxnType.expense) {
+        value -= t.amount;
+      } else {
+        value += t.amount;
+      }
+    }
+    return value;
+  }
+
+  double accountBalanceAt(Account account, DateTime end) {
+    final endKey = dateKey(end);
+    double value = account.initial;
+    for (final t in transactions) {
+      if (t.date.compareTo(endKey) > 0) continue;
       if (t.type == TxnType.transfer) {
         if (t.accountId == account.id) value -= t.amount;
         if (t.toAccountId == account.id) value += t.amount;
@@ -419,6 +440,7 @@ class AppStore extends ChangeNotifier {
     themeId = 'system';
     customImagePath = '';
     cardStyle = 'orbit';
+    billCardAlpha = 1.0;
     showLunar = true;
     pinHash = '';
     locked = false;
@@ -458,6 +480,7 @@ class AppStore extends ChangeNotifier {
                 : 'system');
     customImagePath = map['customImagePath'] as String? ?? '';
     cardStyle = map['cardStyle'] as String? ?? 'orbit';
+    billCardAlpha = (((map['billCardAlpha'] as num?)?.toDouble() ?? 1.0).clamp(0.4, 1.0)).toDouble();
     showLunar = map['showLunar'] != false;
     recurringRules = (map['recurringRules'] as List? ?? [])
         .whereType<Map>()
@@ -477,6 +500,7 @@ class AppStore extends ChangeNotifier {
         'themeId': themeId,
         'customImagePath': customImagePath,
         'cardStyle': cardStyle,
+        'billCardAlpha': billCardAlpha,
         'showLunar': showLunar,
         'recurringRules': recurringRules.map((e) => e.toJson()).toList(),
         'pinHash': pinHash,
@@ -589,6 +613,12 @@ class AppStore extends ChangeNotifier {
 
   void setCardStyle(String style) {
     cardStyle = style;
+    notifyListeners();
+    save();
+  }
+
+  void setBillCardAlpha(double value) {
+    billCardAlpha = value.clamp(0.4, 1.0).toDouble();
     notifyListeners();
     save();
   }

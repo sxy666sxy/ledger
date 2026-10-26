@@ -38,7 +38,7 @@ class _StatsScreenState extends State<StatsScreen> {
     return AnimatedBuilder(
       animation: store,
       builder: (context, _) {
-        final topInset = MediaQuery.of(context).padding.top + kToolbarHeight - 2;
+        final topInset = MediaQuery.of(context).padding.top + kToolbarHeight + 2;
         return Padding(
           padding: EdgeInsets.only(top: topInset),
           child: Column(
@@ -487,20 +487,16 @@ class _StatsScreenState extends State<StatsScreen> {
             SizedBox(
               height: 150,
               width: double.infinity,
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 220),
-                child: CustomPaint(
-                  key: ValueKey(_lineChart),
-                  painter: _lineChart
-                      ? _StatsLinePainter(values: values, labels: labels, color: color, textColor: Colors.grey.shade600, labelEvery: labelEvery)
-                      : _BarsPainter(
-                          values: values,
-                          labels: labels,
-                          color: color,
-                          textColor: Colors.grey.shade600,
-                          labelEvery: labelEvery,
-                        ),
-                ),
+              child: CustomPaint(
+                painter: _lineChart
+                    ? _StatsLinePainter(values: values, labels: labels, color: color, textColor: Colors.grey.shade600, labelEvery: labelEvery)
+                    : _BarsPainter(
+                        values: values,
+                        labels: labels,
+                        color: color,
+                        textColor: Colors.grey.shade600,
+                        labelEvery: labelEvery,
+                      ),
               ),
             ),
             const SizedBox(height: 4),

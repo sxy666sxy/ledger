@@ -26,6 +26,7 @@ class _AssetTrendScreenState extends State<AssetTrendScreen> {
         final last = points.isEmpty ? 0.0 : points.last;
         final change = last - first;
         final labels = _labels(points.length);
+        final dates = _dates();
         return Scaffold(
           appBar: AppBar(title: const Text('资产走势')),
           body: ListView(
@@ -76,6 +77,56 @@ class _AssetTrendScreenState extends State<AssetTrendScreen> {
                 ),
               ),
               const SizedBox(height: 12),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('各账户走势', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 4),
+                      ...store.accounts.map((a) {
+                        final series = dates.map((d) => store.accountBalanceAt(a, d)).toList();
+                        final balance = store.accountBalance(a);
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 5),
+                          child: Row(
+                            children: [
+                              Text(a.icon, style: const TextStyle(fontSize: 18)),
+                              const SizedBox(width: 7),
+                              SizedBox(
+                                width: 56,
+                                child: Text(a.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11.5)),
+                              ),
+                              Expanded(
+                                child: SizedBox(
+                                  height: 28,
+                                  child: CustomPaint(
+                                    painter: _MiniAccountPainter(
+                                      values: series,
+                                      color: balance < 0 ? const Color(0xFFE5484D) : Color(a.color),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 7),
+                              Text(
+                                formatMoney(balance, symbol: false),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: balance < 0 ? const Color(0xFFE5484D) : null,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
               Text(
                 '资产走势按每日结束时的账户余额计算；转账不影响净资产。',
                 style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600),
@@ -87,20 +138,18 @@ class _AssetTrendScreenState extends State<AssetTrendScreen> {
     );
   }
 
-  List<double> _points() {
+  List<double> _points() => _dates().map(store.netAssetsAt).toList();
+
+  List<DateTime> _dates() {
     if (_range == _AssetRange.d30) {
       final today = DateTime.now();
-      return List<double>.generate(30, (i) {
-        final d = today.subtract(Duration(days: 29 - i));
-        return store.netAssetsAt(d);
-      });
+      return List.generate(30, (i) => today.subtract(Duration(days: 29 - i)));
     }
     if (_range == _AssetRange.m12) {
       final now = DateTime.now();
-      return List<double>.generate(12, (i) {
+      return List.generate(12, (i) {
         final month = DateTime(now.year, now.month - 11 + i, 1);
-        final end = DateTime(month.year, month.month, daysInMonth(month));
-        return store.netAssetsAt(end);
+        return DateTime(month.year, month.month, daysInMonth(month));
       });
     }
     final txns = store.activeTransactions;
@@ -110,15 +159,14 @@ class _AssetTrendScreenState extends State<AssetTrendScreen> {
       if (first != null) start = DateTime(first.year, first.month, 1);
     }
     final now = DateTime.now();
-    final months = <double>[];
+    final dates = <DateTime>[];
     var cursor = DateTime(start.year, start.month, 1);
     var guard = 0;
     while (cursor.isBefore(DateTime(now.year, now.month + 1, 1)) && guard++ < 120) {
-      final end = DateTime(cursor.year, cursor.month, daysInMonth(cursor));
-      months.add(store.netAssetsAt(end));
+      dates.add(DateTime(cursor.year, cursor.month, daysInMonth(cursor)));
       cursor = DateTime(cursor.year, cursor.month + 1, 1);
     }
-    return months.isEmpty ? [store.netAssets] : months;
+    return dates.isEmpty ? [DateTime.now()] : dates;
   }
 
   List<String> _labels(int count) {
@@ -136,6 +184,35 @@ class _AssetTrendScreenState extends State<AssetTrendScreen> {
     final start = first == null ? DateTime.now() : DateTime(first.year, first.month, 1);
     return ['${start.year}/${start.month}', '${DateTime.now().year}/${DateTime.now().month}'];
   }
+}
+
+class _MiniAccountPainter extends CustomPainter {
+  _MiniAccountPainter({required this.values, required this.color});
+  final List<double> values;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (values.isEmpty) return;
+    var minV = values.reduce((a, b) => a < b ? a : b);
+    var maxV = values.reduce((a, b) => a > b ? a : b);
+    if (maxV == minV) { maxV += 1; minV -= 1; }
+    final path = Path();
+    for (var i = 0; i < values.length; i++) {
+      final x = values.length == 1 ? size.width / 2 : size.width * i / (values.length - 1);
+      final y = size.height - 3 - ((values[i] - minV) / (maxV - minV)) * (size.height - 7);
+      if (i == 0) { path.moveTo(x, y); } else { path.lineTo(x, y); }
+    }
+    canvas.drawPath(path, Paint()
+      ..color = color.withValues(alpha: 0.85)
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round);
+  }
+
+  @override
+  bool shouldRepaint(covariant _MiniAccountPainter old) => old.values != values || old.color != color;
 }
 
 class _AssetLinePainter extends CustomPainter {

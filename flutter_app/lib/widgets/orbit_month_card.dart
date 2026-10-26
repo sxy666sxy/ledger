@@ -71,7 +71,7 @@ class _OrbitMonthCardState extends State<OrbitMonthCard> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        final height = (width * 0.63).clamp(214.0, 286.0).toDouble();
+        final height = (width * 0.52).clamp(186.0, 244.0).toDouble();
         final smallLeft = 7.0;
         final smallWidth = width * 0.57;
         final smallTop = height * 0.13;
@@ -91,14 +91,6 @@ class _OrbitMonthCardState extends State<OrbitMonthCard> {
                 ),
               ),
               Positioned(
-                left: 20,
-                top: 17,
-                child: Text(
-                  '${widget.bookIcon} ${widget.bookName}',
-                  style: const TextStyle(color: Colors.white54, fontSize: 10.5, fontWeight: FontWeight.w600),
-                ),
-              ),
-              Positioned(
                 left: smallLeft,
                 top: smallTop,
                 width: smallWidth,
@@ -106,14 +98,14 @@ class _OrbitMonthCardState extends State<OrbitMonthCard> {
                 child: _smallEllipse(context),
               ),
               Positioned(
-                right: 18,
-                top: height * 0.16,
+                right: 32,
+                top: height * 0.27,
                 width: width * 0.31,
                 child: _dial(context),
               ),
               Positioned(
-                right: 20,
-                bottom: 18,
+                right: 42,
+                bottom: 34,
                 child: Text(
                   '上下滑动切换',
                   style: TextStyle(fontSize: 8.5, color: Colors.white.withValues(alpha: 0.42)),
@@ -173,9 +165,9 @@ class _OrbitMonthCardState extends State<OrbitMonthCard> {
                         formatMoney(widget.totals.expense),
                         key: ValueKey(widget.totals.expense),
                         style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 30,
+                          fontSize: 32,
                           fontWeight: FontWeight.w800,
+                          color: const Color(0xFFFFD98A),
                           letterSpacing: -0.8,
                         ),
                       ),
@@ -222,8 +214,8 @@ class _OrbitMonthCardState extends State<OrbitMonthCard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 7.5, color: Colors.white.withValues(alpha: 0.40))),
-        Text(value, style: const TextStyle(fontSize: 9, color: Colors.white70, fontWeight: FontWeight.w600)),
+        Text(label, style: TextStyle(fontSize: 8.4, color: Colors.white.withValues(alpha: 0.48))),
+        Text(value, style: const TextStyle(fontSize: 10.8, color: Colors.white, fontWeight: FontWeight.w700)),
       ],
     );
   }

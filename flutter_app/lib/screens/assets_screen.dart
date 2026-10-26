@@ -95,24 +95,27 @@ class AssetsScreen extends StatelessWidget {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: Card(
+                      margin: const EdgeInsets.only(bottom: 4),
                       child: ListTile(
+                        dense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
                         leading: Container(
-                          width: 42,
-                          height: 42,
+                          width: 34,
+                          height: 34,
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: Color(a.color).withValues(alpha: 0.13),
-                            borderRadius: BorderRadius.circular(13),
+                            borderRadius: BorderRadius.circular(10),
                           ),
-                          child: Text(a.icon, style: const TextStyle(fontSize: 20)),
+                          child: Text(a.icon, style: const TextStyle(fontSize: 17)),
                         ),
-                        title: Text(a.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-                        subtitle: Text(a.bookkeeping ? '记账账户' : '未启用记账'),
+                        title: Text(a.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                        subtitle: Text(a.bookkeeping ? '记账账户' : '未启用记账', style: const TextStyle(fontSize: 9.5)),
                         trailing: Text(
                           formatMoney(balance),
                           style: TextStyle(
                             fontWeight: FontWeight.w800,
-                            fontSize: 15,
+                            fontSize: 13,
                             color: balance < 0 ? const Color(0xFFE5484D) : null,
                           ),
                         ),

@@ -88,19 +88,46 @@ class _ThemeCenterScreenState extends State<ThemeCenterScreen> {
               ),
               const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.all(4),
+                padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(15),
                 ),
-                child: SegmentedButton<String>(
-                  showSelectedIcon: false,
-                  segments: const [
-                    ButtonSegment(value: 'orbit', label: Text('星空椭圆'), icon: Icon(Icons.blur_on, size: 16)),
-                    ButtonSegment(value: 'classic', label: Text('普通方形卡片'), icon: Icon(Icons.crop_square, size: 16)),
+                child: Column(
+                  children: [
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        for (final entry in const [
+                          ('orbit', '星空椭圆'),
+                          ('classic', '经典方形'),
+                          ('minimal', '极简浅色'),
+                          ('glass', '透明玻璃'),
+                        ])
+                          ChoiceChip(
+                            label: Text(entry.$2, style: const TextStyle(fontSize: 11)),
+                            selected: store.cardStyle == entry.$1,
+                            onSelected: (_) => store.setCardStyle(entry.$1),
+                          ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        const Text('账单深浅', style: TextStyle(fontSize: 11)),
+                        Expanded(
+                          child: Slider(
+                            value: store.billCardAlpha,
+                            min: 0.4,
+                            max: 1.0,
+                            divisions: 12,
+                            onChanged: store.setBillCardAlpha,
+                          ),
+                        ),
+                        Text('${(store.billCardAlpha * 100).round()}%', style: const TextStyle(fontSize: 10)),
+                      ],
+                    ),
                   ],
-                  selected: {store.cardStyle},
-                  onSelectionChanged: (set) => store.setCardStyle(set.first),
                 ),
               ),
               const SizedBox(height: 12),
@@ -200,8 +227,8 @@ class _ThemeCenterScreenState extends State<ThemeCenterScreen> {
   }
 
   Widget _preview(ThemeSpec spec) {
-    final orbit = store.cardStyle == 'orbit';
-    return Container(
+    final style = store.cardStyle;
+    final background = Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -209,62 +236,84 @@ class _ThemeCenterScreenState extends State<ThemeCenterScreen> {
           colors: spec.preview,
         ),
       ),
+    );
+    if (style == 'orbit') {
+      return Container(
+        decoration: background.decoration,
+        child: Center(
+          child: SizedBox(
+            width: 120,
+            height: 54,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.all(Radius.elliptical(999, 999)),
+                      color: const Color(0xFF111735),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 4,
+                  top: 9,
+                  bottom: 9,
+                  width: 68,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.all(Radius.elliptical(999, 999)),
+                      gradient: const LinearGradient(colors: [Color(0xFF2C3C8F), Color(0xFF1A1240)]),
+                    ),
+                  ),
+                ),
+                const Positioned(right: 8, top: 9, child: Text('2026', style: TextStyle(color: Colors.white70, fontSize: 7))),
+                const Positioned(right: 6, top: 22, child: Text('10月', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800))),
+                const Positioned(left: 16, top: 16, child: Text('✦', style: TextStyle(color: Color(0xFFFFE08A), fontSize: 8))),
+                const Positioned(right: 30, bottom: 7, child: Text('·  ✦', style: TextStyle(color: Colors.white54, fontSize: 6))),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    Color cardColor;
+    Color textColor;
+    if (style == 'classic') {
+      cardColor = const Color(0xFF111735);
+      textColor = Colors.white;
+    } else if (style == 'minimal') {
+      cardColor = Colors.white.withValues(alpha: 0.92);
+      textColor = const Color(0xFF202642);
+    } else {
+      cardColor = Colors.white.withValues(alpha: 0.28);
+      textColor = Colors.white;
+    }
+    return Container(
+      decoration: background.decoration,
       child: Center(
-        child: orbit
-            ? SizedBox(
-                width: 120,
-                height: 58,
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: const BorderRadius.all(Radius.elliptical(999, 999)),
-                          color: const Color(0xFF111735),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      left: 4,
-                      top: 10,
-                      bottom: 10,
-                      width: 68,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: const BorderRadius.all(Radius.elliptical(999, 999)),
-                          gradient: const LinearGradient(colors: [Color(0xFF2C3C8F), Color(0xFF1A1240)]),
-                        ),
-                      ),
-                    ),
-                    const Positioned(right: 8, top: 12, child: Text('2026', style: TextStyle(color: Colors.white70, fontSize: 7))),
-                    const Positioned(right: 6, top: 26, child: Text('10月', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800))),
-                    const Positioned(left: 16, top: 18, child: Text('✦', style: TextStyle(color: Color(0xFFFFE08A), fontSize: 8))),
-                    const Positioned(right: 30, bottom: 8, child: Text('·  ✦', style: TextStyle(color: Colors.white54, fontSize: 6))),
-                  ],
-                ),
-              )
-            : Container(
-                width: 116,
-                height: 62,
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF111735),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                ),
-                child: const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('本月支出', style: TextStyle(color: Colors.white38, fontSize: 5.5)),
-                    SizedBox(height: 1),
-                    Text('¥ 1,280.00', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800)),
-                    Spacer(),
-                    Text('2026年10月', style: TextStyle(color: Colors.white38, fontSize: 5.5)),
-                  ],
-                ),
-              ),
+        child: Container(
+          width: 116,
+          height: 62,
+          padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(style == 'minimal' ? 9 : (style == 'glass' ? 15 : 10)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('本月支出', style: TextStyle(color: textColor.withValues(alpha: 0.55), fontSize: 5.5)),
+              const SizedBox(height: 1),
+              Text('¥ 1,280.00', style: TextStyle(color: textColor, fontSize: 11, fontWeight: FontWeight.w800)),
+              const Spacer(),
+              Text('2026年10月', style: TextStyle(color: textColor.withValues(alpha: 0.55), fontSize: 5.5)),
+            ],
+          ),
+        ),
       ),
     );
   }
+
 }

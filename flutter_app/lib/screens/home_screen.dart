@@ -5,6 +5,7 @@ import '../store.dart';
 import '../utils.dart';
 import '../widgets/classic_month_card.dart';
 import '../widgets/orbit_month_card.dart';
+import '../widgets/simple_month_card.dart';
 import '../widgets/swipe_delete_tile.dart';
 import 'entry_sheet.dart';
 
@@ -35,29 +36,13 @@ class _HomeScreenState extends State<HomeScreen> {
         final budget = book.budget;
         final budgetRatio = budget <= 0 ? 0.0 : (totals.expense / budget).clamp(0.0, 1.0).toDouble();
 
-        final topInset = MediaQuery.of(context).padding.top + kToolbarHeight - (store.cardStyle == 'orbit' ? 28 : 6);
+        final topInset = MediaQuery.of(context).padding.top + kToolbarHeight + 6;
         return CustomScrollView(
           slivers: [
             SliverPadding(
               padding: EdgeInsets.only(top: topInset),
               sliver: SliverToBoxAdapter(
-                child: store.cardStyle == 'classic'
-                    ? ClassicMonthCard(
-                        month: _month,
-                        totals: totals,
-                        bookName: book.name,
-                        bookIcon: book.icon,
-                        count: txns.length,
-                        onChanged: (m) => setState(() => _month = monthStart(m)),
-                      )
-                    : OrbitMonthCard(
-                        month: _month,
-                        totals: totals,
-                        bookName: book.name,
-                        bookIcon: book.icon,
-                        count: txns.length,
-                        onChanged: (m) => setState(() => _month = monthStart(m)),
-                      ),
+                child: _monthCard(context, store, totals, book, txns.length),
               ),
             ),
             SliverPadding(
@@ -89,6 +74,17 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     );
+  }
+
+  Widget _monthCard(BuildContext context, AppStore store, MoneyTotals totals, Book book, int count) {
+    final onChanged = (DateTime m) => setState(() => _month = monthStart(m));
+    if (store.cardStyle == 'classic') {
+      return ClassicMonthCard(month: _month, totals: totals, bookName: book.name, bookIcon: book.icon, count: count, onChanged: onChanged);
+    }
+    if (store.cardStyle == 'minimal' || store.cardStyle == 'glass') {
+      return SimpleMonthCard(month: _month, totals: totals, bookName: book.name, bookIcon: book.icon, count: count, onChanged: onChanged, variant: store.cardStyle);
+    }
+    return OrbitMonthCard(month: _month, totals: totals, bookName: book.name, bookIcon: book.icon, count: count, onChanged: onChanged);
   }
 
   Widget _budgetCard(BuildContext context, double expense, double budget, double ratio) {
@@ -169,7 +165,7 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
         child: Material(
-          color: Theme.of(context).colorScheme.surface,
+          color: Theme.of(context).colorScheme.surface.withValues(alpha: store.billCardAlpha),
           borderRadius: BorderRadius.circular(14),
           child: InkWell(
             borderRadius: BorderRadius.circular(14),

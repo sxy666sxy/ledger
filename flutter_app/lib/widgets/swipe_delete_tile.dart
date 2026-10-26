@@ -54,30 +54,31 @@ class _SwipeDeleteTileState extends State<SwipeDeleteTile> {
         },
         child: Stack(
           children: [
-            Positioned.fill(
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: SizedBox(
-                  width: _openWidth,
-                  child: Material(
-                    color: const Color(0xFFE5484D),
-                    child: InkWell(
-                      onTap: _delete,
-                      child: const Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.delete_outline, color: Colors.white, size: 21),
-                            SizedBox(height: 2),
-                            Text('删除', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600)),
-                          ],
+            if (_offset < -0.5)
+              Positioned.fill(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: SizedBox(
+                    width: _openWidth,
+                    child: Material(
+                      color: const Color(0xFFE5484D),
+                      child: InkWell(
+                        onTap: _delete,
+                        child: const Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.delete_outline, color: Colors.white, size: 21),
+                              SizedBox(height: 2),
+                              Text('删除', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600)),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
             AnimatedContainer(
               duration: _dragging ? Duration.zero : const Duration(milliseconds: 190),
               curve: Curves.easeOutCubic,
