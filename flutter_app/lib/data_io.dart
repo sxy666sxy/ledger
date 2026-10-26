@@ -5,6 +5,7 @@ import 'package:excel/excel.dart';
 import 'models.dart';
 import 'store.dart';
 import 'utils.dart';
+import 'xlsx_reader.dart';
 
 const List<String> excelHeaders = [
   '日期',
@@ -101,20 +102,6 @@ class ExcelImportResult {
   final int skipped;
 }
 
-String _cellText(Data? data) {
-  final v = data?.value;
-  if (v == null) return '';
-  if (v is TextCellValue) return (v.value.text ?? '').trim();
-  if (v is IntCellValue) return v.value.toString();
-  if (v is DoubleCellValue) {
-    final d = v.value;
-    return d == d.roundToDouble() ? d.toStringAsFixed(0) : d.toString();
-  }
-  if (v is DateCellValue) return '${v.year}-${two(v.month)}-${two(v.day)}';
-  if (v is BoolCellValue) return v.value.toString();
-  return v.toString().trim();
-}
-
 double _num(String value) {
   final cleaned = value.replaceAll(RegExp(r'[¥,\s]'), '');
   return double.tryParse(cleaned) ?? 0;
@@ -138,22 +125,19 @@ String? _normalizeDate(String value) {
 }
 
 ExcelImportResult importExcelBytes(AppStore store, List<int> bytes) {
-  final excel = Excel.decodeBytes(bytes);
-  if (excel.tables.isEmpty) return const ExcelImportResult(imported: 0, skipped: 0);
-  final sheet = excel.tables.values.first;
-  final rows = sheet.rows;
+  final rows = readXlsxRows(Uint8List.fromList(bytes));
   if (rows.isEmpty) return const ExcelImportResult(imported: 0, skipped: 0);
 
   final header = <String, int>{};
   final firstRow = rows.first;
   for (var i = 0; i < firstRow.length; i++) {
-    final name = _cellText(firstRow[i]).replaceAll('\ufeff', '').trim();
+    final name = firstRow[i].replaceAll('\ufeff', '').trim();
     if (name.isNotEmpty) header[name] = i;
   }
-  String cell(List<Data?> row, String name) {
+  String cell(List<String> row, String name) {
     final i = header[name];
     if (i == null || i >= row.length) return '';
-    return _cellText(row[i]);
+    return row[i].trim();
   }
 
   final imported = <Txn>[];
