@@ -404,6 +404,14 @@ test('日历滑到统计日常，统计自定义滑到资产', async () => {
   await sleep(320);
   assert.ok(document.querySelector('.assets'), '进入资产');
   assert.equal(document.querySelector('#appbar').hidden, true);
+
+  await sleep(260);
+  document.body.dispatchEvent(touch(window, 'touchstart', 80, 430));
+  document.body.dispatchEvent(touch(window, 'touchmove', 240, 432));
+  document.body.dispatchEvent(touch(window, 'touchend', 240, 432));
+  await sleep(320);
+  assert.ok(document.querySelector('.stats-carousel'), '资产滑回统计');
+  assert.match(document.querySelector('.stats-tab.active').textContent, /自定义/);
 });
 
 test('资产余额编辑与长按删除账户', async () => {

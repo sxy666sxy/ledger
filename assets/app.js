@@ -8,7 +8,7 @@
   const C = window.LedgerCore;
   const CH = window.LedgerCharts;
   const STORAGE_KEY = 'xingkong.ledger.v4';
-  const VERSION_TEXT = '2.1.12';
+  const VERSION_TEXT = '2.1.13';
   const THEMES = [
     { id: 'auto', name: '跟随系统', desc: '自动切换浅色 / 深色', emoji: '🌓', sw: 'auto' },
     { id: 'light', name: '星空浅色', desc: '靛蓝星夜', emoji: '✦', sw: 'light' },
@@ -4506,7 +4506,7 @@
     const ab = appbarHTML(route, statsMode);
     return '<div class="page-preview-pane">' +
       (ab ? '<div class="appbar">' + ab + '</div>' : '') +
-      '<div class="view page-preview-view">' + html + '</div>' +
+      '<div class="view page-preview-view' + (route === 'assets' ? ' assets-preview' : '') + '">' + html + '</div>' +
     '</div>';
   }
 
@@ -4536,6 +4536,7 @@
     const clone = viewEl.cloneNode(true);
     clone.removeAttribute('id');
     clone.classList.add('page-preview-view');
+    if (state.route === 'assets') clone.classList.add('assets-preview');
     clone.style.transform = 'translateY(' + (-window.scrollY) + 'px)';
     const appClone = appbarEl.hidden ? null : appbarEl.cloneNode(true);
     if (appClone) {

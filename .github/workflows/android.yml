@@ -70,7 +70,7 @@ jobs:
       - name: Prepare artifact
         run: |
           mkdir -p out
-          cp android/app/build/outputs/apk/release/app-release.apk out/xingkong-ledger-v2.1.12.apk
+          cp android/app/build/outputs/apk/release/app-release.apk out/xingkong-ledger-v2.1.13.apk
           ls -lh out
 
       - name: Upload artifact
@@ -83,8 +83,8 @@ jobs:
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.1.12
-          name: 星空记账 v2.1.12
+          tag_name: v2.1.13
+          name: 星空记账 v2.1.13
           body: |
             Android WebView 封装版（release 签名，可直接侧载）。
 
@@ -93,4 +93,4 @@ jobs:
             - 明细支持长按多选导出/删除、下拉记一笔、账单时间与红绿金额
             - 统计页月份左右双向切换，全局液态玻璃导航
             - 安装后在「我的 → 数据与备份」可导出 JSON / CSV
-          files: out/xingkong-ledger-v2.1.12.apk
+          files: out/xingkong-ledger-v2.1.13.apk
