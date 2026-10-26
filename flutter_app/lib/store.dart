@@ -151,6 +151,106 @@ class AppStore extends ChangeNotifier {
     return result;
   }
 
+  List<Txn> txnsForYear(int year) {
+    final prefix = '$year-';
+    final list = transactions
+        .where((t) => t.bookId == activeBookId && t.date.startsWith(prefix))
+        .toList()
+      ..sort(_sortTxn);
+    return list;
+  }
+
+  MoneyTotals totalsForYear(int year) {
+    double expense = 0;
+    double income = 0;
+    for (final t in txnsForYear(year)) {
+      if (t.type == TxnType.expense) {
+        expense += t.amount;
+      } else {
+        income += t.amount;
+      }
+    }
+    return MoneyTotals(expense: expense, income: income);
+  }
+
+  MoneyTotals get allYearsTotals {
+    double expense = 0;
+    double income = 0;
+    for (final t in transactions.where((t) => t.bookId == activeBookId)) {
+      if (t.type == TxnType.expense) {
+        expense += t.amount;
+      } else {
+        income += t.amount;
+      }
+    }
+    return MoneyTotals(expense: expense, income: income);
+  }
+
+  List<MoneyTotals> monthlyTotalsForYear(int year) {
+    final rows = List<MoneyTotals>.generate(12, (_) => const MoneyTotals());
+    final expense = List<double>.filled(12, 0);
+    final income = List<double>.filled(12, 0);
+    for (final t in txnsForYear(year)) {
+      final month = int.tryParse(t.date.substring(5, 7));
+      if (month == null || month < 1 || month > 12) continue;
+      if (t.type == TxnType.expense) {
+        expense[month - 1] += t.amount;
+      } else {
+        income[month - 1] += t.amount;
+      }
+    }
+    for (var i = 0; i < 12; i++) {
+      rows[i] = MoneyTotals(expense: expense[i], income: income[i]);
+    }
+    return rows;
+  }
+
+  List<CategoryTotal> categoryTotalsForYear(int year, TxnType type) {
+    final map = <String, CategoryTotal>{};
+    for (final t in txnsForYear(year)) {
+      if (t.type != type) continue;
+      final category = categoryById(t.categoryId) ??
+          Category(id: t.categoryId, name: '未分类', type: type);
+      final old = map[category.id];
+      map[category.id] = CategoryTotal(
+        category: category,
+        value: (old?.value ?? 0) + t.amount,
+        count: (old?.count ?? 0) + 1,
+      );
+    }
+    final list = map.values.toList()..sort((a, b) => b.value.compareTo(a.value));
+    return list;
+  }
+
+  List<CategoryTotal> categoryTotalsAllYears(TxnType type) {
+    final map = <String, CategoryTotal>{};
+    for (final t in transactions.where((t) => t.bookId == activeBookId)) {
+      if (t.type != type) continue;
+      final category = categoryById(t.categoryId) ??
+          Category(id: t.categoryId, name: '未分类', type: type);
+      final old = map[category.id];
+      map[category.id] = CategoryTotal(
+        category: category,
+        value: (old?.value ?? 0) + t.amount,
+        count: (old?.count ?? 0) + 1,
+      );
+    }
+    final list = map.values.toList()..sort((a, b) => b.value.compareTo(a.value));
+    return list;
+  }
+
+  List<int> get yearsWithData {
+    final years = transactions
+        .where((t) => t.bookId == activeBookId)
+        .map((t) => int.tryParse(t.date.substring(0, 4)))
+        .whereType<int>()
+        .toSet()
+        .toList()
+      ..sort();
+    if (years.isEmpty) years.add(DateTime.now().year);
+    return years;
+  }
+
   List<CategoryTotal> categoryTotals(DateTime month, TxnType type) {
     final map = <String, CategoryTotal>{};
     for (final t in txnsForMonth(month)) {
