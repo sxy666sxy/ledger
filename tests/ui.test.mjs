@@ -385,6 +385,7 @@ test('日历滑到统计日常，统计自定义滑到资产', async () => {
   document.body.dispatchEvent(touch(window, 'touchstart', 230, 430));
   document.body.dispatchEvent(touch(window, 'touchmove', 80, 432));
   assert.ok(document.querySelector('.page-drag'), '日历到统计跟手过渡');
+  assert.ok(document.querySelector('.page-drag .stats-tabs'), '目标页面顶栏同步出现');
   document.body.dispatchEvent(touch(window, 'touchend', 80, 432));
   await sleep(520);
   assert.ok(document.querySelector('.stats-carousel'), '进入统计');
@@ -398,6 +399,7 @@ test('日历滑到统计日常，统计自定义滑到资产', async () => {
   document.body.dispatchEvent(touch(window, 'touchstart', 300, 430));
   document.body.dispatchEvent(touch(window, 'touchmove', 80, 432));
   assert.ok(document.querySelector('.page-drag'), '统计自定义到资产跟手过渡');
+  assert.ok(document.querySelector('.page-drag .appbar'), '原页面顶栏同步滑出');
   document.body.dispatchEvent(touch(window, 'touchend', 80, 432));
   await sleep(320);
   assert.ok(document.querySelector('.assets'), '进入资产');

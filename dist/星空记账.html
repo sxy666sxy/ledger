@@ -2548,10 +2548,8 @@ html, body { overflow-x: hidden; }
   overflow: hidden;
 }
 .page-preview-view {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
+  position: relative;
+  width: 100%;
 }
 body[data-route="assets"] .view {
   padding-top: calc(var(--safe-t) + 12px);
@@ -4926,7 +4924,7 @@ body[data-route="assets"] .view {
   const C = window.LedgerCore;
   const CH = window.LedgerCharts;
   const STORAGE_KEY = 'xingkong.ledger.v4';
-  const VERSION_TEXT = '2.1.11';
+  const VERSION_TEXT = '2.1.12';
   const THEMES = [
     { id: 'auto', name: '跟随系统', desc: '自动切换浅色 / 深色', emoji: '🌓', sw: 'auto' },
     { id: 'light', name: '星空浅色', desc: '靛蓝星夜', emoji: '✦', sw: 'light' },
@@ -5255,17 +5253,11 @@ body[data-route="assets"] .view {
    * 框架渲染
    * ------------------------------------------------------------------ */
 
-  function renderAppbar() {
-    if (state.route === 'calendar' || state.route === 'profile' || state.route === 'assets') {
-      appbarEl.hidden = true;
-      appbarEl.innerHTML = '';
-      return;
-    }
-    appbarEl.hidden = false;
-    if (state.route === 'home') {
+  function appbarHTML(route, statsMode) {
+    if (route === 'calendar' || route === 'profile' || route === 'assets') return null;
+    if (route === 'home') {
       const book = C.activeBook(state.data);
-      appbarEl.innerHTML =
-        '<div class="appbar-inner">' +
+      return '<div class="appbar-inner">' +
           '<button class="book-chip" data-act="open-books" aria-label="切换账本">' +
             '<span class="emoji">' + book.icon + '</span>' +
             '<span class="ellipsis">' + esc(book.name) + '</span>' +
@@ -5276,35 +5268,29 @@ body[data-route="assets"] .view {
             '<button class="icon-btn" data-act="open-calendar" aria-label="账单日历">' + svg('calendar', 21) + '</button>' +
           '</div>' +
         '</div>';
-      return;
     }
-    if (state.route === 'stats') {
-      const tabs = [
-        ['daily', '日常'], ['month', '月统计'], ['year', '年统计'], ['custom', '自定义']
-      ];
-      appbarEl.innerHTML =
-        '<div class="appbar-inner stats-appbar">' +
+    if (route === 'stats') {
+      const tabs = [['daily', '日常'], ['month', '月统计'], ['year', '年统计'], ['custom', '自定义']];
+      return '<div class="appbar-inner stats-appbar">' +
           '<div class="stats-tabs">' + tabs.map((t) => (
-            '<button class="stats-tab' + (state.statsMode === t[0] ? ' active' : '') + '" data-act="stats-mode" data-mode="' + t[0] + '">' + t[1] + '</button>'
+            '<button class="stats-tab' + (statsMode === t[0] ? ' active' : '') + '" data-act="stats-mode" data-mode="' + t[0] + '">' + t[1] + '</button>'
           )).join('') + '</div>' +
           '<button class="icon-btn small" data-act="open-stats-menu" aria-label="统计说明">' + svg('more', 19) + '</button>' +
         '</div>';
+    }
+    return null;
+  }
+
+  function renderAppbar() {
+    appbarEl.style.visibility = '';
+    const html = appbarHTML(state.route, state.statsMode);
+    if (html == null) {
+      appbarEl.hidden = true;
+      appbarEl.innerHTML = '';
       return;
     }
-    const titles = {
-      assets: ['资产', '账户与余额'],
-      profile: ['我的', '本地记账 · 数据自持']
-    };
-    const item = titles[state.route] || ['星空记账', ''];
-    appbarEl.innerHTML =
-      '<div class="appbar-inner">' +
-        '<div class="appbar-title">' + item[0] + (item[1] ? '<small>' + item[1] + '</small>' : '') + '</div>' +
-        '<div class="appbar-actions">' +
-          (state.route === 'profile'
-            ? '<button class="icon-btn" data-act="open-data" aria-label="数据与备份">' + svg('download', 20) + '</button>'
-            : '') +
-        '</div>' +
-      '</div>';
+    appbarEl.hidden = false;
+    appbarEl.innerHTML = html;
   }
 
   function renderTabbar() {
@@ -9433,7 +9419,11 @@ body[data-route="assets"] .view {
     else if (route === 'stats') html = statsHTML(statsMode, '-drag');
     else if (route === 'assets') html = assetsHTML();
     else html = profileHTML();
-    return '<div class="view page-preview-view">' + html + '</div>';
+    const ab = appbarHTML(route, statsMode);
+    return '<div class="page-preview-pane">' +
+      (ab ? '<div class="appbar">' + ab + '</div>' : '') +
+      '<div class="view page-preview-view">' + html + '</div>' +
+    '</div>';
   }
 
   function pageDragTarget(dir) {
@@ -9454,20 +9444,27 @@ body[data-route="assets"] .view {
 
   function beginPageDrag(target, dir) {
     if (pageDrag || !target) return null;
-    const rect = viewEl.getBoundingClientRect();
-    const top = Math.max(0, rect.top);
-    const height = Math.max(120, window.innerHeight - top);
+    const height = Math.max(120, window.innerHeight);
     const overlay = document.createElement('div');
     overlay.className = 'page-drag';
-    overlay.style.top = top + 'px';
+    overlay.style.top = '0px';
     overlay.style.height = height + 'px';
     const clone = viewEl.cloneNode(true);
     clone.removeAttribute('id');
     clone.classList.add('page-preview-view');
     clone.style.transform = 'translateY(' + (-window.scrollY) + 'px)';
-    const curPane = '<div class="page-preview-pane">' + clone.outerHTML + '</div>';
-    const targetPane = '<div class="page-preview-pane">' + pagePreviewHTML(target.route, target.statsMode) + '</div>';
+    const appClone = appbarEl.hidden ? null : appbarEl.cloneNode(true);
+    if (appClone) {
+      appClone.removeAttribute('id');
+      appClone.style.visibility = 'visible';
+    }
+    const curPane = '<div class="page-preview-pane">' +
+      (appClone ? appClone.outerHTML : '') +
+      clone.outerHTML +
+    '</div>';
+    const targetPane = pagePreviewHTML(target.route, target.statsMode);
     const panes = dir > 0 ? curPane + targetPane : targetPane + curPane;
+    appbarEl.style.visibility = 'hidden';
     const base = dir > 0 ? 0 : -50;
     overlay.innerHTML = '<div class="page-preview-track" style="transform:translate3d(' + base + '%,0,0)">' + panes + '</div>';
     document.body.appendChild(overlay);
@@ -9489,13 +9486,17 @@ body[data-route="assets"] .view {
         if (!commit) {
           track.style.transition = 'transform .22s cubic-bezier(.22,.8,.28,1)';
           track.style.transform = 'translate3d(' + base + '%,0,0)';
-          window.setTimeout(() => { if (o.overlay.parentNode) o.overlay.remove(); }, 230);
+          window.setTimeout(() => {
+            if (o.overlay.parentNode) o.overlay.remove();
+            appbarEl.style.visibility = '';
+          }, 230);
           return;
         }
         track.style.transition = 'transform .26s cubic-bezier(.22,.8,.28,1)';
         track.style.transform = 'translate3d(' + (dir > 0 ? -50 : 0) + '%,0,0)';
         window.setTimeout(() => {
           if (o.overlay.parentNode) o.overlay.remove();
+          appbarEl.style.visibility = '';
           state.selectMode = false;
           state.selectedIds = [];
           state.route = target.route;

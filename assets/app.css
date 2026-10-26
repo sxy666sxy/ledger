@@ -2533,10 +2533,8 @@ html, body { overflow-x: hidden; }
   overflow: hidden;
 }
 .page-preview-view {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
+  position: relative;
+  width: 100%;
 }
 body[data-route="assets"] .view {
   padding-top: calc(var(--safe-t) + 12px);
