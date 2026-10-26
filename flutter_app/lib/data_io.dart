@@ -107,6 +107,14 @@ double _num(String value) {
   return double.tryParse(cleaned) ?? 0;
 }
 
+String _timeFromCell(String value) {
+  final m = RegExp(r'(\d{1,2}):(\d{2})').firstMatch(value);
+  if (m == null) return '12:00';
+  final h = int.tryParse(m.group(1)!) ?? 12;
+  final min = int.tryParse(m.group(2)!) ?? 0;
+  return '${two(h)}:${two(min)}';
+}
+
 String? _normalizeDate(String value) {
   final text = value.trim();
   if (text.isEmpty) return null;
@@ -149,10 +157,12 @@ ExcelImportResult importExcelBytes(AppStore store, List<int> bytes) {
 
   for (var r = 1; r < rows.length; r++) {
     final row = rows[r];
-    final date = _normalizeDate(cell(row, '日期'));
+    final dateCell = cell(row, '日期');
+    final date = _normalizeDate(dateCell);
+    final time = _timeFromCell(dateCell);
     final typeText = cell(row, '收支类型');
-    final amount = _num(cell(row, '金额'));
-    if (date == null || amount <= 0) {
+    final rawAmount = _num(cell(row, '金额'));
+    if (date == null || rawAmount == 0) {
       skipped++;
       continue;
     }
@@ -167,6 +177,8 @@ ExcelImportResult importExcelBytes(AppStore store, List<int> bytes) {
       skipped++;
       continue;
     }
+    // Old WebView exports expenses as negative numbers; Flutter exports positive.
+    final amount = rawAmount.abs();
     Category? category;
     if (type != TxnType.transfer) {
       final categoryName = cell(row, '类别').isEmpty ? '未分类' : cell(row, '类别');
@@ -233,7 +245,7 @@ ExcelImportResult importExcelBytes(AppStore store, List<int> bytes) {
     imported.add(Txn(
       id: 't_import_${seq}_$r',
       date: date,
-      time: '12:00',
+      time: time,
       type: type,
       amount: amount,
       categoryId: category?.id ?? '',
