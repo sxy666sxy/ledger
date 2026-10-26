@@ -111,8 +111,15 @@ public class MainActivity extends Activity {
                 try {
                     Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
                     intent.addCategory(Intent.CATEGORY_OPENABLE);
-                    intent.setType("*/*");
-                    startActivityForResult(Intent.createChooser(intent, "选择备份文件"), REQ_FILE);
+                    String mime = "*/*";
+                    try {
+                        String[] accepts = params.getAcceptTypes();
+                        if (accepts != null && accepts.length > 0 && accepts[0] != null && accepts[0].length() > 0) {
+                            mime = accepts[0].split(",")[0].trim();
+                        }
+                    } catch (Exception ignored) { }
+                    intent.setType(mime);
+                    startActivityForResult(Intent.createChooser(intent, "选择文件"), REQ_FILE);
                     return true;
                 } catch (Exception e) {
                     fileCallback = null;
