@@ -84,6 +84,7 @@ test('导航到统计 / 资产 / 我的', () => {
   assert.match(document.querySelector('.view').textContent, /收支统计/);
   assert.match(document.querySelector('.view').textContent, /报表统计/);
   click(document, '[data-route="assets"]');
+  assert.equal(document.querySelector('#appbar').hidden, true);
   assert.match(document.querySelector('.view').textContent, /净资产/);
   assert.ok(document.querySelectorAll('.acct-row').length >= 4);
   click(document, '[data-route="profile"]');
@@ -343,6 +344,7 @@ test('统计月份滑轨：左右各只切换一个月', async () => {
   const rail1 = document.querySelector('[data-stats-pane="month"] .month-rail');
   rail1.dispatchEvent(touch(window, 'touchstart', 300, 420));
   rail1.dispatchEvent(touch(window, 'touchmove', 100, 425));
+  assert.match(rail1.style.transform, /translateX/);
   rail1.dispatchEvent(touch(window, 'touchend', 100, 425));
   assert.match(document.querySelector('[data-stats-pane="month"] .ss-foot').textContent, /2026年9月/);
   await sleep(120);
@@ -362,17 +364,44 @@ test('日历页向下拖动不会回弹', () => {
   assert.equal(move.defaultPrevented, true);
 });
 
-test('五个主界面左右滑动切换', () => {
+test('五个主界面左右滑动切换', async () => {
   const { window, document } = boot();
   document.body.dispatchEvent(touch(window, 'touchstart', 220, 420));
   document.body.dispatchEvent(touch(window, 'touchmove', 90, 425));
+  assert.ok(document.querySelector('.page-drag'), '拖动时显示两页各一半');
   document.body.dispatchEvent(touch(window, 'touchend', 90, 425));
+  await sleep(320);
   assert.ok(document.querySelector('.calendar-glass'), '向左滑应进入日历');
-  assert.ok(document.querySelector('.page-ghost'), '页面切换有旧页滑出过渡');
   document.body.dispatchEvent(touch(window, 'touchstart', 80, 420));
   document.body.dispatchEvent(touch(window, 'touchmove', 220, 425));
   document.body.dispatchEvent(touch(window, 'touchend', 220, 425));
+  await sleep(320);
   assert.ok(document.querySelector('.hero'), '向右滑应回到明细');
+});
+
+test('日历滑到统计日常，统计自定义滑到资产', async () => {
+  const { window, document } = boot();
+  click(document, '[data-route="calendar"]');
+  document.body.dispatchEvent(touch(window, 'touchstart', 230, 430));
+  document.body.dispatchEvent(touch(window, 'touchmove', 80, 432));
+  assert.ok(document.querySelector('.page-drag'), '日历到统计跟手过渡');
+  document.body.dispatchEvent(touch(window, 'touchend', 80, 432));
+  await sleep(520);
+  assert.ok(document.querySelector('.stats-carousel'), '进入统计');
+  assert.match(document.querySelector('.stats-tab.active').textContent, /日常/);
+
+  click(document, '[data-act="stats-mode"][data-mode="custom"]');
+  await sleep(40);
+  assert.match(document.querySelector('.stats-tab.active').textContent, /自定义/);
+  await sleep(40);
+  const car = document.querySelector('[data-stats-carousel]');
+  document.body.dispatchEvent(touch(window, 'touchstart', 300, 430));
+  document.body.dispatchEvent(touch(window, 'touchmove', 80, 432));
+  assert.ok(document.querySelector('.page-drag'), '统计自定义到资产跟手过渡');
+  document.body.dispatchEvent(touch(window, 'touchend', 80, 432));
+  await sleep(320);
+  assert.ok(document.querySelector('.assets'), '进入资产');
+  assert.equal(document.querySelector('#appbar').hidden, true);
 });
 
 test('资产余额编辑与长按删除账户', async () => {

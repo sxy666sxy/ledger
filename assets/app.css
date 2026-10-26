@@ -2508,3 +2508,35 @@ html, body { overflow-x: hidden; }
 .theme-custom-actions { display: flex; gap: 8px; margin-top: 10px; }
 .theme-custom-actions .btn { flex: 1; height: 42px; font-size: 12.5px; }
 .theme-upload { color: var(--primary); }
+
+/* 五页跟手拖动层 */
+.page-drag {
+  position: fixed;
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  z-index: 25;
+  pointer-events: none;
+  background: var(--bg);
+}
+.page-preview-track {
+  display: flex;
+  width: 200%;
+  height: 100%;
+  will-change: transform;
+}
+.page-preview-pane {
+  flex: 0 0 50%;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+}
+.page-preview-view {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+}
+body[data-route="assets"] .view {
+  padding-top: calc(var(--safe-t) + 12px);
+}

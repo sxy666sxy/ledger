@@ -8,7 +8,7 @@
   const C = window.LedgerCore;
   const CH = window.LedgerCharts;
   const STORAGE_KEY = 'xingkong.ledger.v4';
-  const VERSION_TEXT = '2.1.9';
+  const VERSION_TEXT = '2.1.10';
   const THEMES = [
     { id: 'auto', name: '跟随系统', desc: '自动切换浅色 / 深色', emoji: '🌓', sw: 'auto' },
     { id: 'light', name: '星空浅色', desc: '靛蓝星夜', emoji: '✦', sw: 'light' },
@@ -338,7 +338,7 @@
    * ------------------------------------------------------------------ */
 
   function renderAppbar() {
-    if (state.route === 'calendar' || state.route === 'profile') {
+    if (state.route === 'calendar' || state.route === 'profile' || state.route === 'assets') {
       appbarEl.hidden = true;
       appbarEl.innerHTML = '';
       return;
@@ -469,9 +469,10 @@
       const dy = e.touches[0].clientY - sy;
       if (Math.abs(dx) > 9 && Math.abs(dx) > Math.abs(dy)) {
         horizontal = true;
-        if (e.cancelable) e.preventDefault();
       }
       if (!horizontal) return;
+      if ((index === 0 && dx > 0) || (index === modes.length - 1 && dx < 0)) return;
+      if (e.cancelable) e.preventDefault();
       const max = width() * 0.86;
       const clamped = Math.max(-max, Math.min(max, dx));
       apply(index, clamped);
@@ -479,6 +480,10 @@
 
     carousel.addEventListener('touchend', () => {
       if (sx == null) return;
+      if (horizontal && ((index === 0 && dx > 0) || (index === modes.length - 1 && dx < 0))) {
+        sx = null; sy = null; horizontal = false;
+        return;
+      }
       const threshold = Math.min(72, width() * 0.18);
       const target = dx < 0 ? Math.min(modes.length - 1, index + 1) : Math.max(0, index - 1);
       const should = horizontal && Math.abs(dx) > threshold && target !== index;
@@ -1715,12 +1720,18 @@
         horizontal = true;
         if (e.cancelable) e.preventDefault();
       }
+      if (horizontal) {
+        rail.style.transition = 'none';
+        rail.style.transform = 'translateX(' + Math.max(-90, Math.min(90, dx * 0.7)).toFixed(1) + 'px)';
+      }
     }, { passive: false });
     rail.addEventListener('touchend', (e) => {
       if (startX == null) return;
       const dx = e.changedTouches[0].clientX - startX;
       const dy = e.changedTouches[0].clientY - startY;
       startX = null; startY = null;
+      rail.style.transition = 'transform .18s ease';
+      rail.style.transform = 'translateX(0)';
       if (horizontal && Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy) * 1.2) {
         state.suppressClickUntil = Date.now() + 300;
         stepStatsYear(dx < 0 ? -1 : 1);
@@ -1749,6 +1760,10 @@
         horizontal = true;
         if (e.cancelable) e.preventDefault();
       }
+      if (horizontal) {
+        rail.style.transition = 'none';
+        rail.style.transform = 'translateX(' + Math.max(-90, Math.min(90, dx * 0.7)).toFixed(1) + 'px)';
+      }
     }, { passive: false });
     rail.addEventListener('touchend', (e) => {
       if (startX == null) return;
@@ -1756,6 +1771,8 @@
       const dy = e.changedTouches[0].clientY - startY;
       startX = null;
       startY = null;
+      rail.style.transition = 'transform .18s ease';
+      rail.style.transform = 'translateX(0)';
       if (horizontal && Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy) * 1.2) {
         state.suppressClickUntil = Date.now() + 300;
         // 手指向左 → 上个月；向右 → 下个月，每次只走一格
@@ -1849,7 +1866,7 @@
     openSheet({
       title: '记账账户', subtitle: '关闭后不再出现在记账与转账选择中', content:
         '<div class="list-plain">' + rows + '</div>' +
-        '<div class="hint-box" style="margin-top:12px">已有账单不会消失；重新开启后账户会回到记账选择里。至少保留一个开启的账户。</div>',
+        '<div class="hint-box" style="margin-top:12px">已有账单不会消失；重新开启后账户会回到记账选择里。可全部关闭。</div>',
       footer: '<button class="btn primary block" data-close-bookkeeping>完成</button>',
       onMount(root, close) {
         root.addEventListener('change', (e) => {
@@ -1857,11 +1874,6 @@
           if (!input) return;
           const account = state.data.accounts.find((a) => a.id === input.dataset.bookkeepingAccount);
           if (!account) return;
-          if (!input.checked && state.data.accounts.filter((a) => a.bookkeeping !== false).length <= 1) {
-            input.checked = true;
-            toast('至少保留一个启用记账的账户');
-            return;
-          }
           account.bookkeeping = input.checked;
           saveData();
           const caption = input.closest('label').querySelector('.s');
@@ -4491,7 +4503,99 @@
   let pageHorizontal = false;
 
   function pageTouchBlocked(target) {
-    return !!(target && target.closest('.month-rail, .month-stepper, .calendar-grid-card, .stats-carousel, .tabbar, .fab-add, .select-bar, .appbar, .sheet, .modal, .pull-hint, input, textarea, select'));
+    return !!(target && target.closest('.month-rail, .month-stepper, .calendar-grid-card, .tabbar, .fab-add, .select-bar, .appbar, .sheet, .modal, .pull-hint, input, textarea, select'));
+  }
+
+  let pageDrag = null;
+
+  function pagePreviewHTML(route, statsMode) {
+    let html = '';
+    if (route === 'home') html = homeHTML();
+    else if (route === 'calendar') html = calendarHTML();
+    else if (route === 'stats') html = statsHTML(statsMode, '-drag');
+    else if (route === 'assets') html = assetsHTML();
+    else html = profileHTML();
+    return '<div class="view page-preview-view">' + html + '</div>';
+  }
+
+  function pageDragTarget(dir) {
+    const index = PAGE_ORDER.indexOf(state.route);
+    if (index < 0) return null;
+    if (state.route === 'stats') {
+      const modes = ['daily', 'month', 'year', 'custom'];
+      const mi = Math.max(0, modes.indexOf(state.statsMode));
+      if (dir < 0 && mi === 0) return { route: 'calendar' };
+      if (dir > 0 && mi === modes.length - 1) return { route: 'assets' };
+      return null;
+    }
+    const next = index + dir;
+    if (next < 0 || next >= PAGE_ORDER.length) return null;
+    const route = PAGE_ORDER[next];
+    return { route, statsMode: route === 'stats' ? (dir > 0 ? 'daily' : 'custom') : null };
+  }
+
+  function beginPageDrag(target, dir) {
+    if (pageDrag || !target) return null;
+    const rect = viewEl.getBoundingClientRect();
+    const top = Math.max(0, rect.top);
+    const height = Math.max(120, window.innerHeight - top);
+    const overlay = document.createElement('div');
+    overlay.className = 'page-drag';
+    overlay.style.top = top + 'px';
+    overlay.style.height = height + 'px';
+    const clone = viewEl.cloneNode(true);
+    clone.removeAttribute('id');
+    clone.classList.add('page-preview-view');
+    clone.style.transform = 'translateY(' + (-window.scrollY) + 'px)';
+    const curPane = '<div class="page-preview-pane">' + clone.outerHTML + '</div>';
+    const targetPane = '<div class="page-preview-pane">' + pagePreviewHTML(target.route, target.statsMode) + '</div>';
+    const panes = dir > 0 ? curPane + targetPane : targetPane + curPane;
+    const base = dir > 0 ? 0 : -50;
+    overlay.innerHTML = '<div class="page-preview-track" style="transform:translate3d(' + base + '%,0,0)">' + panes + '</div>';
+    document.body.appendChild(overlay);
+    if (target.route === 'stats') {
+      try { mountStatsCharts(target.statsMode, '-drag'); } catch (err) { /* preview only */ }
+    }
+    const track = overlay.querySelector('.page-preview-track');
+    const width = overlay.clientWidth || window.innerWidth || 320;
+    pageDrag = {
+      overlay, track, target, dir, width, moved: false,
+      move(dx) {
+        this.moved = true;
+        const max = width * 0.92;
+        const x = Math.max(-max, Math.min(max, dx));
+        track.style.transform = 'translate3d(calc(' + base + '% + ' + x.toFixed(1) + 'px),0,0)';
+      },
+      finish(commit) {
+        const o = this;
+        if (!commit) {
+          track.style.transition = 'transform .22s cubic-bezier(.22,.8,.28,1)';
+          track.style.transform = 'translate3d(' + base + '%,0,0)';
+          window.setTimeout(() => { if (o.overlay.parentNode) o.overlay.remove(); }, 230);
+          return;
+        }
+        track.style.transition = 'transform .26s cubic-bezier(.22,.8,.28,1)';
+        track.style.transform = 'translate3d(' + (dir > 0 ? -50 : 0) + '%,0,0)';
+        window.setTimeout(() => {
+          if (o.overlay.parentNode) o.overlay.remove();
+          state.selectMode = false;
+          state.selectedIds = [];
+          state.route = target.route;
+          if (target.route === 'stats' && target.statsMode) state.statsMode = target.statsMode;
+          render();
+          window.scrollTo(0, 0);
+        }, 270);
+      }
+    };
+    return pageDrag;
+  }
+
+  function endPageDrag(commit) {
+    if (!pageDrag) return;
+    const d = pageDrag;
+    pageDrag = null;
+    state.suppressClickUntil = Date.now() + 450;
+    d.finish(commit);
   }
 
   function pageStep(dir) {
@@ -4504,8 +4608,9 @@
 
   document.addEventListener('touchstart', (e) => {
     pageTouchX = null;
-    if (!PAGE_ORDER.includes(state.route) || state.selectMode || overlayRoot.children.length) return;
+    if (!PAGE_ORDER.includes(state.route) || state.selectMode || overlayRoot.children.length || pageDrag) return;
     if (pageTouchBlocked(e.target)) return;
+    if (state.route === 'stats' && e.target.closest('button, .month-rail, .stats-table, .heat-year-grid, .stats-chart-controls, .stats-chart-type, .stats-tabs')) return;
     pageTouchX = e.touches[0].clientX;
     pageTouchY = e.touches[0].clientY;
     pageTouchAt = Date.now();
@@ -4514,30 +4619,42 @@
   }, { passive: true });
 
   document.addEventListener('touchmove', (e) => {
+    if (pageDrag) {
+      const dx = e.touches[0].clientX - pageTouchX;
+      pageDrag.move(dx);
+      if (e.cancelable) e.preventDefault();
+      return;
+    }
     if (pageTouchX == null) return;
     const dx = e.touches[0].clientX - pageTouchX;
     const dy = e.touches[0].clientY - pageTouchY;
     if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.15) {
+      if (pageHorizontal) {
+        if (e.cancelable) e.preventDefault();
+        return;
+      }
+      const dir = dx < 0 ? 1 : -1;
+      const target = pageDragTarget(dir);
+      if (!target) return;
       pageHorizontal = true;
       if (e.cancelable) e.preventDefault();
+      if (beginPageDrag(target, dir)) pageDrag.move(dx);
     }
   }, { passive: false });
 
   document.addEventListener('touchend', (e) => {
-    if (pageTouchX == null) return;
+    if (pageTouchX == null && !pageDrag) return;
     const point = (e.changedTouches && e.changedTouches[0]) || (e.touches && e.touches[0]);
-    if (!point) { pageTouchX = null; pageTouchY = null; pageTouchAt = 0; pageTouchTarget = null; pageHorizontal = false; return; }
+    if (!point) { pageTouchX = null; pageDrag = null; pageHorizontal = false; return; }
     const dx = point.clientX - pageTouchX;
-    const dy = point.clientY - pageTouchY;
-    const duration = Date.now() - pageTouchAt;
-    const target = pageTouchTarget;
+    if (pageDrag) {
+      const threshold = Math.min(80, pageDrag.width * 0.2);
+      endPageDrag(Math.abs(dx) > threshold);
+    }
     pageTouchX = null;
     pageTouchY = null;
     pageTouchAt = 0;
     pageTouchTarget = null;
-    if (pageHorizontal && Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.35 && duration < 900 && !pageTouchBlocked(target)) {
-      pageStep(dx < 0 ? 1 : -1);
-    }
     pageHorizontal = false;
   }, { passive: true });
 
