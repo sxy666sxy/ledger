@@ -38,6 +38,8 @@ class AppStore extends ChangeNotifier {
   List<Txn> transactions = [];
   String themeId = 'system';
   String customImagePath = '';
+  String cardStyle = 'orbit';
+  bool showLunar = true;
   List<RecurringRule> recurringRules = [];
   String pinHash = '';
   bool locked = false;
@@ -160,6 +162,51 @@ class AppStore extends ChangeNotifier {
       result[t.date] = (result[t.date] ?? 0) + t.amount;
     }
     return result;
+  }
+
+  List<Txn> txnsBetween(DateTime start, DateTime end) {
+    final from = dateKey(start);
+    final to = dateKey(end);
+    final list = transactions
+        .where((t) =>
+            t.bookId == activeBookId &&
+            t.date.compareTo(from) >= 0 &&
+            t.date.compareTo(to) <= 0)
+        .toList()
+      ..sort(_sortTxn);
+    return list;
+  }
+
+  MoneyTotals totalsForRangeDay(DateTime day) => totalsBetween(day, day);
+
+  MoneyTotals totalsBetween(DateTime start, DateTime end) {
+    double expense = 0;
+    double income = 0;
+    for (final t in txnsBetween(start, end)) {
+      if (t.type == TxnType.expense) {
+        expense += t.amount;
+      } else if (t.type == TxnType.income) {
+        income += t.amount;
+      }
+    }
+    return MoneyTotals(expense: expense, income: income);
+  }
+
+  List<CategoryTotal> categoryTotalsBetween(DateTime start, DateTime end, TxnType type) {
+    final map = <String, CategoryTotal>{};
+    for (final t in txnsBetween(start, end)) {
+      if (t.type != type) continue;
+      final category = categoryById(t.categoryId) ??
+          Category(id: t.categoryId, name: '未分类', type: type);
+      final old = map[category.id];
+      map[category.id] = CategoryTotal(
+        category: category,
+        value: (old?.value ?? 0) + t.amount,
+        count: (old?.count ?? 0) + 1,
+      );
+    }
+    final list = map.values.toList()..sort((a, b) => b.value.compareTo(a.value));
+    return list;
   }
 
   List<Txn> txnsForYear(int year) {
@@ -371,6 +418,8 @@ class AppStore extends ChangeNotifier {
     recurringRules = [];
     themeId = 'system';
     customImagePath = '';
+    cardStyle = 'orbit';
+    showLunar = true;
     pinHash = '';
     locked = false;
   }
@@ -408,6 +457,8 @@ class AppStore extends ChangeNotifier {
                 ? 'light'
                 : 'system');
     customImagePath = map['customImagePath'] as String? ?? '';
+    cardStyle = map['cardStyle'] as String? ?? 'orbit';
+    showLunar = map['showLunar'] != false;
     recurringRules = (map['recurringRules'] as List? ?? [])
         .whereType<Map>()
         .map((e) => RecurringRule.fromJson(Map<String, dynamic>.from(e)))
@@ -425,6 +476,8 @@ class AppStore extends ChangeNotifier {
         'transactions': transactions.map((e) => e.toJson()).toList(),
         'themeId': themeId,
         'customImagePath': customImagePath,
+        'cardStyle': cardStyle,
+        'showLunar': showLunar,
         'recurringRules': recurringRules.map((e) => e.toJson()).toList(),
         'pinHash': pinHash,
       };
@@ -530,6 +583,18 @@ class AppStore extends ChangeNotifier {
 
   void setCustomImagePath(String path) {
     customImagePath = path;
+    notifyListeners();
+    save();
+  }
+
+  void setCardStyle(String style) {
+    cardStyle = style;
+    notifyListeners();
+    save();
+  }
+
+  void setShowLunar(bool value) {
+    showLunar = value;
     notifyListeners();
     save();
   }

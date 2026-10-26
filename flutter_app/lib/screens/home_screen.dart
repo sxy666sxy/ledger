@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../models.dart';
 import '../store.dart';
 import '../utils.dart';
+import '../widgets/classic_month_card.dart';
 import '../widgets/orbit_month_card.dart';
+import '../widgets/swipe_delete_tile.dart';
 import 'entry_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -41,14 +43,23 @@ class _HomeScreenState extends State<HomeScreen> {
             SliverPadding(
               padding: EdgeInsets.only(top: topInset),
               sliver: SliverToBoxAdapter(
-                child: OrbitMonthCard(
-                  month: _month,
-                  totals: totals,
-                  bookName: book.name,
-                  bookIcon: book.icon,
-                  count: txns.length,
-                  onChanged: (m) => setState(() => _month = monthStart(m)),
-                ),
+                child: store.cardStyle == 'classic'
+                    ? ClassicMonthCard(
+                        month: _month,
+                        totals: totals,
+                        bookName: book.name,
+                        bookIcon: book.icon,
+                        count: txns.length,
+                        onChanged: (m) => setState(() => _month = monthStart(m)),
+                      )
+                    : OrbitMonthCard(
+                        month: _month,
+                        totals: totals,
+                        bookName: book.name,
+                        bookIcon: book.icon,
+                        count: txns.length,
+                        onChanged: (m) => setState(() => _month = monthStart(m)),
+                      ),
               ),
             ),
             SliverPadding(
@@ -162,20 +173,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final isExpense = t.type == TxnType.expense;
     final isTransfer = t.type == TxnType.transfer;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Dismissible(
-        key: ValueKey(t.id),
-        direction: DismissDirection.endToStart,
-        background: Container(
-          alignment: Alignment.centerRight,
-          padding: const EdgeInsets.only(right: 20),
-          decoration: BoxDecoration(
-            color: Colors.red,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Icon(Icons.delete_outline, color: Colors.white),
-        ),
-        onDismissed: (_) {
+      padding: const EdgeInsets.only(bottom: 4),
+      child: SwipeDeleteTile(
+        onDelete: () {
           store.deleteTxn(t.id);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('已删除')),
@@ -183,25 +183,25 @@ class _HomeScreenState extends State<HomeScreen> {
         },
         child: Material(
           color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           child: InkWell(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             onTap: () => showEntrySheet(context, existing: t),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
               child: Row(
                 children: [
                   Container(
-                    width: 40,
-                    height: 40,
+                    width: 36,
+                    height: 36,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: Color(cat?.color ?? 0xFF94A3B8).withValues(alpha: 0.13),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(11),
                     ),
-                    child: Text(isTransfer ? '🔁' : (cat?.icon ?? '🏷️'), style: const TextStyle(fontSize: 19)),
+                    child: Text(isTransfer ? '🔁' : (cat?.icon ?? '🏷️'), style: const TextStyle(fontSize: 17)),
                   ),
-                  const SizedBox(width: 11),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -210,9 +210,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           isTransfer
                               ? '转账'
                               : '${cat?.name ?? '未分类'}${t.subcategory.isNotEmpty ? ' · ${t.subcategory}' : ''}',
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 1),
                         Text(
                           isTransfer
                               ? [t.time, '${acc?.name ?? '?'} → ${to?.name ?? '?'}', t.note]
@@ -221,7 +221,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               : [t.time, acc?.name ?? '', t.note].where((e) => e.isNotEmpty).join(' · '),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600),
+                          style: TextStyle(fontSize: 9.5, color: Colors.grey.shade600),
                         ),
                       ],
                     ),
@@ -232,7 +232,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ? formatMoney(t.amount)
                         : '${isExpense ? '-' : '+'}${formatMoney(t.amount)}',
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: 14,
                       fontWeight: FontWeight.w800,
                       color: isTransfer
                           ? const Color(0xFF5B6CFF)

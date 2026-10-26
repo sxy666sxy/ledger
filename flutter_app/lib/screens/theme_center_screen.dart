@@ -87,6 +87,23 @@ class _ThemeCenterScreenState extends State<ThemeCenterScreen> {
                 style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
               ),
               const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: SegmentedButton<String>(
+                  showSelectedIcon: false,
+                  segments: const [
+                    ButtonSegment(value: 'orbit', label: Text('星空椭圆'), icon: Icon(Icons.blur_on, size: 16)),
+                    ButtonSegment(value: 'classic', label: Text('普通方形卡片'), icon: Icon(Icons.crop_square, size: 16)),
+                  ],
+                  selected: {store.cardStyle},
+                  onSelectionChanged: (set) => store.setCardStyle(set.first),
+                ),
+              ),
+              const SizedBox(height: 12),
               GridView.count(
                 crossAxisCount: 2,
                 shrinkWrap: true,
@@ -183,6 +200,7 @@ class _ThemeCenterScreenState extends State<ThemeCenterScreen> {
   }
 
   Widget _preview(ThemeSpec spec) {
+    final orbit = store.cardStyle == 'orbit';
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -191,8 +209,62 @@ class _ThemeCenterScreenState extends State<ThemeCenterScreen> {
           colors: spec.preview,
         ),
       ),
-      alignment: Alignment.center,
-      child: Text(spec.emoji, style: const TextStyle(fontSize: 28)),
+      child: Center(
+        child: orbit
+            ? SizedBox(
+                width: 120,
+                height: 58,
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: const BorderRadius.all(Radius.elliptical(999, 999)),
+                          color: const Color(0xFF111735),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: 4,
+                      top: 10,
+                      bottom: 10,
+                      width: 68,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: const BorderRadius.all(Radius.elliptical(999, 999)),
+                          gradient: const LinearGradient(colors: [Color(0xFF2C3C8F), Color(0xFF1A1240)]),
+                        ),
+                      ),
+                    ),
+                    const Positioned(right: 8, top: 12, child: Text('2026', style: TextStyle(color: Colors.white70, fontSize: 7))),
+                    const Positioned(right: 6, top: 26, child: Text('10月', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800))),
+                    const Positioned(left: 16, top: 18, child: Text('✦', style: TextStyle(color: Color(0xFFFFE08A), fontSize: 8))),
+                    const Positioned(right: 30, bottom: 8, child: Text('·  ✦', style: TextStyle(color: Colors.white54, fontSize: 6))),
+                  ],
+                ),
+              )
+            : Container(
+                width: 116,
+                height: 62,
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF111735),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                ),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('本月支出', style: TextStyle(color: Colors.white38, fontSize: 5.5)),
+                    SizedBox(height: 1),
+                    Text('¥ 1,280.00', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800)),
+                    Spacer(),
+                    Text('2026年10月', style: TextStyle(color: Colors.white38, fontSize: 5.5)),
+                  ],
+                ),
+              ),
+      ),
     );
   }
 }

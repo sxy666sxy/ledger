@@ -1,4 +1,6 @@
 
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -104,10 +106,9 @@ class _OrbitMonthCardState extends State<OrbitMonthCard> {
                 child: _smallEllipse(context),
               ),
               Positioned(
-                right: 12,
+                right: 18,
                 top: height * 0.16,
-                bottom: height * 0.14,
-                width: width * 0.29,
+                width: width * 0.31,
                 child: _dial(context),
               ),
               Positioned(
@@ -144,6 +145,9 @@ class _OrbitMonthCardState extends State<OrbitMonthCard> {
         borderRadius: radius,
         child: Stack(
           children: [
+            Positioned.fill(
+              child: IgnorePointer(child: CustomPaint(painter: const _SmallChainPainter())),
+            ),
             Positioned(
               left: 15,
               top: 18,
@@ -170,7 +174,7 @@ class _OrbitMonthCardState extends State<OrbitMonthCard> {
                         key: ValueKey(widget.totals.expense),
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 24,
+                          fontSize: 30,
                           fontWeight: FontWeight.w800,
                           letterSpacing: -0.8,
                         ),
@@ -262,7 +266,7 @@ class _OrbitMonthCardState extends State<OrbitMonthCard> {
 
   Widget _dial(BuildContext context) {
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         _dialText('year', '${widget.month.year}', '年', 23),
         const SizedBox(height: 1),
@@ -278,7 +282,10 @@ class _OrbitMonthCardState extends State<OrbitMonthCard> {
           ],
         ),
         const SizedBox(height: 1),
-        _dialText('month', widget.month.month.toString().padLeft(2, '0'), '月', 30),
+        Transform.translate(
+          offset: const Offset(7, 1),
+          child: _dialText('month', widget.month.month.toString().padLeft(2, '0'), '月', 30),
+        ),
       ],
     );
   }
@@ -323,6 +330,38 @@ class _OrbitMonthCardState extends State<OrbitMonthCard> {
       ),
     );
   }
+}
+
+class _SmallChainPainter extends CustomPainter {
+  const _SmallChainPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.9
+      ..shader = const LinearGradient(
+        colors: [Color(0x00FFFFFF), Color(0x55FFFFFF), Color(0x00FFFFFF)],
+        stops: [0.0, 0.5, 1.0],
+      ).createShader(rect);
+    canvas.drawOval(rect.deflate(1), paint);
+    for (var i = 0; i < 18; i++) {
+      final a = i / 18 * 6.28318530718;
+      final p = Offset(
+        rect.center.dx + rect.width / 2 * 0.97 * math.cos(a),
+        rect.center.dy + rect.height / 2 * 0.97 * math.sin(a),
+      );
+      canvas.drawCircle(
+        p,
+        i % 5 == 0 ? 1.5 : 0.65,
+        Paint()..color = Colors.white.withValues(alpha: i % 5 == 0 ? 0.58 : 0.22),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SmallChainPainter oldDelegate) => false;
 }
 
 class _OrbitPainter extends CustomPainter {

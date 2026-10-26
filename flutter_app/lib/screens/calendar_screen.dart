@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lunar/lunar.dart';
 
 import '../models.dart';
 import '../store.dart';
@@ -12,9 +13,87 @@ class CalendarScreen extends StatefulWidget {
   State<CalendarScreen> createState() => _CalendarScreenState();
 }
 
+class _LunarDay {
+  const _LunarDay(this.text, {this.highlight = false, this.work = false});
+  final String text;
+  final bool highlight;
+  final bool work;
+}
+
 class _CalendarScreenState extends State<CalendarScreen> {
   DateTime _month = monthStart(DateTime.now());
   String _selected = dateKey(DateTime.now());
+
+  _LunarDay _lunarOf(DateTime date) {
+    final solar = Solar.fromDate(date);
+    final lunar = solar.getLunar();
+    final holiday = HolidayUtil.getHolidayByYmd(date.year, date.month, date.day);
+    if (holiday != null) {
+      if (holiday.isWork()) return const _LunarDay('班', work: true);
+      return _LunarDay(holiday.getName().replaceAll('节', ''), highlight: true);
+    }
+    final festivals = [...solar.getFestivals(), ...lunar.getFestivals()];
+    if (festivals.isNotEmpty) return _LunarDay(festivals.first, highlight: true);
+    final jieQi = lunar.getJieQi();
+    if (jieQi.isNotEmpty) return _LunarDay(jieQi);
+    if (lunar.getDay() == 1) return _LunarDay('${lunar.getMonthInChinese()}月');
+    return _LunarDay(lunar.getDayInChinese());
+  }
+
+  void _shiftMonth(int delta) {
+    final next = addMonths(_month, delta);
+    final day = DateTime.tryParse(_selected)?.day ?? 1;
+    final maxDay = daysInMonth(next);
+    setState(() {
+      _month = next;
+      _selected = dateKey(DateTime(next.year, next.month, day > maxDay ? maxDay : day));
+    });
+  }
+
+  Future<void> _pickMonth() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.tryParse(_selected) ?? _month,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      helpText: '选择年月',
+    );
+    if (picked != null) {
+      setState(() {
+        _month = monthStart(picked);
+        _selected = dateKey(picked);
+      });
+    }
+  }
+
+  void _showSettings() {
+    final store = AppStore.instance;
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => AnimatedBuilder(
+        animation: store,
+        builder: (context, _) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const ListTile(
+                title: Text('日历设置', style: TextStyle(fontWeight: FontWeight.w800)),
+                subtitle: Text('农历、节假日显示只影响日历格子'),
+              ),
+              SwitchListTile(
+                value: store.showLunar,
+                onChanged: store.setShowLunar,
+                title: const Text('显示农历与节假日'),
+                subtitle: const Text('节气、农历日期和法定节假日'),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,32 +107,44 @@ class _CalendarScreenState extends State<CalendarScreen> {
         final first = DateTime(_month.year, _month.month, 1);
         final offset = first.weekday % 7;
         final dim = daysInMonth(_month);
+        final maxExpense = expenses.values.fold<double>(1, (a, b) => a > b ? a : b);
 
         return SafeArea(
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(14, 8, 8, 4),
+                padding: const EdgeInsets.fromLTRB(10, 6, 6, 2),
                 child: Row(
                   children: [
                     IconButton(
-                      onPressed: () => setState(() => _month = addMonths(_month, -1)),
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => _shiftMonth(-1),
                       icon: const Icon(Icons.chevron_left),
                     ),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(monthTitle(_month), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-                          Text('点日期查看当天账单', style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600)),
-                        ],
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: _pickMonth,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(monthTitle(_month), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                                  const SizedBox(width: 3),
+                                  const Icon(Icons.expand_more, size: 17),
+                                ],
+                              ),
+                              Text('左右滑动日历 · 点击年月选择', style: TextStyle(fontSize: 9.5, color: Colors.grey.shade600)),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                     IconButton(
-                      onPressed: () => setState(() => _month = addMonths(_month, 1)),
-                      icon: const Icon(Icons.chevron_right),
-                    ),
-                    IconButton(
+                      visualDensity: VisualDensity.compact,
                       tooltip: '今天',
                       onPressed: () {
                         final now = DateTime.now();
@@ -62,14 +153,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           _selected = dateKey(now);
                         });
                       },
-                      icon: const Icon(Icons.today_outlined),
+                      icon: const Icon(Icons.today_outlined, size: 21),
+                    ),
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      tooltip: '日历设置',
+                      onPressed: _showSettings,
+                      icon: const Icon(Icons.settings_outlined, size: 21),
                     ),
                   ],
                 ),
               ),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 100),
+                  padding: const EdgeInsets.fromLTRB(10, 0, 10, 100),
                   children: [
                     const Row(
                       children: [
@@ -82,83 +179,113 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         _WeekLabel('六'),
                       ],
                     ),
-                    const SizedBox(height: 5),
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: 42,
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 7,
-                        mainAxisSpacing: 4,
-                        crossAxisSpacing: 4,
-                        childAspectRatio: 0.82,
-                      ),
-                      itemBuilder: (context, i) {
-                        final day = i - offset + 1;
-                        if (day < 1 || day > dim) {
-                          return const SizedBox.shrink();
+                    const SizedBox(height: 3),
+                    GestureDetector(
+                      onHorizontalDragEnd: (d) {
+                        final v = d.primaryVelocity ?? 0;
+                        if (v < -120) {
+                          _shiftMonth(1);
+                        } else if (v > 120) {
+                          _shiftMonth(-1);
                         }
-                        final date = DateTime(_month.year, _month.month, day);
-                        final iso = dateKey(date);
-                        final selected = iso == _selected;
-                        final today = sameDay(date, DateTime.now());
-                        final expense = expenses[iso] ?? 0;
-                        final income = incomes[iso] ?? 0;
-                        final heat = expense > 0
-                            ? expense / (expenses.values.fold<double>(1, (a, b) => a > b ? a : b))
-                            : 0.0;
-                        return InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: () => setState(() => _selected = iso),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 2),
-                            decoration: BoxDecoration(
-                              color: selected
-                                  ? const Color(0xFF5B6CFF)
-                                  : Color.lerp(
-                                      Theme.of(context).colorScheme.surface,
-                                      const Color(0xFFFFE5E5),
-                                      heat.clamp(0.0, 0.55).toDouble(),
-                                    ),
-                              borderRadius: BorderRadius.circular(12),
-                              border: today && !selected
-                                  ? Border.all(color: const Color(0xFF5B6CFF), width: 1.2)
-                                  : null,
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  '$day',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                    color: selected ? Colors.white : null,
-                                  ),
-                                ),
-                                if (expense > 0)
-                                  Text(
-                                    '-${expense.toStringAsFixed(expense >= 100 ? 0 : 1)}',
-                                    style: TextStyle(
-                                      fontSize: 8,
-                                      color: selected ? Colors.white70 : const Color(0xFFE5484D),
-                                    ),
-                                  ),
-                                if (income > 0)
-                                  Text(
-                                    '+${income.toStringAsFixed(income >= 100 ? 0 : 1)}',
-                                    style: TextStyle(
-                                      fontSize: 8,
-                                      color: selected ? Colors.white70 : const Color(0xFF0E9F6E),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        );
                       },
+                      child: GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: 42,
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 7,
+                          mainAxisSpacing: 3,
+                          crossAxisSpacing: 3,
+                          childAspectRatio: 0.82,
+                        ),
+                        itemBuilder: (context, i) {
+                          final day = i - offset + 1;
+                          if (day < 1 || day > dim) return const SizedBox.shrink();
+                          final date = DateTime(_month.year, _month.month, day);
+                          final iso = dateKey(date);
+                          final selected = iso == _selected;
+                          final today = sameDay(date, DateTime.now());
+                          final expense = expenses[iso] ?? 0;
+                          final income = incomes[iso] ?? 0;
+                          final lunar = _lunarOf(date);
+                          final heat = expense > 0 ? expense / maxExpense : 0.0;
+                          final amountLabel = expense > 0 && income > 0
+                              ? '-${_short(expense)} +${_short(income)}'
+                              : expense > 0
+                                  ? '-${_short(expense)}'
+                                  : income > 0
+                                      ? '+${_short(income)}'
+                                      : '';
+                          return InkWell(
+                            borderRadius: BorderRadius.circular(11),
+                            onTap: () => setState(() => _selected = iso),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 1),
+                              decoration: BoxDecoration(
+                                color: selected
+                                    ? const Color(0xFF5B6CFF)
+                                    : Color.lerp(
+                                        Theme.of(context).colorScheme.surface,
+                                        const Color(0xFFFFE5E5),
+                                        heat.clamp(0.0, 0.55).toDouble(),
+                                      ),
+                                borderRadius: BorderRadius.circular(11),
+                                border: today && !selected
+                                    ? Border.all(color: const Color(0xFF5B6CFF), width: 1.2)
+                                    : null,
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    '$day',
+                                    style: TextStyle(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: selected ? Colors.white : null,
+                                    ),
+                                  ),
+                                  if (store.showLunar)
+                                    Text(
+                                      lunar.text,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 6.2,
+                                        height: 1.1,
+                                        color: selected
+                                            ? Colors.white70
+                                            : lunar.work
+                                                ? Colors.grey
+                                                : lunar.highlight
+                                                    ? const Color(0xFFE5484D)
+                                                    : Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  if (amountLabel.isNotEmpty)
+                                    Text(
+                                      amountLabel,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 6.7,
+                                        height: 1.1,
+                                        color: selected
+                                            ? Colors.white70
+                                            : expense > 0
+                                                ? const Color(0xFFE5484D)
+                                                : const Color(0xFF0E9F6E),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 2),
                     Row(
                       children: [
                         Text(fullDateTitle(_selected), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
@@ -172,7 +299,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     if (selectedTxns.isEmpty)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 30),
@@ -188,14 +315,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         final isExpense = t.type == TxnType.expense;
                         final isTransfer = t.type == TxnType.transfer;
                         return Card(
-                          margin: const EdgeInsets.only(bottom: 6),
+                          margin: const EdgeInsets.only(bottom: 5),
                           child: ListTile(
-                            leading: Text(isTransfer ? '🔁' : (cat?.icon ?? '🏷️'), style: const TextStyle(fontSize: 20)),
-                            title: Text(isTransfer ? '转账' : (cat?.name ?? '未分类')),
-                            subtitle: Text(isTransfer ? '${acc?.name ?? '?'} → ${to?.name ?? '?'}' : [t.time, t.note].where((e) => e.isNotEmpty).join(' · ')),
+                            dense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                            leading: Text(isTransfer ? '🔁' : (cat?.icon ?? '🏷️'), style: const TextStyle(fontSize: 18)),
+                            title: Text(isTransfer ? '转账' : (cat?.name ?? '未分类'), style: const TextStyle(fontSize: 13)),
+                            subtitle: Text(
+                              isTransfer ? '${acc?.name ?? '?'} → ${to?.name ?? '?'}' : [t.time, t.note].where((e) => e.isNotEmpty).join(' · '),
+                              style: const TextStyle(fontSize: 9.5),
+                            ),
                             trailing: Text(
                               isTransfer ? formatMoney(t.amount) : '${isExpense ? '-' : '+'}${formatMoney(t.amount)}',
                               style: TextStyle(
+                                fontSize: 13,
                                 fontWeight: FontWeight.w700,
                                 color: isTransfer
                                     ? const Color(0xFF5B6CFF)
@@ -215,6 +348,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
       },
     );
   }
+
+  String _short(double value) => value.toStringAsFixed(value >= 100 ? 0 : 1);
 }
 
 class _WeekLabel extends StatelessWidget {
