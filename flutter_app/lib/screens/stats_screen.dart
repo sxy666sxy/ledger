@@ -25,6 +25,7 @@ class _StatsScreenState extends State<StatsScreen> {
   bool _yearAll = false;
   TxnType _type = TxnType.expense;
   _StatsView _view = _StatsView.month;
+  bool _lineChart = false;
 
   static DateTime _monday(DateTime d) {
     final day = DateTime(d.year, d.month, d.day);
@@ -37,7 +38,7 @@ class _StatsScreenState extends State<StatsScreen> {
     return AnimatedBuilder(
       animation: store,
       builder: (context, _) {
-        final topInset = MediaQuery.of(context).padding.top + kToolbarHeight - 6;
+        final topInset = MediaQuery.of(context).padding.top + kToolbarHeight - 28;
         return Padding(
           padding: EdgeInsets.only(top: topInset),
           child: Column(
@@ -112,7 +113,14 @@ class _StatsScreenState extends State<StatsScreen> {
           return _reportCard('本月统计报表', labels, dailyTotals, counts);
         }),
         const SizedBox(height: 14),
-        _bottomSummary(totals, store.txnsForMonth(_month).length, daysInMonth(_month)),
+        _bottomSummary(
+          totals,
+          store.txnsForMonth(_month).length,
+          daysInMonth(_month),
+          catsExpense: store.categoryTotals(_month, TxnType.expense),
+          recordedDays: _recordedDays(store.txnsForMonth(_month)),
+          previousExpense: store.totalsForMonth(addMonths(_month, -1)).expense,
+        ),
       ],
     );
   }
@@ -148,7 +156,14 @@ class _StatsScreenState extends State<StatsScreen> {
         const SizedBox(height: 14),
         _reportCard('本周统计报表', labels, reportTotals, counts),
         const SizedBox(height: 14),
-        _bottomSummary(totals, txns.length, 7),
+        _bottomSummary(
+          totals,
+          txns.length,
+          7,
+          catsExpense: store.categoryTotalsBetween(start, end, TxnType.expense),
+          recordedDays: _recordedDays(txns),
+          previousExpense: store.totalsBetween(start.subtract(const Duration(days: 7)), end.subtract(const Duration(days: 7))).expense,
+        ),
       ],
     );
   }
@@ -221,7 +236,14 @@ class _StatsScreenState extends State<StatsScreen> {
         const SizedBox(height: 14),
         _reportCard('区间统计报表', labels, reportTotals, counts),
         const SizedBox(height: 14),
-        _bottomSummary(totals, txns.length, days),
+        _bottomSummary(
+          totals,
+          txns.length,
+          days,
+          catsExpense: store.categoryTotalsBetween(from, to, TxnType.expense),
+          recordedDays: _recordedDays(txns),
+          previousExpense: store.totalsBetween(from.subtract(Duration(days: days)), from.subtract(const Duration(days: 1))).expense,
+        ),
       ],
     );
   }
@@ -340,7 +362,14 @@ class _StatsScreenState extends State<StatsScreen> {
           const SizedBox(height: 14),
           YearAdvancedCards(store: store, year: _year, type: _type),
           const SizedBox(height: 14),
-          _bottomSummary(totals, store.txnsForYear(_year).length, 365),
+          _bottomSummary(
+            totals,
+            store.txnsForYear(_year).length,
+            365,
+            catsExpense: store.categoryTotalsForYear(_year, TxnType.expense),
+            recordedDays: _recordedDays(store.txnsForYear(_year)),
+            previousExpense: store.totalsForYear(_year - 1).expense,
+          ),
         ] else ...[
           const SizedBox(height: 14),
           _categoryCard(cats, _type == TxnType.expense ? totals.expense : totals.income, _type),
@@ -352,7 +381,14 @@ class _StatsScreenState extends State<StatsScreen> {
             years.map((y) => store.txnsForYear(y).length).toList(),
           ),
           const SizedBox(height: 14),
-          _bottomSummary(totals, store.activeTransactions.length, 365),
+          _bottomSummary(
+            totals,
+            store.activeTransactions.length,
+            365,
+            catsExpense: store.categoryTotalsAllYears(TxnType.expense),
+            recordedDays: _recordedDays(store.activeTransactions),
+            previousExpense: 0,
+          ),
         ],
       ],
     );
@@ -426,6 +462,12 @@ class _StatsScreenState extends State<StatsScreen> {
             Row(
               children: [
                 Expanded(child: Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800))),
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  tooltip: _lineChart ? '切换柱状图' : '切换曲线图',
+                  onPressed: () => setState(() => _lineChart = !_lineChart),
+                  icon: Icon(_lineChart ? Icons.bar_chart : Icons.show_chart, size: 18),
+                ),
                 SegmentedButton<TxnType>(
                   showSelectedIcon: false,
                   style: const ButtonStyle(
@@ -445,13 +487,19 @@ class _StatsScreenState extends State<StatsScreen> {
             SizedBox(
               height: 150,
               width: double.infinity,
-              child: CustomPaint(
-                painter: _BarsPainter(
-                  values: values,
-                  labels: labels,
-                  color: color,
-                  textColor: Colors.grey.shade600,
-                  labelEvery: labelEvery,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 220),
+                child: CustomPaint(
+                  key: ValueKey(_lineChart),
+                  painter: _lineChart
+                      ? _StatsLinePainter(values: values, labels: labels, color: color, textColor: Colors.grey.shade600, labelEvery: labelEvery)
+                      : _BarsPainter(
+                          values: values,
+                          labels: labels,
+                          color: color,
+                          textColor: Colors.grey.shade600,
+                          labelEvery: labelEvery,
+                        ),
                 ),
               ),
             ),
@@ -459,6 +507,24 @@ class _StatsScreenState extends State<StatsScreen> {
             Text(
               '单位：${unit ?? (_view == _StatsView.year ? (_yearAll ? '年' : '月') : '日')} · 点击柱/点查看明细',
               style: TextStyle(fontSize: 9, color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 5),
+            SizedBox(
+              height: 18,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: List.generate(values.length, (i) {
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 10),
+                      child: Text(
+                        '${labels.length > i ? labels[i] : ''} ${formatMoney(values[i], symbol: false)}',
+                        style: TextStyle(fontSize: 8, color: Colors.grey.shade600),
+                      ),
+                    );
+                  }),
+                ),
+              ),
             ),
           ],
         ),
@@ -482,11 +548,11 @@ class _StatsScreenState extends State<StatsScreen> {
             const SizedBox(height: 10),
             Row(
               children: [
-                Expanded(flex: 16, child: _headText('区间')),
-                Expanded(flex: 18, child: _headText('收入', align: TextAlign.right)),
-                Expanded(flex: 18, child: _headText('支出', align: TextAlign.right)),
-                Expanded(flex: 18, child: _headText('结余', align: TextAlign.right)),
-                Expanded(flex: 9, child: _headText('笔数', align: TextAlign.right)),
+                Expanded(flex: 12, child: _headText('区间')),
+                Expanded(flex: 20, child: _headText('收入', align: TextAlign.center, color: const Color(0xFF0E9F6E))),
+                Expanded(flex: 18, child: _headText('支出', align: TextAlign.center, color: const Color(0xFFE5484D))),
+                Expanded(flex: 20, child: _headText('结余', align: TextAlign.right)),
+                Expanded(flex: 8, child: _headText('笔数', align: TextAlign.right)),
               ],
             ),
             const SizedBox(height: 4),
@@ -497,11 +563,11 @@ class _StatsScreenState extends State<StatsScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 5),
                 child: Row(
                   children: [
-                    Expanded(flex: 16, child: Text(labels[i], maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10))),
-                    Expanded(flex: 18, child: Text(formatMoney(t.income, symbol: false), textAlign: TextAlign.right, style: const TextStyle(fontSize: 9.5))),
-                    Expanded(flex: 18, child: Text(formatMoney(t.expense, symbol: false), textAlign: TextAlign.right, style: const TextStyle(fontSize: 9.5))),
-                    Expanded(flex: 18, child: Text(formatMoney(t.balance, symbol: false), textAlign: TextAlign.right, style: TextStyle(fontSize: 9.5, color: t.balance < 0 ? const Color(0xFFE5484D) : null))),
-                    Expanded(flex: 9, child: Text('${counts[i]}', textAlign: TextAlign.right, style: TextStyle(fontSize: 9.5, color: Colors.grey.shade600))),
+                    Expanded(flex: 12, child: Text(labels[i], maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10))),
+                    Expanded(flex: 20, child: Text(formatMoney(t.income, symbol: false), textAlign: TextAlign.center, style: const TextStyle(fontSize: 9.5, color: Color(0xFF0E9F6E)))),
+                    Expanded(flex: 18, child: Text(formatMoney(t.expense, symbol: false), textAlign: TextAlign.center, style: const TextStyle(fontSize: 9.5, color: Color(0xFFE5484D)))),
+                    Expanded(flex: 20, child: Text(formatMoney(t.balance, symbol: false), textAlign: TextAlign.right, style: TextStyle(fontSize: 9.5, color: t.balance < 0 ? const Color(0xFFE5484D) : null))),
+                    Expanded(flex: 8, child: Text('${counts[i]}', textAlign: TextAlign.right, style: TextStyle(fontSize: 9.5, color: Colors.grey.shade600))),
                   ],
                 ),
               );
@@ -512,8 +578,18 @@ class _StatsScreenState extends State<StatsScreen> {
     );
   }
 
-  Widget _bottomSummary(MoneyTotals totals, int count, int days) {
+  Widget _bottomSummary(
+    MoneyTotals totals,
+    int count,
+    int days, {
+    required List<CategoryTotal> catsExpense,
+    required int recordedDays,
+    required double previousExpense,
+  }) {
     final avg = days <= 0 ? 0.0 : totals.expense / days;
+    final top = catsExpense.isEmpty ? null : catsExpense.first;
+    final topRatio = top == null || totals.expense <= 0 ? 0.0 : top.value / totals.expense;
+    final change = previousExpense <= 0 ? null : (totals.expense - previousExpense) / previousExpense * 100;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -535,6 +611,20 @@ class _StatsScreenState extends State<StatsScreen> {
                 Expanded(child: _summaryCell('结余', formatMoney(totals.balance), const Color(0xFF5B6CFF))),
               ],
             ),
+            const SizedBox(height: 11),
+            _summaryLine(
+              '支出最多',
+              top == null ? '暂无' : '${top.category.icon} ${top.category.name} · ${(topRatio * 100).toStringAsFixed(1)}% · ${formatMoney(top.value)}',
+              top?.category.color == null ? null : Color(top!.category.color),
+            ),
+            const SizedBox(height: 6),
+            _summaryLine('记账', '$recordedDays 天 · $count 笔', const Color(0xFF5B6CFF)),
+            const SizedBox(height: 6),
+            _summaryLine(
+              '较上期支出',
+              change == null ? '无上期数据' : '${change >= 0 ? '+' : ''}${change.toStringAsFixed(1)}%',
+              change == null ? Colors.grey : (change >= 0 ? const Color(0xFFE5484D) : const Color(0xFF0E9F6E)),
+            ),
             const SizedBox(height: 8),
             Text(
               '日均支出 ${formatMoney(avg)} · ${totals.expense > totals.income ? '支出高于收入' : '收支平衡或结余'}',
@@ -545,6 +635,24 @@ class _StatsScreenState extends State<StatsScreen> {
       ),
     );
   }
+
+  Widget _summaryLine(String label, String value, Color? color) {
+    return Row(
+      children: [
+        SizedBox(width: 66, child: Text(label, style: TextStyle(fontSize: 10, color: Colors.grey.shade600))),
+        Expanded(
+          child: Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: color),
+          ),
+        ),
+      ],
+    );
+  }
+
+  int _recordedDays(List<Txn> txns) => txns.map((t) => t.date).toSet().length;
 
   Widget _summaryCell(String label, String value, Color color) {
     return Column(
@@ -561,8 +669,8 @@ class _StatsScreenState extends State<StatsScreen> {
     );
   }
 
-  Widget _headText(String text, {TextAlign align = TextAlign.left}) {
-    return Text(text, textAlign: align, style: TextStyle(fontSize: 9.5, color: Colors.grey.shade600));
+  Widget _headText(String text, {TextAlign align = TextAlign.left, Color? color}) {
+    return Text(text, textAlign: align, style: TextStyle(fontSize: 9.5, color: color ?? Colors.grey.shade600));
   }
 
   Widget _categoryCard(List<CategoryTotal> cats, double total, TxnType type) {
@@ -628,6 +736,74 @@ class _StatsScreenState extends State<StatsScreen> {
       ),
     );
   }
+}
+
+class _StatsLinePainter extends CustomPainter {
+  _StatsLinePainter({
+    required this.values,
+    required this.labels,
+    required this.color,
+    required this.textColor,
+    required this.labelEvery,
+  });
+
+  final List<double> values;
+  final List<String> labels;
+  final Color color;
+  final Color textColor;
+  final int labelEvery;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final baseY = size.height - 20;
+    final grid = Paint()
+      ..color = textColor.withValues(alpha: 0.14)
+      ..strokeWidth = 1;
+    for (var i = 0; i <= 2; i++) {
+      final y = baseY - (size.height - 30) * i / 2;
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
+    }
+    if (values.isEmpty) return;
+    final maxV = values.fold<double>(0, (a, b) => a > b ? a : b);
+    if (maxV <= 0) return;
+    final path = Path();
+    for (var i = 0; i < values.length; i++) {
+      final x = values.length == 1 ? size.width / 2 : size.width * i / (values.length - 1);
+      final y = baseY - (values[i] / maxV) * (size.height - 34);
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = color.withValues(alpha: 0.85)
+        ..strokeWidth = 2.2
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
+    final dot = Paint()..color = color;
+    for (var i = 0; i < values.length; i++) {
+      final x = values.length == 1 ? size.width / 2 : size.width * i / (values.length - 1);
+      final y = baseY - (values[i] / maxV) * (size.height - 34);
+      canvas.drawCircle(Offset(x, y), 2.5, dot);
+    }
+    final tp = TextPainter(textDirection: TextDirection.ltr);
+    for (var i = 0; i < values.length; i += labelEvery) {
+      final x = values.length == 1 ? size.width / 2 : size.width * i / (values.length - 1);
+      tp.text = TextSpan(text: labels.length > i ? labels[i] : '', style: TextStyle(fontSize: 8, color: textColor));
+      tp.layout();
+      final tx = (x - tp.width / 2).clamp(0.0, size.width - tp.width).toDouble();
+      tp.paint(canvas, Offset(tx, baseY + 5));
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _StatsLinePainter old) =>
+      old.values != values || old.labels != labels || old.color != color;
 }
 
 class _BarsPainter extends CustomPainter {

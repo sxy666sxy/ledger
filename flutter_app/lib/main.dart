@@ -58,18 +58,51 @@ class RootShell extends StatefulWidget {
   State<RootShell> createState() => _RootShellState();
 }
 
-class _RootShellState extends State<RootShell> {
+class _RootShellState extends State<RootShell> with SingleTickerProviderStateMixin {
   final PageController _pageController = PageController();
+  final ValueNotifier<double> _pagePos = ValueNotifier(0);
+  late final AnimationController _forceTopBarController;
+  int? _forceTopBar;
   int _index = 0;
 
   @override
+  void initState() {
+    super.initState();
+    _pageController.addListener(_onPageScroll);
+    _forceTopBarController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 380),
+    )..addStatusListener((status) {
+        if (status == AnimationStatus.completed && mounted && _forceTopBar != null) {
+          setState(() => _forceTopBar = null);
+        }
+      });
+  }
+
+  void _onPageScroll() {
+    if (!_pageController.hasClients) return;
+    final page = _pageController.page;
+    if (page != null && page != _pagePos.value) _pagePos.value = page;
+  }
+
+  @override
   void dispose() {
+    _pageController.removeListener(_onPageScroll);
     _pageController.dispose();
+    _pagePos.dispose();
+    _forceTopBarController.dispose();
     super.dispose();
   }
 
   void _select(int index) {
     if (_index == index) return;
+    if (index == 0 || index == 2) {
+      setState(() => _forceTopBar = index);
+      _forceTopBarController.forward(from: 0);
+    } else {
+      _forceTopBar = null;
+      _forceTopBarController.value = 0;
+    }
     setState(() => _index = index);
     _pageController.animateToPage(
       index,
@@ -136,64 +169,81 @@ class _RootShellState extends State<RootShell> {
     );
   }
 
-  PreferredSizeWidget? _buildAppBar() {
+  Widget _buildTopBar(
+    BuildContext context,
+    double topPadding,
+    double topHeight,
+    bool detail,
+    double factor,
+  ) {
     final store = AppStore.instance;
-    if (_index == 0) {
-      return AppBar(
-        backgroundColor: Colors.transparent,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        flexibleSpace: const LiquidTopGlass(),
-        titleSpacing: 14,
-        title: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: _showBookPicker,
-          child: Container(
-            height: 36,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.34),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(store.activeBook.icon),
-                const SizedBox(width: 6),
-                Flexible(
-                  child: Text(
-                    store.activeBook.name,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+    final scheme = Theme.of(context).colorScheme;
+    return SizedBox(
+      height: topHeight,
+      child: Stack(
+        children: [
+          const Positioned.fill(child: LiquidTopGlass()),
+          Positioned(
+            top: topPadding,
+            left: 0,
+            right: 0,
+            height: kToolbarHeight,
+            child: detail
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Row(
+                      children: [
+                        InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: _showBookPicker,
+                          child: Container(
+                            height: 36,
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            decoration: BoxDecoration(
+                              color: scheme.surface.withValues(alpha: 0.34),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(store.activeBook.icon),
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    store.activeBook.name,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                                  ),
+                                ),
+                                const Icon(Icons.arrow_drop_down, size: 18),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          tooltip: '日历',
+                          onPressed: () => _select(1),
+                          icon: const Icon(Icons.calendar_month_outlined),
+                        ),
+                      ],
+                    ),
+                  )
+                : Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 18),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '统计',
+                        style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700, color: scheme.onSurface),
+                      ),
+                    ),
                   ),
-                ),
-                const Icon(Icons.arrow_drop_down, size: 18),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          IconButton(
-            tooltip: '日历',
-            onPressed: () => _select(1),
-            icon: const Icon(Icons.calendar_month_outlined),
           ),
         ],
-      );
-    }
-    if (_index == 2) {
-      return AppBar(
-        backgroundColor: Colors.transparent,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        flexibleSpace: const LiquidTopGlass(),
-        title: const Text('统计'),
-      );
-    }
-    return null;
+      ),
+    );
   }
 
   @override
@@ -202,20 +252,50 @@ class _RootShellState extends State<RootShell> {
     return AnimatedBuilder(
       animation: store,
       builder: (context, _) {
+        final topPadding = MediaQuery.of(context).padding.top;
+        final topHeight = topPadding + kToolbarHeight;
         return Scaffold(
           extendBody: true,
-          extendBodyBehindAppBar: true,
-          appBar: _buildAppBar(),
-          body: PageView(
-            controller: _pageController,
-            onPageChanged: (i) => setState(() => _index = i),
-            physics: const BouncingScrollPhysics(),
+          body: Stack(
             children: [
-              HomeScreen(onOpenCalendar: () => _select(1)),
-              const CalendarScreen(),
-              const StatsScreen(),
-              const AssetsScreen(),
-              const ProfileScreen(),
+              PageView(
+                controller: _pageController,
+                onPageChanged: (i) => setState(() => _index = i),
+                physics: const BouncingScrollPhysics(),
+                children: const [
+                  HomeScreen(),
+                  CalendarScreen(),
+                  StatsScreen(),
+                  AssetsScreen(),
+                  ProfileScreen(),
+                ],
+              ),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: AnimatedBuilder(
+                  animation: _forceTopBarController,
+                  builder: (context, _) => ValueListenableBuilder<double>(
+                    valueListenable: _pagePos,
+                    builder: (context, page, child) {
+                      final forced = _forceTopBar;
+                      final detail = forced != null ? forced == 0 : page < 1;
+                      final stats = forced != null ? forced == 2 : (page >= 1 && page < 3);
+                      if (!detail && !stats) return const SizedBox.shrink();
+                      final factor = forced != null
+                          ? _forceTopBarController.value
+                          : detail
+                              ? (1 - page).clamp(0.0, 1.0)
+                              : (page < 2 ? page - 1 : 3 - page).clamp(0.0, 1.0);
+                      return Transform.translate(
+                        offset: Offset(0, -topHeight * (1 - factor)),
+                        child: _buildTopBar(context, topPadding, topHeight, detail, factor),
+                      );
+                    },
+                  ),
+                ),
+              ),
             ],
           ),
           floatingActionButton: _index == 0

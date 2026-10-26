@@ -192,7 +192,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       child: GridView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        itemCount: 42,
+                        itemCount: offset + dim,
                         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 7,
                           mainAxisSpacing: 3,

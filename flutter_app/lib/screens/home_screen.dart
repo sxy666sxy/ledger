@@ -9,9 +9,7 @@ import '../widgets/swipe_delete_tile.dart';
 import 'entry_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, this.onOpenCalendar});
-
-  final VoidCallback? onOpenCalendar;
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -37,7 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final budget = book.budget;
         final budgetRatio = budget <= 0 ? 0.0 : (totals.expense / budget).clamp(0.0, 1.0).toDouble();
 
-        final topInset = MediaQuery.of(context).padding.top + kToolbarHeight - 6;
+        final topInset = MediaQuery.of(context).padding.top + kToolbarHeight - (store.cardStyle == 'orbit' ? 28 : 6);
         return CustomScrollView(
           slivers: [
             SliverPadding(
@@ -67,23 +65,11 @@ class _HomeScreenState extends State<HomeScreen> {
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   if (budget > 0) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 7),
                     _budgetCard(context, totals.expense, budget, budgetRatio),
                   ],
-                  const SizedBox(height: 18),
-                  Row(
-                    children: [
-                      const Text('明细', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-                      const SizedBox(width: 8),
-                      Text('${txns.length} 笔', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                      const Spacer(),
-                      TextButton.icon(
-                        onPressed: widget.onOpenCalendar,
-                        icon: const Icon(Icons.calendar_month_outlined, size: 17),
-                        label: const Text('日历'),
-                      ),
-                    ],
-                  ),
+                  const SizedBox(height: 14),
+                  const Text('明细', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                   if (dates.isEmpty) _emptyState(context),
                 ]),
               ),
@@ -108,26 +94,27 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _budgetCard(BuildContext context, double expense, double budget, double ratio) {
     final over = expense > budget;
     return Card(
+      margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const Text('本月预算', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                const Text('本月预算', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700)),
                 const Spacer(),
                 Text(
                   '${formatMoney(expense, symbol: false)} / ${formatMoney(budget, symbol: false)}',
-                  style: TextStyle(fontSize: 11, color: over ? Colors.red : Colors.grey.shade600),
+                  style: TextStyle(fontSize: 10, color: over ? Colors.red : Colors.grey.shade600),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 5),
             LinearProgressIndicator(
               value: ratio,
-              minHeight: 7,
-              borderRadius: BorderRadius.circular(6),
+              minHeight: 4,
+              borderRadius: BorderRadius.circular(4),
               color: over ? Colors.red : const Color(0xFF5B6CFF),
               backgroundColor: const Color(0xFFEEF0FF),
             ),

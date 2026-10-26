@@ -66,6 +66,8 @@ class YearAdvancedCards extends StatelessWidget {
                 painter: _LinePainter(values: values, textColor: Colors.grey.shade600),
               ),
             ),
+            const SizedBox(height: 5),
+            _amountStrip(List.generate(12, (i) => '${i + 1}月'), values.map((v) => formatMoney(v, symbol: false)).toList()),
           ],
         ),
       ),
@@ -102,7 +104,32 @@ class YearAdvancedCards extends StatelessWidget {
                 _dot(const Color(0xFF0E9F6E), '收入'),
               ],
             ),
+            const SizedBox(height: 5),
+            _amountStrip(
+              List.generate(12, (i) => '${i + 1}月'),
+              List.generate(12, (i) => '支 ${formatMoney(months[i].expense, symbol: false)} / 收 ${formatMoney(months[i].income, symbol: false)}'),
+            ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _amountStrip(List<String> labels, List<String> values) {
+    return SizedBox(
+      height: 18,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: List.generate(labels.length, (i) {
+            return Padding(
+              padding: const EdgeInsets.only(right: 10),
+              child: Text(
+                '${labels[i]} ${values[i]}',
+                style: TextStyle(fontSize: 8, color: Colors.grey.shade600),
+              ),
+            );
+          }),
         ),
       ),
     );
@@ -200,10 +227,10 @@ class YearAdvancedCards extends StatelessWidget {
             Row(
               children: [
                 Expanded(flex: 12, child: _head('月份')),
-                Expanded(flex: 18, child: _head('收入', align: TextAlign.right)),
-                Expanded(flex: 18, child: _head('支出', align: TextAlign.right)),
-                Expanded(flex: 18, child: _head('结余', align: TextAlign.right)),
-                Expanded(flex: 9, child: _head('笔数', align: TextAlign.right)),
+                Expanded(flex: 20, child: _head('收入', align: TextAlign.center, color: const Color(0xFF0E9F6E))),
+                Expanded(flex: 18, child: _head('支出', align: TextAlign.center, color: const Color(0xFFE5484D))),
+                Expanded(flex: 20, child: _head('结余', align: TextAlign.right)),
+                Expanded(flex: 8, child: _head('笔数', align: TextAlign.right)),
               ],
             ),
             const SizedBox(height: 4),
@@ -215,10 +242,10 @@ class YearAdvancedCards extends StatelessWidget {
                 child: Row(
                   children: [
                     Expanded(flex: 12, child: Text('${i + 1}月', style: const TextStyle(fontSize: 11))),
-                    Expanded(flex: 18, child: Text(formatMoney(m.income, symbol: false), textAlign: TextAlign.right, style: const TextStyle(fontSize: 10.5))),
-                    Expanded(flex: 18, child: Text(formatMoney(m.expense, symbol: false), textAlign: TextAlign.right, style: const TextStyle(fontSize: 10.5))),
-                    Expanded(flex: 18, child: Text(formatMoney(m.balance, symbol: false), textAlign: TextAlign.right, style: TextStyle(fontSize: 10.5, color: m.balance < 0 ? const Color(0xFFE5484D) : null))),
-                    Expanded(flex: 9, child: Text('${counts[i]}', textAlign: TextAlign.right, style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600))),
+                    Expanded(flex: 20, child: Text(formatMoney(m.income, symbol: false), textAlign: TextAlign.center, style: const TextStyle(fontSize: 10.5, color: Color(0xFF0E9F6E)))),
+                    Expanded(flex: 18, child: Text(formatMoney(m.expense, symbol: false), textAlign: TextAlign.center, style: const TextStyle(fontSize: 10.5, color: Color(0xFFE5484D)))),
+                    Expanded(flex: 20, child: Text(formatMoney(m.balance, symbol: false), textAlign: TextAlign.right, style: TextStyle(fontSize: 10.5, color: m.balance < 0 ? const Color(0xFFE5484D) : null))),
+                    Expanded(flex: 8, child: Text('${counts[i]}', textAlign: TextAlign.right, style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600))),
                   ],
                 ),
               );
@@ -229,8 +256,8 @@ class YearAdvancedCards extends StatelessWidget {
     );
   }
 
-  Widget _head(String text, {TextAlign align = TextAlign.left}) {
-    return Text(text, textAlign: align, style: TextStyle(fontSize: 9.5, color: Colors.grey.shade600));
+  Widget _head(String text, {TextAlign align = TextAlign.left, Color? color}) {
+    return Text(text, textAlign: align, style: TextStyle(fontSize: 9.5, color: color ?? Colors.grey.shade600));
   }
 }
 

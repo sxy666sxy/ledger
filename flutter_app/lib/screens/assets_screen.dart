@@ -55,31 +55,30 @@ class AssetsScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 10),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const AssetTrendScreen()),
-                  ),
-                  icon: const Icon(Icons.show_chart, size: 17),
-                  label: const Text('完整资产走势'),
-                ),
-              ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   const Text('资金账户', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                   const Spacer(),
-                  TextButton.icon(
+                  IconButton(
+                    tooltip: '转账',
+                    visualDensity: VisualDensity.compact,
                     onPressed: () => showEntrySheet(context, initialType: TxnType.transfer),
-                    icon: const Icon(Icons.swap_horiz, size: 17),
-                    label: const Text('转账'),
+                    icon: const Icon(Icons.swap_horiz, size: 20),
                   ),
-                  TextButton.icon(
+                  IconButton(
+                    tooltip: '新增账户',
+                    visualDensity: VisualDensity.compact,
                     onPressed: () => _editAccount(context, store, null),
-                    icon: const Icon(Icons.add, size: 17),
-                    label: const Text('新增账户'),
+                    icon: const Icon(Icons.add_circle_outline, size: 20),
+                  ),
+                  IconButton(
+                    tooltip: '完整资产走势',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const AssetTrendScreen()),
+                    ),
+                    icon: const Icon(Icons.show_chart, size: 20),
                   ),
                 ],
               ),

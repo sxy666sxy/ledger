@@ -71,20 +71,20 @@ jobs:
       - name: Prepare asset
         run: |
           mkdir -p ../dist_flutter
-          cp build/app/outputs/flutter-apk/app-release.apk "../dist_flutter/星空记账-flutter-v0.8.0.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "../dist_flutter/星空记账-flutter-v0.9.0.apk"
           ls -lh ../dist_flutter
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: xingkong-flutter-v0.8.0
-          path: dist_flutter/星空记账-flutter-v0.8.0.apk
+          name: xingkong-flutter-v0.9.0
+          path: dist_flutter/星空记账-flutter-v0.9.0.apk
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: flutter-v0.8.0
-          name: 星空记账 Flutter v0.8.0（星链卡片/农历/周统计）
+          tag_name: flutter-v0.9.0
+          name: 星空记账 Flutter v0.9.0（布局优化/图表/总结）
           body: |
             纯 Flutter 原生重写：转账、分类预算、完整 Excel、报表图片/PDF 与资产区间。
             - 修复部分 WPS/Excel 文件导入时报 numFmtId 0 错误
@@ -99,6 +99,10 @@ jobs:
             - 日历农历、节假日、滑动换月与年月选择
             - 统计新增周统计、自定义统计、排行/报表/总结
             - 日历农历与节假日
+            - 图表金额标签与柱/线切换
+            - 统计总结增强
+            - 顶栏随滑动/切换下滑
+            - 资产图标按钮一排
             - 明细 / 记账 / 日历 / 月统计 / 资产 / 我的
             - 分类管理、月预算、账户余额、分类统计
             - 年统计：12 个月柱状图、近十年收支、所有年份汇总
@@ -117,7 +121,7 @@ jobs:
             - 使用固定发布签名，后续版本可直接覆盖升级
             - 与原 WebView 版为不同包名，可并存安装
             后续阶段迁移：更完整的 Excel 字段映射、资产转移、分类预算与高级统计。
-          files: dist_flutter/星空记账-flutter-v0.8.0.apk
+          files: dist_flutter/星空记账-flutter-v0.9.0.apk
           draft: false
           prerelease: true
           allowUpdates: true
