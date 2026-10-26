@@ -75,7 +75,7 @@ double themeHeroRadius(double base) {
     case 'minimal':
       return base - 10;
     case 'glass':
-      return base + 2;
+      return base;
     default:
       return base;
   }
