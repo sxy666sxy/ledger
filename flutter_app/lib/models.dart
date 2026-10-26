@@ -141,6 +141,7 @@ class Txn {
     this.discount = 0,
     this.reimburseAmount = 0,
     this.reimburseAccountId = '',
+    this.recurringId = '',
     this.createdAt = 0,
   });
 
@@ -159,6 +160,7 @@ class Txn {
   double discount;
   double reimburseAmount;
   String reimburseAccountId;
+  String recurringId;
   int createdAt;
 
   Map<String, dynamic> toJson() => {
@@ -177,6 +179,7 @@ class Txn {
         'discount': discount,
         'reimburseAmount': reimburseAmount,
         'reimburseAccountId': reimburseAccountId,
+        'recurringId': recurringId,
         'createdAt': createdAt,
       };
 
@@ -196,7 +199,68 @@ class Txn {
         discount: (map['discount'] as num?)?.toDouble() ?? 0,
         reimburseAmount: (map['reimburseAmount'] as num?)?.toDouble() ?? 0,
         reimburseAccountId: map['reimburseAccountId'] as String? ?? '',
+        recurringId: map['recurringId'] as String? ?? '',
         createdAt: (map['createdAt'] as num?)?.toInt() ?? 0,
+      );
+}
+
+class RecurringRule {
+  RecurringRule({
+    required this.id,
+    required this.name,
+    required this.type,
+    required this.amount,
+    required this.categoryId,
+    required this.accountId,
+    required this.bookId,
+    required this.frequency,
+    required this.startDate,
+    this.note = '',
+    this.lastGenerated = '',
+    this.enabled = true,
+  });
+
+  String id;
+  String name;
+  TxnType type;
+  double amount;
+  String categoryId;
+  String accountId;
+  String bookId;
+  String frequency;
+  String startDate;
+  String note;
+  String lastGenerated;
+  bool enabled;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'type': txnTypeString(type),
+        'amount': amount,
+        'categoryId': categoryId,
+        'accountId': accountId,
+        'bookId': bookId,
+        'frequency': frequency,
+        'startDate': startDate,
+        'note': note,
+        'lastGenerated': lastGenerated,
+        'enabled': enabled,
+      };
+
+  factory RecurringRule.fromJson(Map<String, dynamic> map) => RecurringRule(
+        id: map['id'] as String? ?? '',
+        name: map['name'] as String? ?? '周期记账',
+        type: txnTypeFromString(map['type'] as String?),
+        amount: (map['amount'] as num?)?.toDouble() ?? 0,
+        categoryId: map['categoryId'] as String? ?? '',
+        accountId: map['accountId'] as String? ?? '',
+        bookId: map['bookId'] as String? ?? '',
+        frequency: map['frequency'] as String? ?? 'monthly',
+        startDate: map['startDate'] as String? ?? '2026-01-01',
+        note: map['note'] as String? ?? '',
+        lastGenerated: map['lastGenerated'] as String? ?? '',
+        enabled: map['enabled'] != false,
       );
 }
 

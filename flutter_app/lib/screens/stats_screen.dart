@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models.dart';
 import '../store.dart';
 import '../utils.dart';
+import '../widgets/year_advanced.dart';
 import '../widgets/year_heatmap.dart';
 
 enum _StatsView { month, year }
@@ -146,9 +147,12 @@ class _StatsScreenState extends State<StatsScreen> {
         if (!_yearAll) ...[
           const SizedBox(height: 14),
           YearHeatmapCard(store: store, year: _year, type: _type),
+          const SizedBox(height: 14),
+          YearAdvancedCards(store: store, year: _year, type: _type),
+        ] else ...[
+          const SizedBox(height: 14),
+          _categoryCard(cats, _type == TxnType.expense ? totals.expense : totals.income, _type),
         ],
-        const SizedBox(height: 14),
-        _categoryCard(cats, _type == TxnType.expense ? totals.expense : totals.income, _type),
       ],
     );
   }

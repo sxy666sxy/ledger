@@ -6,6 +6,7 @@ import 'screens/assets_screen.dart';
 import 'screens/calendar_screen.dart';
 import 'screens/entry_sheet.dart';
 import 'screens/home_screen.dart';
+import 'screens/pin_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/stats_screen.dart';
 import 'store.dart';
@@ -43,7 +44,7 @@ class XkApp extends StatelessWidget {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        home: const RootShell(),
+        home: const PinGate(child: RootShell()),
       ),
     );
   }

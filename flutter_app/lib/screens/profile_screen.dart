@@ -5,6 +5,9 @@ import '../theme.dart';
 import '../utils.dart';
 import 'budget_screen.dart';
 import 'categories_screen.dart';
+import 'data_backup_screen.dart';
+import 'pin_screen.dart';
+import 'recurring_screen.dart';
 import 'theme_center_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -115,6 +118,24 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     const Divider(height: 1),
                     ListTile(
+                      leading: const _MenuIcon('🔁'),
+                      title: const Text('周期记账'),
+                      subtitle: Text('${store.recurringRules.length} 条规则'),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const RecurringScreen()),
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const _MenuIcon('🔒'),
+                      title: const Text('隐私锁'),
+                      subtitle: Text(store.pinHash.isEmpty ? '未开启' : '已开启'),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const PinSettingsScreen()),
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
                       leading: const _MenuIcon('📒'),
                       title: const Text('当前账本'),
                       subtitle: Text(store.activeBook.name),
@@ -132,7 +153,9 @@ class ProfileScreen extends StatelessWidget {
                       leading: const _MenuIcon('🗂️'),
                       title: const Text('数据与备份'),
                       subtitle: const Text('数据保存在本机；Excel 导入导出将在下一阶段迁移'),
-                      onTap: () => _showDataInfo(context),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const DataBackupScreen()),
+                      ),
                     ),
                     const Divider(height: 1),
                     ListTile(
@@ -173,22 +196,6 @@ class ProfileScreen extends StatelessWidget {
           Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
           const SizedBox(height: 2),
           Text(label, style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600)),
-        ],
-      ),
-    );
-  }
-
-  void _showDataInfo(BuildContext context) {
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('数据与备份'),
-        content: const Text(
-          '当前 Flutter 核心版的数据保存在本机，不会上传。\n\n'
-          '原 WebView 版的数据无法直接共享；Excel 导入导出会在下一阶段迁移。',
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('知道了')),
         ],
       ),
     );

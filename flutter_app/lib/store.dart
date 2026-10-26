@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:crypto/crypto.dart';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -36,6 +38,9 @@ class AppStore extends ChangeNotifier {
   List<Txn> transactions = [];
   String themeId = 'system';
   String customImagePath = '';
+  List<RecurringRule> recurringRules = [];
+  String pinHash = '';
+  bool locked = false;
 
   Book get activeBook {
     for (final book in books) {
@@ -240,6 +245,41 @@ class AppStore extends ChangeNotifier {
     return list;
   }
 
+  double netAssetsAt(DateTime end) {
+    final endKey = dateKey(end);
+    double total = 0;
+    for (final a in accounts) {
+      if (a.include) total += a.initial;
+    }
+    for (final t in transactions) {
+      if (t.bookId != activeBookId || t.date.compareTo(endKey) > 0) continue;
+      final account = accountById(t.accountId);
+      if (account == null || !account.include) continue;
+      if (t.type == TxnType.expense) {
+        total -= t.amount;
+      } else {
+        total += t.amount;
+      }
+    }
+    return total;
+  }
+
+  List<double> monthlyNetAssets(int year) {
+    return List<double>.generate(12, (i) {
+      final end = DateTime(year, i + 1, daysInMonth(DateTime(year, i + 1, 1)));
+      return netAssetsAt(end);
+    });
+  }
+
+  List<int> monthlyCountsForYear(int year) {
+    final counts = List<int>.filled(12, 0);
+    for (final t in txnsForYear(year)) {
+      final m = int.tryParse(t.date.substring(5, 7));
+      if (m != null && m >= 1 && m <= 12) counts[m - 1]++;
+    }
+    return counts;
+  }
+
   List<int> get yearsWithData {
     final years = transactions
         .where((t) => t.bookId == activeBookId)
@@ -284,6 +324,9 @@ class AppStore extends ChangeNotifier {
     }
     if (books.isEmpty) _seed();
     loaded = true;
+    final created = applyRecurringRules();
+    locked = pinHash.isNotEmpty;
+    if (created) await save();
     notifyListeners();
   }
 
@@ -314,8 +357,11 @@ class AppStore extends ChangeNotifier {
       Account(id: 'a_bank', name: '银行卡', type: 'bank', icon: '💳', color: 0xFF8B5CF6, order: 3),
     ];
     transactions = [];
+    recurringRules = [];
     themeId = 'system';
     customImagePath = '';
+    pinHash = '';
+    locked = false;
   }
 
   void _readJson(Map<String, dynamic> map) {
@@ -351,6 +397,12 @@ class AppStore extends ChangeNotifier {
                 ? 'light'
                 : 'system');
     customImagePath = map['customImagePath'] as String? ?? '';
+    recurringRules = (map['recurringRules'] as List? ?? [])
+        .whereType<Map>()
+        .map((e) => RecurringRule.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
+    pinHash = map['pinHash'] as String? ?? '';
+    locked = pinHash.isNotEmpty;
   }
 
   Map<String, dynamic> _toJson() => {
@@ -362,6 +414,8 @@ class AppStore extends ChangeNotifier {
         'transactions': transactions.map((e) => e.toJson()).toList(),
         'themeId': themeId,
         'customImagePath': customImagePath,
+        'recurringRules': recurringRules.map((e) => e.toJson()).toList(),
+        'pinHash': pinHash,
       };
 
   Future<void> save() async {
@@ -467,6 +521,142 @@ class AppStore extends ChangeNotifier {
     customImagePath = path;
     notifyListeners();
     save();
+  }
+
+  void addRecurring(RecurringRule rule) {
+    if (rule.id.isEmpty) rule.id = _id('r');
+    recurringRules.add(rule);
+    applyRecurringRules();
+    notifyListeners();
+    save();
+  }
+
+  void updateRecurring(RecurringRule rule) {
+    final i = recurringRules.indexWhere((r) => r.id == rule.id);
+    if (i >= 0) recurringRules[i] = rule;
+    notifyListeners();
+    save();
+  }
+
+  void deleteRecurring(String id) {
+    recurringRules.removeWhere((r) => r.id == id);
+    notifyListeners();
+    save();
+  }
+
+  bool applyRecurringRules() {
+    final today = dateKey(DateTime.now());
+    var created = false;
+    for (final rule in recurringRules) {
+      if (!rule.enabled) continue;
+      var next = rule.lastGenerated.isNotEmpty
+          ? _advanceDate(rule.lastGenerated, rule.frequency)
+          : rule.startDate;
+      var guard = 0;
+      while (next.compareTo(today) <= 0 && guard < 400) {
+        guard++;
+        final exists = transactions.any(
+          (t) => t.recurringId == rule.id && t.date == next,
+        );
+        if (!exists) {
+          final bookId = books.any((b) => b.id == rule.bookId)
+              ? rule.bookId
+              : activeBookId;
+          transactions.add(Txn(
+            id: newTxnId(),
+            date: next,
+            time: '08:00',
+            type: rule.type,
+            amount: rule.amount,
+            categoryId: rule.categoryId,
+            accountId: rule.accountId,
+            bookId: bookId,
+            note: rule.note.isEmpty ? rule.name : rule.note,
+            recurringId: rule.id,
+            createdAt: DateTime.now().millisecondsSinceEpoch,
+          ));
+          created = true;
+        }
+        rule.lastGenerated = next;
+        next = _advanceDate(next, rule.frequency);
+      }
+    }
+    return created;
+  }
+
+  String _advanceDate(String iso, String frequency) {
+    final d = DateTime.tryParse(iso) ?? DateTime.now();
+    if (frequency == 'daily') {
+      final n = d.add(const Duration(days: 1));
+      return dateKey(n);
+    }
+    if (frequency == 'weekly') {
+      final n = d.add(const Duration(days: 7));
+      return dateKey(n);
+    }
+    final year = d.month == 12 ? d.year + 1 : d.year;
+    final month = d.month == 12 ? 1 : d.month + 1;
+    final maxDay = DateTime(year, month + 1, 0).day;
+    final day = d.day > maxDay ? maxDay : d.day;
+    return dateKey(DateTime(year, month, day));
+  }
+
+  String _hashPin(String pin) {
+    return sha256.convert(utf8.encode('xingkong-flutter:$pin')).toString();
+  }
+
+  void setPin(String pin) {
+    pinHash = _hashPin(pin);
+    locked = false;
+    notifyListeners();
+    save();
+  }
+
+  bool verifyPin(String pin) => pinHash.isNotEmpty && _hashPin(pin) == pinHash;
+
+  void unlock(String pin) {
+    if (verifyPin(pin)) {
+      locked = false;
+      notifyListeners();
+    }
+  }
+
+  void lockNow() {
+    if (pinHash.isEmpty) return;
+    locked = true;
+    notifyListeners();
+  }
+
+  void removePin() {
+    pinHash = '';
+    locked = false;
+    notifyListeners();
+    save();
+  }
+
+  Map<String, dynamic> exportMap() => _toJson();
+
+  String exportJsonString() => const JsonEncoder.withIndent('  ').convert(_toJson());
+
+  void importJsonMap(Map<String, dynamic> map) {
+    _readJson(map);
+    if (books.isEmpty) _seed();
+    loaded = true;
+    locked = false;
+    applyRecurringRules();
+    notifyListeners();
+    save();
+  }
+
+  void importTransactions(List<Txn> list) {
+    transactions.addAll(list);
+    notifyListeners();
+    save();
+  }
+
+  void importJsonString(String raw) {
+    final decoded = jsonDecode(raw);
+    if (decoded is Map<String, dynamic>) importJsonMap(decoded);
   }
 
   void resetAll() {
