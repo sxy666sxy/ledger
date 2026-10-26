@@ -1578,7 +1578,7 @@ a { color: var(--primary); text-decoration: none; }
   padding: 0 1px;
   font-variant-numeric: tabular-nums;
 }
-.month-rail-wrap { position: relative; flex: 1; min-width: 0; }
+.month-rail-wrap { position: relative; flex: 1; min-width: 0; overflow: hidden; }
 .month-rail {
   display: flex;
   gap: 4px;
@@ -1607,7 +1607,7 @@ a { color: var(--primary); text-decoration: none; }
 .rail-arrow {
   position: absolute;
   left: 22px;
-  bottom: -2px;
+  bottom: 0;
   font-size: 9px;
   color: var(--primary);
   pointer-events: none;
