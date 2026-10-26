@@ -49,6 +49,42 @@ const List<ThemeSpec> themeSpecs = [
   ThemeSpec(id: 'custom', name: '自定义图片', emoji: '🖼️', seed: seedColor, background: Color(0x00EEF2F9), surface: Color(0xCCFFFFFF), inputFill: Color(0x99FFFFFF), custom: true, preview: [Color(0xFFB8C4FF), Color(0xFFFFD4E6)]),
 ];
 
+
+/// 顶部汇总卡使用当前主题种子色生成的深色渐变，避免固定深蓝。
+List<Color> themeHeroColors(BuildContext context) {
+  final scheme = Theme.of(context).colorScheme;
+  final spec = themeSpec(AppStore.instance.themeId);
+  final base = spec.custom ? Color.lerp(spec.seed, scheme.primary, 0.25)! : scheme.primary;
+  return [
+    Color.lerp(base, Colors.black, 0.62)!,
+    Color.lerp(base, Colors.black, 0.80)!,
+    Color.lerp(base, const Color(0xFF8B5CF6), 0.42)!,
+  ];
+}
+
+BoxDecoration themeHeroDecoration(BuildContext context, {double radius = 22}) {
+  final colors = themeHeroColors(context);
+  final custom = AppStore.instance.themeId == 'custom';
+  return BoxDecoration(
+    borderRadius: BorderRadius.circular(radius),
+    gradient: LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: colors
+          .map((c) => custom ? c.withValues(alpha: 0.86) : c)
+          .toList(growable: false),
+    ),
+    border: custom ? Border.all(color: Colors.white.withValues(alpha: 0.26)) : null,
+    boxShadow: [
+      BoxShadow(
+        color: colors.first.withValues(alpha: 0.20),
+        blurRadius: 18,
+        offset: const Offset(0, 8),
+      ),
+    ],
+  );
+}
+
 ThemeSpec themeSpec(String id) {
   for (final t in themeSpecs) {
     if (t.id == id) return t;

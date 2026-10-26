@@ -28,12 +28,7 @@ class ProfileScreen extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF1A2355), Color(0xFF0A0F2A), Color(0xFF211747)],
-                  ),
-                ),
+                decoration: themeHeroDecoration(context, radius: 24),
                 child: Row(
                   children: [
                     Container(
@@ -42,9 +37,8 @@ class ProfileScreen extends StatelessWidget {
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(16),
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF1B2356), Color(0xFF070A17), Color(0xFF211747)],
-                        ),
+                        color: Colors.white.withValues(alpha: 0.14),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
                       ),
                       child: const Text('✦', style: TextStyle(color: Color(0xFFFFE08A), fontSize: 30)),
                     ),

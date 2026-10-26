@@ -41,7 +41,7 @@ class _EntrySheetState extends State<EntrySheet> {
   String _categoryId = '';
   String _accountId = '';
   String _toAccountId = '';
-  late TextEditingController _amountController;
+  late String _amountText;
   late TextEditingController _noteController;
 
   @override
@@ -50,20 +50,21 @@ class _EntrySheetState extends State<EntrySheet> {
     final existing = widget.existing;
     _type = existing?.type ?? widget.initialType ?? TxnType.expense;
     _date = existing?.date ?? widget.initialDate ?? dateKey(DateTime.now());
-    _amountController = TextEditingController(
-      text: existing == null ? '' : existing.amount.toStringAsFixed(2),
-    );
+    _amountText = existing == null ? '' : _amountTextOf(existing.amount);
     _noteController = TextEditingController(text: existing?.note ?? '');
     final cats = store.categoriesFor(_type);
-    _categoryId = existing?.categoryId ??
-        (cats.isNotEmpty ? cats.first.id : '');
+    _categoryId = existing?.categoryId ?? (cats.isNotEmpty ? cats.first.id : '');
     final accts = _availableAccounts;
-    _accountId = existing?.accountId ??
-        (accts.isNotEmpty ? accts.first.id : '');
+    _accountId = existing?.accountId ?? (accts.isNotEmpty ? accts.first.id : '');
     _toAccountId = existing?.toAccountId ??
         (accts.length > 1
             ? accts.firstWhere((a) => a.id != _accountId, orElse: () => accts.first).id
             : '');
+  }
+
+  String _amountTextOf(double value) {
+    if (value == value.roundToDouble()) return value.toStringAsFixed(0);
+    return value.toStringAsFixed(2).replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '');
   }
 
   List<Account> get _availableAccounts {
@@ -73,7 +74,6 @@ class _EntrySheetState extends State<EntrySheet> {
 
   @override
   void dispose() {
-    _amountController.dispose();
     _noteController.dispose();
     super.dispose();
   }
@@ -102,13 +102,129 @@ class _EntrySheetState extends State<EntrySheet> {
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
-    if (picked != null) {
+    if (picked != null && mounted) {
       setState(() => _date = dateKey(picked));
     }
   }
 
+  Future<void> _pickAccount({required bool to}) async {
+    final list = _availableAccounts
+        .where((a) => to ? a.id != _accountId : true)
+        .toList(growable: false);
+    if (list.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请先新增账户')),
+      );
+      return;
+    }
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(to ? '选择转入账户' : '选择账户',
+                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 8),
+              ...list.map((a) => ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                    leading: Text(a.icon, style: const TextStyle(fontSize: 22)),
+                    title: Text(a.name),
+                    trailing: (to ? _toAccountId : _accountId) == a.id
+                        ? Icon(Icons.check, color: Theme.of(ctx).colorScheme.primary)
+                        : null,
+                    onTap: () => Navigator.of(ctx).pop(a.id),
+                  )),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      if (to) {
+        _toAccountId = picked;
+      } else {
+        _accountId = picked;
+        if (_type == TxnType.transfer && _toAccountId == _accountId) {
+          final other = _availableAccounts.where((a) => a.id != _accountId);
+          _toAccountId = other.isEmpty ? '' : other.first.id;
+        }
+      }
+    });
+  }
+
+  Future<void> _editNote() async {
+    final controller = TextEditingController(text: _noteController.text);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('备注'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLines: 3,
+          textInputAction: TextInputAction.done,
+          decoration: const InputDecoration(hintText: '写点什么…'),
+          onSubmitted: (value) => Navigator.of(ctx).pop(value),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('取消')),
+          FilledButton(onPressed: () => Navigator.of(ctx).pop(controller.text), child: const Text('确定')),
+        ],
+      ),
+    );
+    if (result != null && mounted) {
+      setState(() => _noteController.text = result.trim());
+    }
+    controller.dispose();
+  }
+
+  void _pressKey(String key) {
+    setState(() {
+      if (key == 'C') {
+        _amountText = '';
+        return;
+      }
+      if (key == '⌫') {
+        if (_amountText.isNotEmpty) {
+          _amountText = _amountText.substring(0, _amountText.length - 1);
+        }
+        return;
+      }
+      if (key == '.') {
+        if (_amountText.contains('.')) return;
+        _amountText = _amountText.isEmpty ? '0.' : '$_amountText.';
+        return;
+      }
+      if (key == '00') {
+        _appendDigit('0');
+        _appendDigit('0');
+        return;
+      }
+      _appendDigit(key);
+    });
+  }
+
+  void _appendDigit(String digit) {
+    final dot = _amountText.indexOf('.');
+    if (dot >= 0 && _amountText.length - dot - 1 >= 2) return;
+    if (dot < 0 && _amountText.length >= 9) return;
+    if (_amountText == '0') {
+      if (digit == '0') return;
+      _amountText = digit;
+      return;
+    }
+    _amountText += digit;
+  }
+
   void _save() {
-    final amount = double.tryParse(_amountController.text.trim()) ?? 0;
+    final amount = double.tryParse(_amountText) ?? 0;
     if (amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('请输入有效金额')),
@@ -192,62 +308,86 @@ class _EntrySheetState extends State<EntrySheet> {
     });
   }
 
+  String get _dateLabel {
+    final now = DateTime.now();
+    if (_date == dateKey(now)) return '今天';
+    final d = DateTime.tryParse(_date);
+    if (d == null) return _date;
+    return '${d.month}月${d.day}日';
+  }
+
+  String get _accountName {
+    for (final a in _availableAccounts) {
+      if (a.id == _accountId) return a.name;
+    }
+    return '账户';
+  }
+
+  String get _toAccountName {
+    for (final a in _availableAccounts) {
+      if (a.id == _toAccountId) return a.name;
+    }
+    return '转入账户';
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dark = theme.brightness == Brightness.dark;
+    final panel = theme.colorScheme.surface;
     final cats = store.categoriesFor(_type);
-    final accounts = _availableAccounts;
-    final bottom = MediaQuery.of(context).viewInsets.bottom;
+    final amount = _amountText.isEmpty ? '0.00' : _amountText;
+    final existing = widget.existing;
 
-    return Padding(
-      padding: EdgeInsets.only(bottom: bottom),
-      child: Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.9,
-        ),
-        decoration: BoxDecoration(
-          color: dark ? const Color(0xFF10152B) : Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 38,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.black12,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.94,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: panel,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 38,
+            height: 4,
+            margin: const EdgeInsets.only(top: 8, bottom: 4),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 2, 8, 0),
+            child: Row(
+              children: [
+                Text(
+                  existing == null ? '记一笔' : '编辑账单',
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
                 ),
-              ),
-              Row(
-                children: [
-                  Text(
-                    widget.existing == null ? (_type == TxnType.transfer ? '转账' : '记一笔') : '编辑账单',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-                  ),
-                  const Spacer(),
-                  if (widget.existing != null)
-                    IconButton(
-                      onPressed: _delete,
-                      icon: const Icon(Icons.delete_outline),
-                      color: Colors.red,
-                    ),
+                const Spacer(),
+                if (existing != null)
                   IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close),
+                    visualDensity: VisualDensity.compact,
+                    tooltip: '删除',
+                    onPressed: _delete,
+                    icon: const Icon(Icons.delete_outline, color: Colors.red),
                   ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              SegmentedButton<TxnType>(
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  tooltip: '关闭',
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 2, 14, 6),
+            child: SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<TxnType>(
                 showSelectedIcon: false,
+                style: const ButtonStyle(visualDensity: VisualDensity.compact),
                 segments: const [
                   ButtonSegment(value: TxnType.expense, label: Text('支出')),
                   ButtonSegment(value: TxnType.income, label: Text('收入')),
@@ -256,129 +396,305 @@ class _EntrySheetState extends State<EntrySheet> {
                 selected: {_type},
                 onSelectionChanged: (set) => _setType(set.first),
               ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: _amountController,
-                autofocus: widget.existing == null,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w800),
-                decoration: const InputDecoration(
-                  prefixText: '¥ ',
-                  hintText: '0.00',
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                ),
-              ),
-              const SizedBox(height: 18),
-              if (_type != TxnType.transfer) ...[
-                const Text('分类', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 8),
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: cats.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4,
-                    childAspectRatio: 1.15,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
+            ),
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+              children: [
+                if (_type != TxnType.transfer) ...[
+                  Row(
+                    children: [
+                      const Text('分类', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                      const Spacer(),
+                      Text(
+                        cats.where((c) => c.id == _categoryId).map((c) => c.name).join(),
+                        style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurface.withValues(alpha: 0.48)),
+                      ),
+                    ],
                   ),
-                  itemBuilder: (context, i) {
-                    final c = cats[i];
-                    final selected = c.id == _categoryId;
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(14),
-                      onTap: () => setState(() => _categoryId = c.id),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: selected
-                              ? Color(c.color).withValues(alpha: 0.15)
-                              : (dark ? const Color(0xFF141B34) : const Color(0xFFF7F8FF)),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: selected ? Color(c.color) : Colors.transparent,
-                          ),
-                        ),
+                  const SizedBox(height: 6),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: cats.length,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 5,
+                      childAspectRatio: 0.92,
+                      crossAxisSpacing: 5,
+                      mainAxisSpacing: 4,
+                    ),
+                    itemBuilder: (context, i) {
+                      final c = cats[i];
+                      final selected = c.id == _categoryId;
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () => setState(() => _categoryId = c.id),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(c.icon, style: const TextStyle(fontSize: 22)),
+                            Container(
+                              width: 40,
+                              height: 40,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: selected
+                                    ? Color(c.color).withValues(alpha: 0.20)
+                                    : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
+                                border: selected ? Border.all(color: Color(c.color), width: 1.4) : null,
+                              ),
+                              child: Text(c.icon, style: const TextStyle(fontSize: 20)),
+                            ),
                             const SizedBox(height: 3),
-                            Text(c.name, style: const TextStyle(fontSize: 11)),
+                            Text(
+                              c.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                                color: selected ? Color(c.color) : null,
+                              ),
+                            ),
                           ],
                         ),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
-              ],
-              Text(_type == TxnType.transfer ? '从账户' : '账户',
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: accounts.map((a) {
-                  final selected = a.id == _accountId;
-                  return ChoiceChip(
-                    selected: selected,
-                    onSelected: (_) => setState(() => _accountId = a.id),
-                    avatar: Text(a.icon),
-                    label: Text(a.name),
-                  );
-                }).toList(),
-              ),
-              if (_type == TxnType.transfer) ...[
-                const SizedBox(height: 14),
-                const Text('到账户', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: accounts.where((a) => a.id != _accountId).map((a) {
-                    final selected = a.id == _toAccountId;
-                    return ChoiceChip(
-                      selected: selected,
-                      onSelected: (_) => setState(() => _toAccountId = a.id),
-                      avatar: Text(a.icon),
-                      label: Text(a.name),
-                    );
-                  }).toList(),
-                ),
-              ],
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: _pickDate,
-                    icon: const Icon(Icons.calendar_today_outlined, size: 17),
-                    label: Text(fullDateTitle(_date)),
+                      );
+                    },
                   ),
+                  const SizedBox(height: 8),
+                  _selectorRow([
+                    _SelectorItem(icon: Icons.calendar_today_outlined, label: _dateLabel, onTap: _pickDate),
+                    _SelectorItem(
+                      icon: Icons.account_balance_wallet_outlined,
+                      label: _accountName,
+                      onTap: () => _pickAccount(to: false),
+                    ),
+                    _SelectorItem(
+                      icon: Icons.edit_note,
+                      label: _noteController.text.trim().isEmpty ? '备注' : _noteController.text.trim(),
+                      onTap: _editNote,
+                    ),
+                  ]),
+                ] else ...[
+                  _accountPickerTile('从账户', _accountName, () => _pickAccount(to: false)),
+                  const SizedBox(height: 8),
+                  _accountPickerTile('到账户', _toAccountName, () => _pickAccount(to: true)),
+                  const SizedBox(height: 8),
+                  _selectorRow([
+                    _SelectorItem(icon: Icons.calendar_today_outlined, label: _dateLabel, onTap: _pickDate),
+                    _SelectorItem(
+                      icon: Icons.edit_note,
+                      label: _noteController.text.trim().isEmpty ? '备注' : _noteController.text.trim(),
+                      onTap: _editNote,
+                    ),
+                  ]),
+                ],
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            decoration: BoxDecoration(
+              color: panel,
+              border: Border(top: BorderSide(color: theme.dividerTheme.color ?? Colors.black12)),
+            ),
+            child: Row(
+              children: [
+                Text(
+                  '¥',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    amount,
+                    textAlign: TextAlign.right,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800, letterSpacing: -0.8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          _Keypad(
+            onKey: _pressKey,
+            onSave: _save,
+            saveLabel: existing == null ? '保存' : '更新',
+          ),
+          const SizedBox(height: 4),
+        ],
+      ),
+    );
+  }
+
+  Widget _accountPickerTile(String label, String value, VoidCallback onTap) {
+    final theme = Theme.of(context);
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Text(label, style: TextStyle(fontSize: 11.5, color: theme.colorScheme.onSurface.withValues(alpha: 0.55))),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+            ),
+            const Icon(Icons.chevron_right, size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _selectorRow(List<_SelectorItem> items) {
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        for (var i = 0; i < items.length; i++) ...[
+          if (i > 0) const SizedBox(width: 7),
+          Expanded(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(11),
+              onTap: items[i].onTap,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(items[i].icon, size: 15),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        items[i].label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _SelectorItem {
+  const _SelectorItem({required this.icon, required this.label, required this.onTap});
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+}
+
+class _Keypad extends StatelessWidget {
+  const _Keypad({required this.onKey, required this.onSave, required this.saveLabel});
+
+  final ValueChanged<String> onKey;
+  final VoidCallback onSave;
+  final String saveLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final keys = <List<String>>[
+      ['1', '2', '3', '⌫'],
+      ['4', '5', '6', 'C'],
+      ['7', '8', '9', '.'],
+    ];
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+      child: Column(
+        children: [
+          for (final row in keys)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                children: [
+                  for (var i = 0; i < row.length; i++) ...[
+                    if (i > 0) const SizedBox(width: 6),
+                    Expanded(
+                      child: _KeyButton(
+                        label: row[i],
+                        onTap: () => onKey(row[i]),
+                      ),
+                    ),
+                  ],
                 ],
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _noteController,
-                maxLines: 2,
-                decoration: const InputDecoration(
-                  hintText: '备注（可选）',
+            ),
+          Row(
+            children: [
+              Expanded(
+                child: _KeyButton(label: '00', onTap: () => onKey('00')),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: _KeyButton(label: '0', onTap: () => onKey('0')),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                flex: 2,
+                child: SizedBox(
+                  height: 43,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+                    ),
+                    onPressed: onSave,
+                    child: Text(saveLabel),
+                  ),
                 ),
               ),
-              const SizedBox(height: 18),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: FilledButton(
-                  onPressed: _save,
-                  child: Text(widget.existing == null ? '保存' : '更新'),
-                ),
-              ),
-              if (cats.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.only(top: 8),
-                  child: Text('暂无分类，请先到我的页面管理分类。', style: TextStyle(fontSize: 12)),
-                ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _KeyButton extends StatelessWidget {
+  const _KeyButton({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.62),
+      borderRadius: BorderRadius.circular(9),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(9),
+        onTap: onTap,
+        child: SizedBox(
+          height: 43,
+          child: Center(
+            child: Text(
+              label,
+              style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
+            ),
           ),
         ),
       ),

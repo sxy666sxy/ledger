@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models.dart';
 import '../store.dart';
 import '../utils.dart';
+import '../theme.dart';
 import '../widgets/year_advanced.dart';
 import 'report_export_screen.dart';
 import '../widgets/year_heatmap.dart';
@@ -89,7 +90,7 @@ class _StatsScreenState extends State<StatsScreen> {
       children: [
         _monthHeader(),
         const SizedBox(height: 4),
-        _summaryCard('月', totals),
+        _summaryCard(context, '月', totals),
         const SizedBox(height: 14),
         _chartCard(
           context,
@@ -148,7 +149,7 @@ class _StatsScreenState extends State<StatsScreen> {
           () => setState(() => _weekStart = _weekStart.subtract(const Duration(days: 7))),
           () => setState(() => _weekStart = _weekStart.add(const Duration(days: 7))),
         ),
-        _summaryCard('周', totals),
+        _summaryCard(context, '周', totals),
         const SizedBox(height: 14),
         _chartCard(context, title: '每日趋势', values: daily, labels: labels, color: _type == TxnType.expense ? const Color(0xFFE5484D) : const Color(0xFF0E9F6E), labelEvery: 1, unit: '日'),
         const SizedBox(height: 14),
@@ -228,7 +229,7 @@ class _StatsScreenState extends State<StatsScreen> {
           ],
         ),
         const SizedBox(height: 8),
-        _summaryCard('区间', totals),
+        _summaryCard(context, '区间', totals),
         const SizedBox(height: 14),
         _chartCard(context, title: '区间趋势', values: values, labels: labels, color: _type == TxnType.expense ? const Color(0xFFE5484D) : const Color(0xFF0E9F6E), labelEvery: values.length > 15 ? (values.length / 5).ceil() : 1, unit: useMonthly ? '月' : '日'),
         const SizedBox(height: 14),
@@ -346,7 +347,7 @@ class _StatsScreenState extends State<StatsScreen> {
             ),
           ],
         ),
-        _summaryCard(_yearAll ? '全部' : '年', totals),
+        _summaryCard(context, _yearAll ? '全部' : '年', totals),
         const SizedBox(height: 14),
         _chartCard(
           context,
@@ -414,13 +415,10 @@ class _StatsScreenState extends State<StatsScreen> {
     );
   }
 
-  Widget _summaryCard(String prefix, MoneyTotals totals) {
+  Widget _summaryCard(BuildContext context, String prefix, MoneyTotals totals) {
     return Container(
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        gradient: const LinearGradient(colors: [Color(0xFF1A2355), Color(0xFF0A0F2A), Color(0xFF211747)]),
-      ),
+      decoration: themeHeroDecoration(context, radius: 22),
       child: Row(
         children: [
           _summary('$prefix支出', formatMoney(totals.expense), Colors.white),

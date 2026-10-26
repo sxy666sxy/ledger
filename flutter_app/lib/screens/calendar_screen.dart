@@ -252,7 +252,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
-                                        fontSize: 6.2,
+                                        fontSize: 7.2,
                                         height: 1.1,
                                         color: selected
                                             ? Colors.white70
@@ -269,7 +269,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
-                                        fontSize: 6.7,
+                                        fontSize: 8.0,
                                         height: 1.1,
                                         color: selected
                                             ? Colors.white70

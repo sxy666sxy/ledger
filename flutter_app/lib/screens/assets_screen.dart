@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models.dart';
 import '../store.dart';
 import '../utils.dart';
+import '../theme.dart';
 import 'asset_trend_screen.dart';
 import 'entry_sheet.dart';
 
@@ -29,12 +30,7 @@ class AssetsScreen extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF1A2355), Color(0xFF0A0F2A), Color(0xFF211747)],
-                  ),
-                ),
+                decoration: themeHeroDecoration(context, radius: 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
