@@ -11,6 +11,7 @@ import 'screens/profile_screen.dart';
 import 'screens/stats_screen.dart';
 import 'store.dart';
 import 'theme.dart';
+import 'widgets/liquid_glass.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -72,8 +73,8 @@ class _RootShellState extends State<RootShell> {
     setState(() => _index = index);
     _pageController.animateToPage(
       index,
-      duration: const Duration(milliseconds: 280),
-      curve: Curves.easeOutCubic,
+      duration: const Duration(milliseconds: 380),
+      curve: Curves.easeOutQuint,
     );
   }
 
@@ -139,6 +140,11 @@ class _RootShellState extends State<RootShell> {
     final store = AppStore.instance;
     if (_index == 0) {
       return AppBar(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        flexibleSpace: const LiquidTopGlass(),
         titleSpacing: 14,
         title: InkWell(
           borderRadius: BorderRadius.circular(12),
@@ -147,8 +153,9 @@ class _RootShellState extends State<RootShell> {
             height: 36,
             padding: const EdgeInsets.symmetric(horizontal: 10),
             decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
+              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.34),
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -178,6 +185,11 @@ class _RootShellState extends State<RootShell> {
     }
     if (_index == 2) {
       return AppBar(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        flexibleSpace: const LiquidTopGlass(),
         title: const Text('统计'),
       );
     }
@@ -191,6 +203,8 @@ class _RootShellState extends State<RootShell> {
       animation: store,
       builder: (context, _) {
         return Scaffold(
+          extendBody: true,
+          extendBodyBehindAppBar: true,
           appBar: _buildAppBar(),
           body: PageView(
             controller: _pageController,
@@ -210,7 +224,11 @@ class _RootShellState extends State<RootShell> {
                   child: const Icon(Icons.add, size: 28),
                 )
               : null,
-          bottomNavigationBar: NavigationBar(
+          bottomNavigationBar: LiquidBottomGlass(
+            child: NavigationBar(
+            backgroundColor: Colors.transparent,
+            surfaceTintColor: Colors.transparent,
+            elevation: 0,
             selectedIndex: _index,
             onDestinationSelected: _select,
             destinations: const [
@@ -220,6 +238,7 @@ class _RootShellState extends State<RootShell> {
               NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), selectedIcon: Icon(Icons.account_balance_wallet), label: '资产'),
               NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: '我的'),
             ],
+          ),
           ),
         );
       },

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models.dart';
 import '../store.dart';
 import '../utils.dart';
+import '../widgets/orbit_month_card.dart';
 import 'entry_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -34,126 +35,62 @@ class _HomeScreenState extends State<HomeScreen> {
         final budget = book.budget;
         final budgetRatio = budget <= 0 ? 0.0 : (totals.expense / budget).clamp(0.0, 1.0).toDouble();
 
-        return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
-          children: [
-            _monthHeader(context),
-            const SizedBox(height: 10),
-            _summaryCard(context, totals, book),
-            if (budget > 0) ...[
-              const SizedBox(height: 12),
-              _budgetCard(context, totals.expense, budget, budgetRatio),
-            ],
-            const SizedBox(height: 18),
-            Row(
-              children: [
-                const Text('明细', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-                const SizedBox(width: 8),
-                Text('${txns.length} 笔', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                const Spacer(),
-                TextButton.icon(
-                  onPressed: widget.onOpenCalendar,
-                  icon: const Icon(Icons.calendar_month_outlined, size: 17),
-                  label: const Text('日历'),
+        final topInset = MediaQuery.of(context).padding.top + kToolbarHeight - 6;
+        return CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: EdgeInsets.only(top: topInset),
+              sliver: SliverToBoxAdapter(
+                child: OrbitMonthCard(
+                  month: _month,
+                  totals: totals,
+                  bookName: book.name,
+                  bookIcon: book.icon,
+                  count: txns.length,
+                  onChanged: (m) => setState(() => _month = monthStart(m)),
                 ),
-              ],
+              ),
             ),
-            if (dates.isEmpty)
-              _emptyState(context)
-            else
-              ...dates.map((date) => _daySection(context, date, grouped[date]!, store)),
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  if (budget > 0) ...[
+                    const SizedBox(height: 12),
+                    _budgetCard(context, totals.expense, budget, budgetRatio),
+                  ],
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      const Text('明细', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                      const SizedBox(width: 8),
+                      Text('${txns.length} 笔', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                      const Spacer(),
+                      TextButton.icon(
+                        onPressed: widget.onOpenCalendar,
+                        icon: const Icon(Icons.calendar_month_outlined, size: 17),
+                        label: const Text('日历'),
+                      ),
+                    ],
+                  ),
+                  if (dates.isEmpty) _emptyState(context),
+                ]),
+              ),
+            ),
+            if (dates.isNotEmpty)
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, i) => _daySection(context, dates[i], grouped[dates[i]]!, store),
+                    childCount: dates.length,
+                  ),
+                ),
+              ),
+            const SliverToBoxAdapter(child: SizedBox(height: 132)),
           ],
         );
       },
-    );
-  }
-
-  Widget _monthHeader(BuildContext context) {
-    return Row(
-      children: [
-        IconButton(
-          onPressed: () => setState(() => _month = addMonths(_month, -1)),
-          icon: const Icon(Icons.chevron_left),
-          tooltip: '上个月',
-        ),
-        Expanded(
-          child: Center(
-            child: Text(
-              monthTitle(_month),
-              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
-            ),
-          ),
-        ),
-        IconButton(
-          onPressed: () => setState(() => _month = addMonths(_month, 1)),
-          icon: const Icon(Icons.chevron_right),
-          tooltip: '下个月',
-        ),
-        if (!sameMonth(_month, DateTime.now()))
-          TextButton(
-            onPressed: () => setState(() => _month = monthStart(DateTime.now())),
-            child: const Text('本月'),
-          ),
-      ],
-    );
-  }
-
-  Widget _summaryCard(BuildContext context, MoneyTotals totals, Book book) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF1A2355), Color(0xFF0A0F2A), Color(0xFF211747)],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF1A2355).withValues(alpha: 0.25),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text('${book.icon} ${book.name}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
-              const Spacer(),
-              Text(monthTitle(_month), style: const TextStyle(color: Colors.white38, fontSize: 11)),
-            ],
-          ),
-          const SizedBox(height: 14),
-          const Text('本月支出', style: TextStyle(color: Colors.white60, fontSize: 11)),
-          const SizedBox(height: 3),
-          Text(
-            formatMoney(totals.expense),
-            style: const TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.w800, letterSpacing: -1),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(child: _sumCell('收入', formatMoney(totals.income))),
-              Expanded(child: _sumCell('结余', formatMoney(totals.balance))),
-              Expanded(child: _sumCell('笔数', '${AppStore.instance.txnsForMonth(_month).length}')),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _sumCell(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(color: Colors.white54, fontSize: 10)),
-        const SizedBox(height: 2),
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
-      ],
     );
   }
 
