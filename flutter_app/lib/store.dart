@@ -34,7 +34,8 @@ class AppStore extends ChangeNotifier {
   List<Category> categories = [];
   List<Account> accounts = [];
   List<Txn> transactions = [];
-  ThemeMode themeMode = ThemeMode.system;
+  String themeId = 'system';
+  String customImagePath = '';
 
   Book get activeBook {
     for (final book in books) {
@@ -313,7 +314,8 @@ class AppStore extends ChangeNotifier {
       Account(id: 'a_bank', name: '银行卡', type: 'bank', icon: '💳', color: 0xFF8B5CF6, order: 3),
     ];
     transactions = [];
-    themeMode = ThemeMode.system;
+    themeId = 'system';
+    customImagePath = '';
   }
 
   void _readJson(Map<String, dynamic> map) {
@@ -342,12 +344,13 @@ class AppStore extends ChangeNotifier {
         .whereType<Map>()
         .map((e) => Txn.fromJson(Map<String, dynamic>.from(e)))
         .toList();
-    final theme = map['themeMode'] as String? ?? 'system';
-    themeMode = theme == 'dark'
-        ? ThemeMode.dark
-        : theme == 'light'
-            ? ThemeMode.light
-            : ThemeMode.system;
+    themeId = map['themeId'] as String? ??
+        (map['themeMode'] == 'dark'
+            ? 'dark'
+            : map['themeMode'] == 'light'
+                ? 'light'
+                : 'system');
+    customImagePath = map['customImagePath'] as String? ?? '';
   }
 
   Map<String, dynamic> _toJson() => {
@@ -357,7 +360,8 @@ class AppStore extends ChangeNotifier {
         'categories': categories.map((e) => e.toJson()).toList(),
         'accounts': accounts.map((e) => e.toJson()).toList(),
         'transactions': transactions.map((e) => e.toJson()).toList(),
-        'themeMode': themeMode.name,
+        'themeId': themeId,
+        'customImagePath': customImagePath,
       };
 
   Future<void> save() async {
@@ -453,8 +457,14 @@ class AppStore extends ChangeNotifier {
     save();
   }
 
-  void setTheme(ThemeMode mode) {
-    themeMode = mode;
+  void setThemeId(String id) {
+    themeId = id;
+    notifyListeners();
+    save();
+  }
+
+  void setCustomImagePath(String path) {
+    customImagePath = path;
     notifyListeners();
     save();
   }

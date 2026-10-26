@@ -28,9 +28,14 @@ class XkApp extends StatelessWidget {
       builder: (context, _) => MaterialApp(
         title: '星空记账',
         debugShowCheckedModeBanner: false,
-        theme: buildAppTheme(Brightness.light),
-        darkTheme: buildAppTheme(Brightness.dark),
-        themeMode: store.themeMode,
+        theme: buildAppTheme(store.themeId, Brightness.light),
+        darkTheme: buildAppTheme(store.themeId, Brightness.dark),
+        themeMode: themeSpec(store.themeId).id == 'system'
+            ? ThemeMode.system
+            : themeSpec(store.themeId).dark
+                ? ThemeMode.dark
+                : ThemeMode.light,
+        builder: (context, child) => ThemeBackground(child: child),
         locale: const Locale('zh', 'CN'),
         supportedLocales: const [Locale('zh', 'CN'), Locale('en', 'US')],
         localizationsDelegates: const [

@@ -71,30 +71,32 @@ jobs:
       - name: Prepare asset
         run: |
           mkdir -p ../dist_flutter
-          cp build/app/outputs/flutter-apk/app-release.apk "../dist_flutter/星空记账-flutter-v0.3.0.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "../dist_flutter/星空记账-flutter-v0.4.0.apk"
           ls -lh ../dist_flutter
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: xingkong-flutter-v0.3.0
-          path: dist_flutter/星空记账-flutter-v0.3.0.apk
+          name: xingkong-flutter-v0.4.0
+          path: dist_flutter/星空记账-flutter-v0.4.0.apk
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: flutter-v0.3.0
-          name: 星空记账 Flutter v0.3.0（年统计与热力图）
+          tag_name: flutter-v0.4.0
+          name: 星空记账 Flutter v0.4.0（主题中心与自定义图片）
           body: |
-            纯 Flutter 原生重写：月/年统计、热力图、分类与预算。
+            纯 Flutter 原生重写：主题中心、自定义图片、月/年统计与热力图。
             - 明细 / 记账 / 日历 / 月统计 / 资产 / 我的
             - 分类管理、月预算、账户余额、分类统计
             - 年统计：12 个月柱状图、近十年收支、所有年份汇总
             - 月/年热力图：紧凑 12 月网格与全屏 5×7 日热力图
+            - 13 套主题，含 9 个场景主题
+            - 从相册导入自定义背景图片，自动压缩并保存在本机
             - 使用固定发布签名，后续版本可直接覆盖升级
             - 与原 WebView 版为不同包名，可并存安装
-            后续阶段迁移：主题/自定义图片、Excel 导入导出、周期记账、隐私锁。
-          files: dist_flutter/星空记账-flutter-v0.3.0.apk
+            后续阶段迁移：Excel 导入导出、周期记账、隐私锁、资产走势与报表。
+          files: dist_flutter/星空记账-flutter-v0.4.0.apk
           draft: false
           prerelease: true
           allowUpdates: true

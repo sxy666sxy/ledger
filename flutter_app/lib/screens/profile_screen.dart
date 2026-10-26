@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../store.dart';
+import '../theme.dart';
 import '../utils.dart';
 import 'budget_screen.dart';
 import 'categories_screen.dart';
+import 'theme_center_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -16,11 +18,7 @@ class ProfileScreen extends StatelessWidget {
       builder: (context, _) {
         final all = store.activeTransactions;
         final days = all.map((t) => t.date).toSet().length;
-        final themeLabel = switch (store.themeMode) {
-          ThemeMode.dark => '深色',
-          ThemeMode.light => '浅色',
-          ThemeMode.system => '跟随系统',
-        };
+        final themeLabel = themeSpec(store.themeId).name;
         return SafeArea(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 110),
@@ -91,7 +89,9 @@ class ProfileScreen extends StatelessWidget {
                       leading: const _MenuIcon('🎨'),
                       title: const Text('外观主题'),
                       trailing: Text('$themeLabel ›', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-                      onTap: () => _pickTheme(context, store),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const ThemeCenterScreen()),
+                      ),
                     ),
                     const Divider(height: 1),
                     ListTile(
@@ -176,43 +176,6 @@ class ProfileScreen extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  Future<void> _pickTheme(BuildContext context, AppStore store) async {
-    final selected = await showModalBottomSheet<ThemeMode>(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text('外观主题', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
-            ),
-            for (final option in [
-              (ThemeMode.system, '跟随系统', '自动切换浅色/深色'),
-              (ThemeMode.light, '浅色', '星空浅色'),
-              (ThemeMode.dark, '深色', '深夜银河'),
-            ])
-              ListTile(
-                leading: Icon(
-                  option.$1 == ThemeMode.dark
-                      ? Icons.dark_mode_outlined
-                      : option.$1 == ThemeMode.light
-                          ? Icons.light_mode_outlined
-                          : Icons.brightness_auto_outlined,
-                ),
-                title: Text(option.$2),
-                subtitle: Text(option.$3),
-                trailing: store.themeMode == option.$1 ? const Icon(Icons.check) : null,
-                onTap: () => Navigator.pop(ctx, option.$1),
-              ),
-            const SizedBox(height: 10),
-          ],
-        ),
-      ),
-    );
-    if (selected != null) store.setTheme(selected);
   }
 
   void _showDataInfo(BuildContext context) {
