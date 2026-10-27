@@ -157,7 +157,7 @@ class _YearHeatmapPageState extends State<YearHeatmapPage> {
   final AppStore store = AppStore.instance;
   final GlobalKey _targetKey = GlobalKey();
   late final ScrollController _scrollController = ScrollController(
-    initialScrollOffset: (((widget.initialMonth - 1) * 248.0).clamp(0.0, double.infinity)).toDouble(),
+    initialScrollOffset: (((widget.initialMonth - 1) * 300.0).clamp(0.0, double.infinity)).toDouble(),
   );
 
   @override

@@ -74,15 +74,15 @@ class ClassicMonthCard extends StatelessWidget {
                 fit: BoxFit.scaleDown,
                 child: Text(
                   formatMoney(totals.expense),
-                  style: const TextStyle(color: Color(0xFFF3B63B), fontSize: 34, fontWeight: FontWeight.w800, letterSpacing: -1),
+                  style: const TextStyle(color: Color(0xFFFF7A85), fontSize: 34, fontWeight: FontWeight.w800, letterSpacing: -1),
                 ),
               ),
               const SizedBox(height: 16),
               Row(
                 children: [
-                  Expanded(child: _sumCell('收入', formatMoney(totals.income))),
-                  Expanded(child: _sumCell('结余', formatMoney(totals.balance))),
-                  Expanded(child: _sumCell('笔数', '$count')),
+                  Expanded(child: _sumCell('收入', formatMoney(totals.income), const Color(0xFF7EE2B8))),
+                  Expanded(child: _sumCell('结余', formatMoney(totals.balance), totals.balance < 0 ? const Color(0xFFFF7A85) : const Color(0xFF7EE2B8))),
+                  Expanded(child: _sumCell('笔数', '$count', Colors.white)),
                 ],
               ),
             ],
@@ -92,13 +92,13 @@ class ClassicMonthCard extends StatelessWidget {
     );
   }
 
-  Widget _sumCell(String label, String value) {
+  Widget _sumCell(String label, String value, Color color) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: const TextStyle(color: Colors.white54, fontSize: 10)),
         const SizedBox(height: 2),
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+        Text(value, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w700)),
       ],
     );
   }

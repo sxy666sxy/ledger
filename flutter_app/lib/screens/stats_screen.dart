@@ -710,7 +710,7 @@ class _StatsScreenState extends State<StatsScreen>
               children: [
                 Expanded(child: _summaryCell('支出', formatMoney(totals.expense), const Color(0xFFE5484D))),
                 Expanded(child: _summaryCell('收入', formatMoney(totals.income), const Color(0xFF0E9F6E))),
-                Expanded(child: _summaryCell('结余', formatMoney(totals.balance), const Color(0xFF5B6CFF))),
+                Expanded(child: _summaryCell('结余', formatMoney(totals.balance), totals.balance < 0 ? const Color(0xFFE5484D) : const Color(0xFF0E9F6E))),
               ],
             ),
             const SizedBox(height: 11),

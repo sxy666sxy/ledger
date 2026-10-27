@@ -89,7 +89,7 @@ class SimpleMonthCard extends StatelessWidget {
                 fontSize: 31,
                 fontWeight: FontWeight.w800,
                 letterSpacing: -1,
-                color: glass ? const Color(0xFFF3B63B) : const Color(0xFFB8860B),
+                color: glass ? const Color(0xFFFF7A85) : const Color(0xFFD92D20),
               ),
             ),
           ),
@@ -97,7 +97,7 @@ class SimpleMonthCard extends StatelessWidget {
           Row(
             children: [
               _cell('收入', formatMoney(totals.income), const Color(0xFF0E9F6E)),
-              _cell('结余', formatMoney(totals.balance), scheme.onSurface),
+              _cell('结余', formatMoney(totals.balance), totals.balance < 0 ? const Color(0xFFD92D20) : const Color(0xFF0E9F6E)),
               _cell('笔数', '$count', scheme.onSurface),
             ],
           ),
