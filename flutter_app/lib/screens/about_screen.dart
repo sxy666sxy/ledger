@@ -153,6 +153,12 @@ class ChangelogScreen extends StatelessWidget {
   const ChangelogScreen({super.key});
 
   static const List<_Release> _releases = [
+    _Release('v0.20.0', '2026-10-28', [
+      '记账页把日期、账户选择移到备注框下方，并新增报销和附件按钮。',
+      '日期选择改为主题化月历，支持今天、昨天、前天快捷选择。',
+      '添加账单可不选账户；账户可在编辑页直接校正当前余额。',
+      '新增/编辑账户弹窗收窄输入框，优化主题样式。',
+    ]),
     _Release('v0.19.0', '2026-10-28', [
       '新增自动备份：默认开启，启动和退出时备份，保留最近 5 次。',
       '自动备份路径可修改，支持从最近备份一键恢复。',
@@ -262,6 +268,8 @@ class ManualScreen extends StatelessWidget {
       '点击右下角 + 新建账单；长按 + 可快速输入一句话或语音识别。',
       '账单页顶部可选择支出、收入或转账，分类支持自定义图标和颜色。',
       '备注框直接点击即可用手机键盘输入，内置数字键盘会自动收起。',
+      '日期和账户选择在备注框下方；账户可以留空，不关联账户余额。',
+      '日期支持主题月历与今天/昨天/前天快捷选择；报销和附件按钮在日期右侧。',
     ]),
     _ManualSection(Icons.insights_rounded, '统计', [
       '周、月、年、自定义统计可切换；再次进入会保留上次的子页面。',
@@ -270,6 +278,7 @@ class ManualScreen extends StatelessWidget {
     ]),
     _ManualSection(Icons.account_balance_wallet_outlined, '资产', [
       '在资产页新增账户并填写初始余额；账户支持编辑、删除和排序查看。',
+      '编辑账户时直接改“当前余额”，会自动校正初始余额，不改变已有账单。',
       '点击“资产走势”查看净资产变化，点击账户查看该账户独立走势。',
     ]),
     _ManualSection(Icons.backup_outlined, '数据与备份', [

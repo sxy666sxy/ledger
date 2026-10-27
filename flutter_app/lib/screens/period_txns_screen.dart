@@ -127,7 +127,7 @@ class PeriodTxnsScreen extends StatelessWidget {
         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
       ),
       subtitle: Text(
-        '${txn.time} · ${account?.name ?? '账户'}${txn.note.isEmpty ? '' : ' · ${txn.note}'}',
+        '${txn.time} · ${account?.name ?? '无账户'}${txn.note.isEmpty ? '' : ' · ${txn.note}'}',
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: const TextStyle(fontSize: 10),

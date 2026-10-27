@@ -146,27 +146,45 @@ class AssetsScreen extends StatelessWidget {
   }
 
   Future<void> _editAccount(BuildContext context, AppStore store, Account? account) async {
+    final editing = account != null;
+    final current = editing ? store.accountBalance(account) : 0.0;
     final name = TextEditingController(text: account?.name ?? '');
-    final initial = TextEditingController(text: account?.initial.toStringAsFixed(2) ?? '0.00');
+    final balance = TextEditingController(text: current.toStringAsFixed(2));
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => XkDialog(
-        title: account == null ? '新增账户' : '编辑账户',
+        title: editing ? '编辑账户' : '新增账户',
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextField(
-              controller: name,
-              decoration: const InputDecoration(labelText: '账户名称', hintText: '例如：现金'),
-              autofocus: true,
+            SizedBox(
+              width: 170,
+              child: TextField(
+                controller: name,
+                autofocus: true,
+                decoration: const InputDecoration(labelText: '账户名称', hintText: '例如：现金'),
+              ),
             ),
             const SizedBox(height: 10),
-            TextField(
-              controller: initial,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: '初始余额', prefixText: '¥ '),
+            SizedBox(
+              width: 170,
+              child: TextField(
+                controller: balance,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: editing ? '当前余额' : '初始余额',
+                  prefixText: '¥ ',
+                ),
+              ),
             ),
-            if (account != null)
+            const SizedBox(height: 8),
+            Text(
+              editing ? '修改当前余额会自动校正初始余额，不改变已有账单。' : '初始余额将作为账户余额起点。',
+              style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600),
+            ),
+            if (editing) ...[
+              const SizedBox(height: 4),
               Align(
                 alignment: Alignment.centerLeft,
                 child: TextButton.icon(
@@ -195,6 +213,7 @@ class AssetsScreen extends StatelessWidget {
                   label: const Text('删除账户', style: TextStyle(color: Colors.red)),
                 ),
               ),
+            ],
           ],
         ),
         actions: [
@@ -206,25 +225,27 @@ class AssetsScreen extends StatelessWidget {
         ],
       ),
     );
-    if (result == true) {
-      final parsed = double.tryParse(initial.text.trim()) ?? 0;
-      final label = name.text.trim();
-      if (label.isEmpty) return;
-      if (account == null) {
-        store.addAccount(Account(
-          id: '',
-          name: label,
-          initial: parsed,
-          type: 'other',
-          icon: '💳',
-          color: 0xFF5B6CFF,
-          order: store.accounts.length,
-        ));
-      } else {
-        account.name = label;
-        account.initial = parsed;
-        store.updateAccount(account);
+    final label = name.text.trim();
+    final target = double.tryParse(balance.text.trim());
+    name.dispose();
+    balance.dispose();
+    if (result != true || label.isEmpty) return;
+    if (account == null) {
+      store.addAccount(Account(
+        id: '',
+        name: label,
+        initial: target ?? 0,
+        type: 'other',
+        icon: '💳',
+        color: 0xFF5B6CFF,
+        order: store.accounts.length,
+      ));
+    } else {
+      account.name = label;
+      if (target != null) {
+        account.initial += target - current;
       }
+      store.updateAccount(account);
     }
   }
 }

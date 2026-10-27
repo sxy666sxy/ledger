@@ -1,9 +1,14 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../models.dart';
 import '../store.dart';
 import '../theme.dart';
 import '../utils.dart';
+import '../widgets/date_picker_sheet.dart';
 
 Future<void> showEntrySheet(
   BuildContext context, {
@@ -43,8 +48,13 @@ class _EntrySheetState extends State<EntrySheet> {
   String _accountId = '';
   String _toAccountId = '';
   late String _amountText;
+  late String _txnId;
   late TextEditingController _noteController;
   final FocusNode _noteFocus = FocusNode();
+  double _reimburseAmount = 0;
+  String _reimburseAccountId = '';
+  String _reimburseDetail = '';
+  List<String> _attachments = [];
 
   @override
   void initState() {
@@ -52,7 +62,12 @@ class _EntrySheetState extends State<EntrySheet> {
     final existing = widget.existing;
     _type = existing?.type ?? widget.initialType ?? TxnType.expense;
     _date = existing?.date ?? widget.initialDate ?? dateKey(DateTime.now());
+    _txnId = existing?.id ?? store.newTxnId();
     _amountText = existing == null ? '' : _amountTextOf(existing.amount);
+    _reimburseAmount = existing?.reimburseAmount ?? 0;
+    _reimburseAccountId = existing?.reimburseAccountId ?? '';
+    _reimburseDetail = existing?.reimburseDetail ?? '';
+    _attachments = List<String>.from(existing?.attachments ?? const []);
     _noteController = TextEditingController(text: existing?.note ?? '');
     final cats = store.categoriesFor(_type);
     _categoryId = existing?.categoryId ?? (cats.isNotEmpty ? cats.first.id : '');
@@ -98,15 +113,9 @@ class _EntrySheetState extends State<EntrySheet> {
   }
 
   Future<void> _pickDate() async {
-    final current = DateTime.tryParse(_date) ?? DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: current,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-    );
+    final picked = await showXkDatePicker(context, initialDate: _date);
     if (picked != null && mounted) {
-      setState(() => _date = dateKey(picked));
+      setState(() => _date = picked);
     }
   }
 
@@ -114,7 +123,8 @@ class _EntrySheetState extends State<EntrySheet> {
     final list = _availableAccounts
         .where((a) => to ? a.id != _accountId : true)
         .toList(growable: false);
-    if (list.isEmpty) {
+    final allowNone = !to && _type != TxnType.transfer;
+    if (list.isEmpty && !allowNone) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('请先新增账户')),
       );
@@ -137,6 +147,17 @@ class _EntrySheetState extends State<EntrySheet> {
               Text(to ? '选择转入账户' : '选择账户',
                   style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
               const SizedBox(height: 8),
+              if (allowNone)
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                  leading: const Icon(Icons.block, size: 22),
+                  title: const Text('不选择账户'),
+                  subtitle: const Text('这笔账单不关联账户余额'),
+                  trailing: _accountId.isEmpty
+                      ? Icon(Icons.check, color: Theme.of(ctx).colorScheme.primary)
+                      : null,
+                  onTap: () => Navigator.of(ctx).pop('__none__'),
+                ),
               ...list.map((a) => ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 4),
                     leading: Text(a.icon, style: const TextStyle(fontSize: 22)),
@@ -157,7 +178,7 @@ class _EntrySheetState extends State<EntrySheet> {
       if (to) {
         _toAccountId = picked;
       } else {
-        _accountId = picked;
+        _accountId = picked == '__none__' ? '' : picked;
         if (_type == TxnType.transfer && _toAccountId == _accountId) {
           final other = _availableAccounts.where((a) => a.id != _accountId);
           _toAccountId = other.isEmpty ? '' : other.first.id;
@@ -329,9 +350,9 @@ class _EntrySheetState extends State<EntrySheet> {
       );
       return;
     }
-    if (_accountId.isEmpty) {
+    if (_type == TxnType.transfer && _accountId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请选择账户')),
+        const SnackBar(content: Text('请选择转出账户')),
       );
       return;
     }
@@ -345,7 +366,7 @@ class _EntrySheetState extends State<EntrySheet> {
     final time = '${two(now.hour)}:${two(now.minute)}';
     final existing = widget.existing;
     final txn = Txn(
-      id: existing?.id ?? store.newTxnId(),
+      id: _txnId,
       date: _date,
       time: existing?.time ?? time,
       type: _type,
@@ -359,8 +380,10 @@ class _EntrySheetState extends State<EntrySheet> {
       tags: existing?.tags ?? const [],
       refund: existing?.refund ?? 0,
       discount: existing?.discount ?? 0,
-      reimburseAmount: existing?.reimburseAmount ?? 0,
-      reimburseAccountId: existing?.reimburseAccountId ?? '',
+      reimburseAmount: _reimburseAmount,
+      reimburseAccountId: _reimburseAccountId,
+      reimburseDetail: _reimburseDetail,
+      attachments: _attachments,
       createdAt: existing?.createdAt ?? DateTime.now().millisecondsSinceEpoch,
     );
     final messenger = ScaffoldMessenger.of(context);
@@ -372,6 +395,166 @@ class _EntrySheetState extends State<EntrySheet> {
     Navigator.of(context).pop();
     messenger.showSnackBar(
       SnackBar(content: Text(existing == null ? '已保存' : '已更新')),
+    );
+  }
+
+  Future<void> _editReimbursement() async {
+    final amount = TextEditingController(
+      text: _reimburseAmount > 0 ? _amountTextOf(_reimburseAmount) : '',
+    );
+    final detail = TextEditingController(text: _reimburseDetail);
+    var accountId = _reimburseAccountId;
+    final accounts = _availableAccounts;
+    final result = await showDialog<Map<String, Object>>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => XkDialog(
+          title: '报销信息',
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: amount,
+                autofocus: true,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: '报销金额', prefixText: '¥ '),
+              ),
+              const SizedBox(height: 9),
+              DropdownButtonFormField<String>(
+                value: accountId.isEmpty || accounts.any((a) => a.id == accountId) ? accountId : null,
+                decoration: const InputDecoration(labelText: '报销账户'),
+                items: [
+                  const DropdownMenuItem(value: '', child: Text('不选择报销账户')),
+                  ...accounts.map(
+                    (a) => DropdownMenuItem(value: a.id, child: Text('${a.icon} ${a.name}')),
+                  ),
+                ],
+                onChanged: (v) => setDialogState(() => accountId = v ?? ''),
+              ),
+              const SizedBox(height: 9),
+              TextField(
+                controller: detail,
+                decoration: const InputDecoration(labelText: '报销明细', hintText: '例如：公司差旅报销'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, {
+                'amount': double.tryParse(amount.text.trim()) ?? 0.0,
+                'account': accountId,
+                'detail': detail.text.trim(),
+              }),
+              child: const Text('确定'),
+            ),
+          ],
+        ),
+      ),
+    );
+    amount.dispose();
+    detail.dispose();
+    if (result == null || !mounted) return;
+    setState(() {
+      _reimburseAmount = (result['amount'] as double?) ?? 0;
+      _reimburseAccountId = (result['account'] as String?) ?? '';
+      _reimburseDetail = (result['detail'] as String?) ?? '';
+    });
+  }
+
+  String _fileName(String path) => path.split(Platform.pathSeparator).last;
+
+  Future<void> _addAttachments() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(allowMultiple: true);
+      if (result == null || result.files.isEmpty) return;
+      final docs = await getApplicationDocumentsDirectory();
+      final dir = Directory('${docs.path}/attachments/$_txnId');
+      await dir.create(recursive: true);
+      final added = <String>[];
+      for (final picked in result.files) {
+        final path = picked.path;
+        if (path == null || path.isEmpty) continue;
+        final source = File(path);
+        if (!await source.exists()) continue;
+        final name = '${DateTime.now().microsecondsSinceEpoch}_${_fileName(path)}';
+        final target = await source.copy('${dir.path}/$name');
+        added.add(target.path);
+      }
+      if (added.isEmpty) return;
+      if (mounted) {
+        setState(() => _attachments = [..._attachments, ...added]);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('已添加 ${added.length} 个附件')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('附件添加失败：$e')),
+      );
+    }
+  }
+
+  Future<void> _showAttachments() async {
+    if (_attachments.isEmpty) {
+      await _addAttachments();
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => XkSheet(
+        child: StatefulBuilder(
+          builder: (ctx, setSheetState) => SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Text('附件', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                    const Spacer(),
+                    TextButton.icon(
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        _addAttachments();
+                      },
+                      icon: const Icon(Icons.add, size: 17),
+                      label: const Text('添加'),
+                    ),
+                  ],
+                ),
+                if (_attachments.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Center(child: Text('暂无附件')),
+                  ),
+                ...List.generate(_attachments.length, (i) {
+                  final path = _attachments[i];
+                  return ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.attach_file, size: 20),
+                    title: Text(_fileName(path), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    trailing: IconButton(
+                      tooltip: '移除',
+                      icon: const Icon(Icons.close, size: 18),
+                      onPressed: () {
+                        setSheetState(() => _attachments.removeAt(i));
+                        setState(() {});
+                      },
+                    ),
+                  );
+                }),
+                const SizedBox(height: 6),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -409,6 +592,7 @@ class _EntrySheetState extends State<EntrySheet> {
   }
 
   String get _accountName {
+    if (_accountId.isEmpty) return '不选择账户';
     for (final a in _availableAccounts) {
       if (a.id == _accountId) return a.name;
     }
@@ -604,23 +788,6 @@ class _EntrySheetState extends State<EntrySheet> {
                       );
                     },
                   ),
-                  const SizedBox(height: 8),
-                  _selectorRow([
-                    _SelectorItem(icon: Icons.calendar_today_outlined, label: _dateLabel, onTap: _pickDate),
-                    _SelectorItem(
-                      icon: Icons.account_balance_wallet_outlined,
-                      label: _accountName,
-                      onTap: () => _pickAccount(to: false),
-                    ),
-                  ]),
-                ] else ...[
-                  _accountPickerTile('从账户', _accountName, () => _pickAccount(to: false)),
-                  const SizedBox(height: 8),
-                  _accountPickerTile('到账户', _toAccountName, () => _pickAccount(to: true)),
-                  const SizedBox(height: 8),
-                  _selectorRow([
-                    _SelectorItem(icon: Icons.calendar_today_outlined, label: _dateLabel, onTap: _pickDate),
-                  ]),
                 ],
               ],
             ),
@@ -631,7 +798,9 @@ class _EntrySheetState extends State<EntrySheet> {
               color: panel,
               border: Border(top: BorderSide(color: theme.dividerTheme.color ?? Colors.black12)),
             ),
-            child: Row(
+            child: Column(
+              children: [
+                Row(
               children: [
                 Expanded(
                   flex: 5,
@@ -686,6 +855,9 @@ class _EntrySheetState extends State<EntrySheet> {
                   ),
                 ),
               ],
+                ),
+                _bottomMetaRow(),
+              ],
             ),
           ),
           if (typing)
@@ -723,77 +895,155 @@ class _EntrySheetState extends State<EntrySheet> {
     );
   }
 
-  Widget _accountPickerTile(String label, String value, VoidCallback onTap) {
+  Widget _bottomMetaRow() {
+    if (_type == TxnType.transfer) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: _metaChip(
+                    icon: Icons.call_made,
+                    label: '从 $_accountName',
+                    onTap: () => _pickAccount(to: false),
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: _metaChip(
+                    icon: Icons.call_received,
+                    label: '到 $_toAccountName',
+                    onTap: () => _pickAccount(to: true),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Expanded(
+                  child: _metaChip(
+                    icon: Icons.calendar_today_outlined,
+                    label: _dateLabel,
+                    onTap: _pickDate,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: _metaChip(
+              icon: Icons.calendar_today_outlined,
+              label: _dateLabel,
+              onTap: _pickDate,
+            ),
+          ),
+          const SizedBox(width: 5),
+          Expanded(
+            child: _metaChip(
+              icon: Icons.account_balance_wallet_outlined,
+              label: _accountName,
+              onTap: () => _pickAccount(to: false),
+            ),
+          ),
+          const SizedBox(width: 5),
+          _metaAction(
+            icon: Icons.receipt_long_outlined,
+            label: _reimburseAmount > 0 ? '已报销' : '报销',
+            active: _reimburseAmount > 0,
+            onTap: _editReimbursement,
+          ),
+          const SizedBox(width: 4),
+          _metaAction(
+            icon: Icons.attach_file,
+            label: _attachments.isEmpty ? '附件' : '${_attachments.length}',
+            active: _attachments.isNotEmpty,
+            onTap: _showAttachments,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _metaChip({required IconData icon, required String label, required VoidCallback onTap}) {
     final theme = Theme.of(context);
     return InkWell(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(10),
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+        height: 36,
+        padding: const EdgeInsets.symmetric(horizontal: 7),
         decoration: BoxDecoration(
           color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(label, style: TextStyle(fontSize: 11.5, color: theme.colorScheme.onSurface.withValues(alpha: 0.55))),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+            Icon(icon, size: 14),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600),
+              ),
             ),
-            const Icon(Icons.chevron_right, size: 18),
           ],
         ),
       ),
     );
   }
 
-  Widget _selectorRow(List<_SelectorItem> items) {
+  Widget _metaAction({
+    required IconData icon,
+    required String label,
+    required bool active,
+    required VoidCallback onTap,
+  }) {
     final theme = Theme.of(context);
-    return Row(
-      children: [
-        for (var i = 0; i < items.length; i++) ...[
-          if (i > 0) const SizedBox(width: 7),
-          Expanded(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(11),
-              onTap: items[i].onTap,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
-                  borderRadius: BorderRadius.circular(11),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(items[i].icon, size: 15),
-                    const SizedBox(width: 4),
-                    Flexible(
-                      child: Text(
-                        items[i].label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ],
-                ),
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: onTap,
+      child: Container(
+        width: 42,
+        height: 36,
+        decoration: BoxDecoration(
+          color: active
+              ? theme.colorScheme.primary.withValues(alpha: 0.13)
+              : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
+          borderRadius: BorderRadius.circular(10),
+          border: active ? Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.4)) : null,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 14, color: active ? theme.colorScheme.primary : null),
+            Text(
+              label,
+              maxLines: 1,
+              style: TextStyle(
+                fontSize: 7.5,
+                height: 1.1,
+                color: active ? theme.colorScheme.primary : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
               ),
             ),
-          ),
-        ],
-      ],
+          ],
+        ),
+      ),
     );
   }
-}
-
-class _SelectorItem {
-  const _SelectorItem({required this.icon, required this.label, required this.onTap});
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
 }
 
 class _Keypad extends StatelessWidget {
