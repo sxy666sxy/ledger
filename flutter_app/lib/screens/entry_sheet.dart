@@ -216,6 +216,7 @@ class _EntrySheetState extends State<EntrySheet> {
   }
 
   void _pressKey(String key) {
+    if (_noteFocus.hasFocus) _noteFocus.unfocus();
     setState(() {
       if (key == 'C') {
         _amountText = '';
