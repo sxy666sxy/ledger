@@ -101,7 +101,7 @@ class AboutScreen extends StatelessWidget {
           const SizedBox(height: 18),
           Center(
             child: Text(
-              '数据只保存在你的设备上',
+              '默认只在本机；WebDAV 由你主动上传',
               style: TextStyle(fontSize: 10, color: scheme.onSurface.withValues(alpha: 0.45)),
             ),
           ),
@@ -153,6 +153,11 @@ class ChangelogScreen extends StatelessWidget {
   const ChangelogScreen({super.key});
 
   static const List<_Release> _releases = [
+    _Release('v0.19.0', '2026-10-28', [
+      '新增自动备份：默认开启，启动和退出时备份，保留最近 5 次。',
+      '自动备份路径可修改，支持从最近备份一键恢复。',
+      '新增 WebDAV 备份，可上传到坚果云 / Nextcloud 等自己的服务器并恢复。',
+    ]),
     _Release('v0.18.0', '2026-10-28', [
       '新增“我的-关于”独立页面，应用图标与主题样式联动。',
       '关于页展示版本、更新日志、使用手册和 GitHub 地址。',
@@ -268,8 +273,11 @@ class ManualScreen extends StatelessWidget {
       '点击“资产走势”查看净资产变化，点击账户查看该账户独立走势。',
     ]),
     _ManualSection(Icons.backup_outlined, '数据与备份', [
-      '所有数据默认保存在本机，不上传服务器。',
+      '所有数据默认保存在本机；只有主动使用 WebDAV 时才会联网上传。',
       '在“我的-数据与备份”中可导出/导入 JSON 备份和 23 列 Excel。',
+      '自动备份默认开启，启动和退出应用时各备份一次，保留最近 5 次。',
+      '点“自动备份”区域的存放路径可修改目录；点“最近自动备份”可恢复或删除。',
+      'WebDAV 备份：填写服务器地址、用户名、密码和远程目录，测试连接后可上传或恢复。',
       'Excel 重复导入会自动去重，旧版负数支出金额会自动兼容。',
     ]),
     _ManualSection(Icons.palette_outlined, '主题与安全', [

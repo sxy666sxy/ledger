@@ -7,10 +7,13 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../backup_service.dart';
 import '../data_io.dart';
 import '../store.dart';
 import '../theme.dart';
 import '../utils.dart';
+import 'auto_backup_screen.dart';
+import 'webdav_backup_screen.dart';
 
 class DataBackupScreen extends StatefulWidget {
   const DataBackupScreen({super.key});
@@ -22,6 +25,102 @@ class DataBackupScreen extends StatefulWidget {
 class _DataBackupScreenState extends State<DataBackupScreen> {
   final AppStore store = AppStore.instance;
   bool _busy = false;
+  bool _autoEnabled = true;
+  String _autoPath = '';
+  DateTime? _lastAuto;
+  int _autoCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAuto();
+  }
+
+  Future<void> _loadAuto() async {
+    final enabled = await AutoBackupService.isEnabled();
+    final path = await AutoBackupService.currentPath();
+    final last = await AutoBackupService.lastBackupAt();
+    final files = await AutoBackupService.listFiles();
+    if (!mounted) return;
+    setState(() {
+      _autoEnabled = enabled;
+      _autoPath = path;
+      _lastAuto = last;
+      _autoCount = files.length;
+    });
+  }
+
+  Future<void> _toggleAuto(bool value) async {
+    await AutoBackupService.setEnabled(value);
+    if (value) await AutoBackupService.run(reason: '开启自动备份');
+    await _loadAuto();
+  }
+
+  Future<void> _backupNow() async {
+    final file = await AutoBackupService.run(reason: '手动', force: true);
+    await _loadAuto();
+    if (!mounted) return;
+    _toast(file == null ? '备份失败，请检查存放路径是否可写' : '已备份到 ${file.path}');
+  }
+
+  Future<void> _changeAutoPath() async {
+    final controller = TextEditingController(text: _autoPath);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => XkDialog(
+        title: const Text('自动备份存放路径'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: controller,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                hintText: '输入可写的绝对路径',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () async {
+                  final dir = await FilePicker.platform.getDirectoryPath(
+                    dialogTitle: '选择自动备份目录',
+                  );
+                  if (dir != null && dir.trim().isNotEmpty) {
+                    controller.text = dir;
+                  }
+                },
+                icon: const Icon(Icons.folder_open_rounded, size: 17),
+                label: const Text('选择目录'),
+              ),
+            ),
+            Text(
+              '默认保存在应用文档目录；更改后请确保该目录可写。',
+              style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, ''),
+            child: const Text('恢复默认'),
+          ),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+    if (result == null) return;
+    await AutoBackupService.setCustomPath(result);
+    await _loadAuto();
+    if (mounted) _toast(result.isEmpty ? '已恢复默认备份路径' : '备份路径已更新');
+  }
 
   Future<File> _tempFile(String name) async {
     final dir = await getTemporaryDirectory();
@@ -163,6 +262,74 @@ class _DataBackupScreenState extends State<DataBackupScreen> {
           Card(
             child: Column(
               children: [
+                SwitchListTile(
+                  secondary: const Icon(Icons.autorenew_rounded),
+                  title: const Text('自动备份'),
+                  subtitle: const Text('打开和退出应用时自动备份，保留最近 5 次'),
+                  value: _autoEnabled,
+                  onChanged: _toggleAuto,
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.history_rounded),
+                  title: const Text('最近自动备份'),
+                  subtitle: Text(
+                    _lastAuto == null
+                        ? '还没有自动备份 · 已保留 $_autoCount 份'
+                        : '上次 ${dateTimeText(_lastAuto!)} · 已保留 $_autoCount 份',
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () async {
+                    await Navigator.of(context).push(
+                      fastPageRoute<void>(const AutoBackupListScreen()),
+                    );
+                    await _loadAuto();
+                  },
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.backup_outlined),
+                  title: const Text('立即备份'),
+                  subtitle: const Text('手动生成一份自动备份'),
+                  trailing: const Icon(Icons.play_arrow_rounded),
+                  onTap: _backupNow,
+                ),
+                const Divider(height: 1),
+                InkWell(
+                  onTap: _changeAutoPath,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 10, 12, 12),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('存放路径', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700)),
+                              const SizedBox(height: 3),
+                              Text(
+                                _autoPath,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(fontSize: 10, height: 1.35, color: Colors.grey.shade600),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.edit_location_alt_outlined, size: 18),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Column(
+              children: [
                 ListTile(
                   leading: const Icon(Icons.table_chart_outlined),
                   title: const Text('导出 Excel 账单'),
@@ -182,8 +349,20 @@ class _DataBackupScreenState extends State<DataBackupScreen> {
             ),
           ),
           const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.cloud_outlined),
+              title: const Text('WebDAV 备份'),
+              subtitle: const Text('上传到自己的坚果云 / Nextcloud，并从云端恢复'),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => Navigator.of(context).push(
+                fastPageRoute<void>(const WebDavBackupScreen()),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
           Text(
-            'JSON 备份适合完整迁移；Excel 适合查看和整理账单。数据不会上传。',
+            'JSON 备份适合完整迁移；Excel 适合查看和整理账单。WebDAV 仅在你主动上传时联网。',
             style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600),
           ),
           if (_busy)

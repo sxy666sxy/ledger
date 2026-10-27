@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'backup_service.dart';
 import 'models.dart';
 import 'screens/assets_screen.dart';
 import 'screens/calendar_screen.dart';
@@ -47,10 +48,46 @@ class XkApp extends StatelessWidget {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        home: const PinGate(child: RootShell()),
+        home: const BackupLifecycle(child: PinGate(child: RootShell())),
       ),
     );
   }
+}
+
+class BackupLifecycle extends StatefulWidget {
+  const BackupLifecycle({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  State<BackupLifecycle> createState() => _BackupLifecycleState();
+}
+
+class _BackupLifecycleState extends State<BackupLifecycle> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AutoBackupService.run(reason: '启动');
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+      AutoBackupService.run(reason: '退出');
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 class RootShell extends StatefulWidget {

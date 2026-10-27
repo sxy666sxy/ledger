@@ -22,6 +22,12 @@ if 'android.permission.RECORD_AUDIO' not in text:
             '    </queries>\n'
         )
     text = text.replace('<application', permissions + '\n    <application', 1)
+if 'android.permission.INTERNET' not in text:
+    text = text.replace(
+        '<application',
+        '    <uses-permission android:name="android.permission.INTERNET" />\n\n    <application',
+        1,
+    )
 manifest.write_text(text, encoding='utf-8')
 
 # 2. Previous Xingkong icon

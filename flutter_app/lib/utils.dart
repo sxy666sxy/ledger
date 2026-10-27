@@ -1,6 +1,6 @@
 import 'package:intl/intl.dart';
 
-const String appVersion = '0.18.0';
+const String appVersion = '0.19.0';
 
 final NumberFormat _money = NumberFormat('#,##0.00', 'en_US');
 
@@ -25,6 +25,9 @@ String dateKey(DateTime date) => '${date.year}-${two(date.month)}-${two(date.day
 String monthKey(DateTime date) => '${date.year}-${two(date.month)}';
 
 String monthTitle(DateTime date) => '${date.year}年${date.month}月';
+
+String dateTimeText(DateTime d) =>
+    '${d.year}-${two(d.month)}-${two(d.day)} ${two(d.hour)}:${two(d.minute)}';
 
 String dateTitle(String iso) {
   final d = DateTime.tryParse(iso);

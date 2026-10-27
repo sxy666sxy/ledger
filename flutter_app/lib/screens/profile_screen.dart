@@ -158,7 +158,7 @@ class ProfileScreen extends StatelessWidget {
                     ListTile(
                       leading: const _MenuIcon('🗂️'),
                       title: const Text('数据与备份'),
-                      subtitle: const Text('数据保存在本机；Excel 导入导出将在下一阶段迁移'),
+                      subtitle: const Text('自动备份、JSON / Excel 导入导出、WebDAV'),
                       onTap: () => Navigator.of(context).push(
                         fastPageRoute<void>(const DataBackupScreen()),
                       ),
