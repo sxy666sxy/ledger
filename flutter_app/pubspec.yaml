@@ -1,7 +1,7 @@
 name: xingkong_ledger
 description: 星空记账 Flutter 原生版
 publish_to: 'none'
-version: 0.17.0+21
+version: 0.18.0+22
 
 environment:
   sdk: '>=3.4.0 <4.0.0'
@@ -33,3 +33,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/app_icon.png

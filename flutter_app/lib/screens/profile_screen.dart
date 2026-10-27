@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../store.dart';
 import '../theme.dart';
 import '../utils.dart';
+import 'about_screen.dart';
 import 'budget_screen.dart';
 import 'categories_screen.dart';
 import 'data_backup_screen.dart';
@@ -179,11 +180,8 @@ class ProfileScreen extends StatelessWidget {
                   leading: const _MenuIcon('✦'),
                   title: const Text('星空记账 Flutter'),
                   subtitle: Text('核心版 v$appVersion · 纯 Flutter 原生'),
-                  onTap: () => showAboutDialog(
-                    context: context,
-                    applicationName: '星空记账',
-                    applicationVersion: appVersion,
-                    applicationLegalese: '本地记账，数据自持。',
+                  onTap: () => Navigator.of(context).push(
+                    fastPageRoute<void>(const AboutScreen()),
                   ),
                 ),
               ),
