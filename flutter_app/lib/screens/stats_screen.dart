@@ -367,7 +367,7 @@ class _StatsScreenState extends State<StatsScreen>
               IconButton(
                 tooltip: '导出报表',
                 onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => ReportExportScreen(year: _year)),
+                  fastPageRoute<void>(ReportExportScreen(year: _year)),
                 ),
                 icon: const Icon(Icons.ios_share, size: 20),
               ),
@@ -525,15 +525,15 @@ class _StatsScreenState extends State<StatsScreen>
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             LayoutBuilder(
               builder: (context, constraints) {
                 final effectiveLabelEvery = values.length > 14
                     ? (values.length / 6).ceil()
                     : labelEvery;
-                final chart = SizedBox(
+                return SizedBox(
                   width: constraints.maxWidth,
-                  height: 150,
+                  height: 176,
                   child: AnimatedBuilder(
                     animation: _growthController,
                     builder: (context, _) => CustomPaint(
@@ -557,31 +557,7 @@ class _StatsScreenState extends State<StatsScreen>
                     ),
                   ),
                 );
-                return chart;
               },
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '单位：${unit ?? (_view == _StatsView.year ? (_yearAll ? '年' : '月') : '日')} · 点击柱/点查看明细',
-              style: TextStyle(fontSize: 9, color: Colors.grey.shade600),
-            ),
-            const SizedBox(height: 5),
-            SizedBox(
-              height: 18,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: List.generate(values.length, (i) {
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 10),
-                      child: Text(
-                        '${labels.length > i ? labels[i] : ''} ${formatMoney(values[i], symbol: false)}',
-                        style: TextStyle(fontSize: 8, color: Colors.grey.shade600),
-                      ),
-                    );
-                  }),
-                ),
-              ),
             ),
           ],
         ),
@@ -809,6 +785,40 @@ String _shortAmount(double value) {
   return value.toStringAsFixed(value % 1 == 0 ? 0 : 2);
 }
 
+const double _chartLeftAxis = 42;
+const double _chartTopPad = 18;
+const double _chartBottomPad = 22;
+
+void _paintYAxis(
+  Canvas canvas,
+  Size size, {
+  required double maxValue,
+  required double baseY,
+  required double plotTop,
+  required double plotLeft,
+  required Color textColor,
+}) {
+  final grid = Paint()
+    ..color = textColor.withValues(alpha: 0.14)
+    ..strokeWidth = 1;
+  final tp = TextPainter(textDirection: TextDirection.ltr);
+  for (var i = 0; i <= 2; i++) {
+    final t = i / 2;
+    final y = baseY - (baseY - plotTop) * t;
+    canvas.drawLine(Offset(plotLeft, y), Offset(size.width, y), grid);
+    tp.text = TextSpan(
+      text: _shortAmount(maxValue * t),
+      style: TextStyle(fontSize: 8, color: textColor),
+    );
+    tp.layout();
+    final tx = (plotLeft - 4 - tp.width).clamp(0.0, size.width).toDouble();
+    tp.paint(
+      canvas,
+      Offset(tx, (y - tp.height / 2).clamp(0.0, baseY - tp.height).toDouble()),
+    );
+  }
+}
+
 class _StatsLinePainter extends CustomPainter {
   _StatsLinePainter({
     required this.values,
@@ -828,22 +838,32 @@ class _StatsLinePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final baseY = size.height - 20;
-    final grid = Paint()
-      ..color = textColor.withValues(alpha: 0.14)
-      ..strokeWidth = 1;
-    for (var i = 0; i <= 2; i++) {
-      final y = baseY - (size.height - 30) * i / 2;
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
-    }
-    if (values.isEmpty) return;
+    final baseY = size.height - _chartBottomPad;
+    const plotTop = _chartTopPad;
+    const left = _chartLeftAxis;
     final maxV = values.fold<double>(0, (a, b) => a > b ? a : b);
-    if (maxV <= 0) return;
+    _paintYAxis(
+      canvas,
+      size,
+      maxValue: maxV,
+      baseY: baseY,
+      plotTop: plotTop,
+      plotLeft: left,
+      textColor: textColor,
+    );
+    if (values.isEmpty || maxV <= 0) return;
+
     final p = progress.clamp(0.0, 1.0).toDouble();
+    final plotW = size.width - left;
+    final plotH = baseY - plotTop;
+    double xAt(int i) =>
+        values.length == 1 ? left + plotW / 2 : left + plotW * i / (values.length - 1);
+    double yAt(int i) => baseY - (values[i] / maxV) * plotH * p;
+
     final path = Path();
     for (var i = 0; i < values.length; i++) {
-      final x = values.length == 1 ? size.width / 2 : size.width * i / (values.length - 1);
-      final y = baseY - (values[i] / maxV) * (size.height - 48) * p;
+      final x = xAt(i);
+      final y = yAt(i);
       if (i == 0) {
         path.moveTo(x, y);
       } else {
@@ -861,33 +881,44 @@ class _StatsLinePainter extends CustomPainter {
     );
     final dot = Paint()..color = color;
     for (var i = 0; i < values.length; i++) {
-      final x = values.length == 1 ? size.width / 2 : size.width * i / (values.length - 1);
-      final y = baseY - (values[i] / maxV) * (size.height - 48) * p;
-      canvas.drawCircle(Offset(x, y), 2.5, dot);
+      canvas.drawCircle(Offset(xAt(i), yAt(i)), 2.5, dot);
     }
+
     final tp = TextPainter(textDirection: TextDirection.ltr);
-    for (var i = 0; i < values.length; i += labelEvery) {
-      final x = values.length == 1 ? size.width / 2 : size.width * i / (values.length - 1);
-      final y = baseY - (values[i] / maxV) * (size.height - 48) * p;
+    for (var i = 0; i < values.length; i++) {
+      final x = xAt(i);
+      final y = yAt(i);
       if (values[i] > 0) {
         tp.text = TextSpan(
           text: _shortAmount(values[i]),
-          style: TextStyle(fontSize: 8, color: color, fontWeight: FontWeight.w600),
+          style: TextStyle(fontSize: 7.5, color: color, fontWeight: FontWeight.w600),
         );
         tp.layout();
-        final ax = (x - tp.width / 2).clamp(0.0, size.width - tp.width).toDouble();
-        tp.paint(canvas, Offset(ax, (y - 13).clamp(0.0, baseY - 10).toDouble()));
+        final ax = (x - tp.width / 2).clamp(left, size.width - tp.width).toDouble();
+        tp.paint(
+          canvas,
+          Offset(ax, (y - 12).clamp(0.0, baseY - 10).toDouble()),
+        );
       }
-      tp.text = TextSpan(text: labels.length > i ? labels[i] : '', style: TextStyle(fontSize: 8, color: textColor));
+    }
+    for (var i = 0; i < values.length; i += labelEvery) {
+      tp.text = TextSpan(
+        text: labels.length > i ? labels[i] : '',
+        style: TextStyle(fontSize: 8, color: textColor),
+      );
       tp.layout();
-      final tx = (x - tp.width / 2).clamp(0.0, size.width - tp.width).toDouble();
+      final tx = (xAt(i) - tp.width / 2)
+          .clamp(left, size.width - tp.width)
+          .toDouble();
       tp.paint(canvas, Offset(tx, baseY + 5));
     }
   }
 
   @override
   bool shouldRepaint(covariant _StatsLinePainter old) =>
-      old.values != values || old.labels != labels || old.color != color ||
+      old.values != values ||
+      old.labels != labels ||
+      old.color != color ||
       old.progress != progress;
 }
 
@@ -910,23 +941,33 @@ class _BarsPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = color.withValues(alpha: 0.75);
-    final line = Paint()
-      ..color = textColor.withValues(alpha: 0.15)
-      ..strokeWidth = 1;
-    final baseY = size.height - 20;
-    canvas.drawLine(Offset(0, baseY), Offset(size.width, baseY), line);
-    if (values.isEmpty) return;
+    final baseY = size.height - _chartBottomPad;
+    const plotTop = _chartTopPad;
+    const left = _chartLeftAxis;
     final maxValue = values.fold<double>(0, (a, b) => a > b ? a : b);
-    if (maxValue <= 0) return;
+    _paintYAxis(
+      canvas,
+      size,
+      maxValue: maxValue,
+      baseY: baseY,
+      plotTop: plotTop,
+      plotLeft: left,
+      textColor: textColor,
+    );
+    if (values.isEmpty || maxValue <= 0) return;
+
     final p = progress.clamp(0.0, 1.0).toDouble();
-    final slot = size.width / values.length;
+    final plotW = size.width - left;
+    final plotH = baseY - plotTop;
+    final slot = plotW / values.length;
     final barWidth = (slot * 0.55).clamp(2.0, 16.0).toDouble();
+    final paint = Paint()..color = color.withValues(alpha: 0.75);
+
     for (var i = 0; i < values.length; i++) {
       final v = values[i];
       if (v <= 0) continue;
-      final h = (v / maxValue) * (size.height - 48) * p;
-      final x = slot * i + (slot - barWidth) / 2;
+      final h = (v / maxValue) * plotH * p;
+      final x = left + slot * i + (slot - barWidth) / 2;
       canvas.drawRRect(
         RRect.fromRectAndRadius(
           Rect.fromLTWH(x, baseY - h, barWidth, h),
@@ -935,35 +976,43 @@ class _BarsPainter extends CustomPainter {
         paint,
       );
     }
+
     final textPainter = TextPainter(textDirection: TextDirection.ltr);
+    for (var i = 0; i < values.length; i++) {
+      if (values[i] <= 0) continue;
+      final h = (values[i] / maxValue) * plotH * p;
+      final centerX = left + slot * i + slot / 2;
+      textPainter.text = TextSpan(
+        text: _shortAmount(values[i]),
+        style: TextStyle(fontSize: 7.5, color: color, fontWeight: FontWeight.w600),
+      );
+      textPainter.layout();
+      final ax = (centerX - textPainter.width / 2)
+          .clamp(left, size.width - textPainter.width)
+          .toDouble();
+      textPainter.paint(
+        canvas,
+        Offset(ax, (baseY - h - 12).clamp(0.0, baseY - 10).toDouble()),
+      );
+    }
     for (var i = 0; i < values.length; i += labelEvery) {
-      final x = slot * i;
-      if (values[i] > 0) {
-        final h = (values[i] / maxValue) * (size.height - 48) * p;
-        textPainter.text = TextSpan(
-          text: _shortAmount(values[i]),
-          style: TextStyle(fontSize: 8, color: color, fontWeight: FontWeight.w600),
-        );
-        textPainter.layout();
-        final ax = (slot * i + (slot - textPainter.width) / 2)
-            .clamp(0.0, size.width - textPainter.width)
-            .toDouble();
-        textPainter.paint(
-          canvas,
-          Offset(ax, (baseY - h - 13).clamp(0.0, baseY - 10).toDouble()),
-        );
-      }
+      final centerX = left + slot * i + slot / 2;
       textPainter.text = TextSpan(
         text: labels.length > i ? labels[i] : '',
         style: TextStyle(fontSize: 8, color: textColor),
       );
       textPainter.layout();
-      textPainter.paint(canvas, Offset(x, baseY + 5));
+      final tx = (centerX - textPainter.width / 2)
+          .clamp(left, size.width - textPainter.width)
+          .toDouble();
+      textPainter.paint(canvas, Offset(tx, baseY + 5));
     }
   }
 
   @override
   bool shouldRepaint(covariant _BarsPainter old) =>
-      old.values != values || old.labels != labels || old.color != color ||
+      old.values != values ||
+      old.labels != labels ||
+      old.color != color ||
       old.progress != progress;
 }

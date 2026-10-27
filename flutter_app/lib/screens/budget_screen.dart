@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models.dart';
 
 import '../store.dart';
+import '../theme.dart';
 import '../utils.dart';
 
 class BudgetScreen extends StatefulWidget {
@@ -144,7 +145,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
     );
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => XkDialog(
         title: Text('${category.icon} ${category.name} 预算'),
         content: TextField(
           controller: controller,

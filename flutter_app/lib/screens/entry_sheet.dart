@@ -123,10 +123,13 @@ class _EntrySheetState extends State<EntrySheet> {
     final picked = await showModalBottomSheet<String>(
       context: context,
       useSafeArea: true,
-      showDragHandle: true,
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      showDragHandle: false,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => XkSheet(
+        child: SafeArea(
+          top: false,
+          child: Padding(
+          padding: const EdgeInsets.fromLTRB(4, 10, 4, 8),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -145,6 +148,7 @@ class _EntrySheetState extends State<EntrySheet> {
                   )),
             ],
           ),
+        ),
         ),
       ),
     );
@@ -376,7 +380,7 @@ class _EntrySheetState extends State<EntrySheet> {
     if (existing == null) return;
     showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => XkDialog(
         title: const Text('删除这笔账单？'),
         content: const Text('删除后无法恢复。'),
         actions: [

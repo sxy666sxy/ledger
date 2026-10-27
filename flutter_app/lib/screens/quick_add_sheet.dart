@@ -156,6 +156,8 @@ class _QuickAddSheetState extends State<QuickAddSheet> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final custom = store.themeId == 'custom';
+    final glass = custom || store.cardStyle == 'glass';
     final viewInsets = MediaQuery.viewInsetsOf(context);
     final parsed = _parsed;
     final category = parsed == null ? null : store.categoryById(parsed.categoryId);
@@ -173,9 +175,11 @@ class _QuickAddSheetState extends State<QuickAddSheet> {
         margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
         decoration: BoxDecoration(
-          color: scheme.surface,
+          color: glass ? scheme.surface.withValues(alpha: custom ? 0.84 : 0.97) : scheme.surface,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: scheme.onSurface.withValues(alpha: 0.08)),
+          border: Border.all(
+            color: glass ? Colors.white.withValues(alpha: 0.5) : scheme.onSurface.withValues(alpha: 0.08),
+          ),
           boxShadow: [
             BoxShadow(
               color: scheme.shadow.withValues(alpha: 0.18),

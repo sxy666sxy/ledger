@@ -9,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../data_io.dart';
 import '../store.dart';
+import '../theme.dart';
 import '../utils.dart';
 
 class DataBackupScreen extends StatefulWidget {
@@ -115,7 +116,7 @@ class _DataBackupScreenState extends State<DataBackupScreen> {
   Future<bool?> _confirm(String title, String message) {
     return showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => XkDialog(
         title: Text(title),
         content: Text(message),
         actions: [

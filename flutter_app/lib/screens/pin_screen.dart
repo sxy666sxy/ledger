@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../store.dart';
+import '../theme.dart';
 
 class PinGate extends StatelessWidget {
   const PinGate({super.key, required this.child});
@@ -153,7 +154,7 @@ Future<void> showPinSetupDialog(BuildContext context, AppStore store, {bool chan
   final second = TextEditingController();
   final result = await showDialog<bool>(
     context: context,
-    builder: (ctx) => AlertDialog(
+    builder: (ctx) => XkDialog(
       title: Text(changing ? '修改隐私密码' : '设置隐私密码'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -239,7 +240,7 @@ class PinSettingsScreen extends StatelessWidget {
                         onTap: () async {
                           final ok = await showDialog<bool>(
                             context: context,
-                            builder: (ctx) => AlertDialog(
+                            builder: (ctx) => XkDialog(
                               title: const Text('关闭隐私锁？'),
                               content: const Text('关闭后打开应用将不再需要密码。'),
                               actions: [

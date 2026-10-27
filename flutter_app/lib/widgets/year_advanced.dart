@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models.dart';
 import '../store.dart';
+import '../theme.dart';
 import '../screens/asset_trend_screen.dart';
 import '../utils.dart';
 
@@ -53,7 +54,7 @@ class YearAdvancedCards extends StatelessWidget {
                 const Expanded(child: Text('资产走势', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800))),
                 TextButton(
                   onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const AssetTrendScreen()),
+                    fastPageRoute<void>(const AssetTrendScreen()),
                   ),
                   child: const Text('完整走势'),
                 ),

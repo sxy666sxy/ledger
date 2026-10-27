@@ -117,8 +117,11 @@ class _RootShellState extends State<RootShell> with SingleTickerProviderStateMix
     final store = AppStore.instance;
     await showModalBottomSheet<void>(
       context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => XkSheet(
+        child: SafeArea(
+          top: false,
+          child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Padding(
@@ -143,7 +146,7 @@ class _RootShellState extends State<RootShell> with SingleTickerProviderStateMix
                 final controller = TextEditingController();
                 final name = await showDialog<String>(
                   context: context,
-                  builder: (d) => AlertDialog(
+                  builder: (d) => XkDialog(
                     title: const Text('新建账本'),
                     content: TextField(
                       controller: controller,
@@ -166,6 +169,7 @@ class _RootShellState extends State<RootShell> with SingleTickerProviderStateMix
             ),
             const SizedBox(height: 10),
           ],
+        ),
         ),
       ),
     );

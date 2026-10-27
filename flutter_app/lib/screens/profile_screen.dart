@@ -98,7 +98,7 @@ class ProfileScreen extends StatelessWidget {
                       title: const Text('外观主题'),
                       trailing: Text('$themeLabel ›', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
                       onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const ThemeCenterScreen()),
+                        fastPageRoute<void>(const ThemeCenterScreen()),
                       ),
                     ),
                     const Divider(height: 1),
@@ -107,7 +107,7 @@ class ProfileScreen extends StatelessWidget {
                       title: const Text('分类管理'),
                       subtitle: Text('${store.categories.length} 个分类'),
                       onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const CategoriesScreen()),
+                        fastPageRoute<void>(const CategoriesScreen()),
                       ),
                     ),
                     const Divider(height: 1),
@@ -118,7 +118,7 @@ class ProfileScreen extends StatelessWidget {
                           ? '每月 ${formatMoney(store.activeBook.budget)}'
                           : '未设置'),
                       onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const BudgetScreen()),
+                        fastPageRoute<void>(const BudgetScreen()),
                       ),
                     ),
                     const Divider(height: 1),
@@ -127,7 +127,7 @@ class ProfileScreen extends StatelessWidget {
                       title: const Text('周期记账'),
                       subtitle: Text('${store.recurringRules.length} 条规则'),
                       onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const RecurringScreen()),
+                        fastPageRoute<void>(const RecurringScreen()),
                       ),
                     ),
                     const Divider(height: 1),
@@ -136,7 +136,7 @@ class ProfileScreen extends StatelessWidget {
                       title: const Text('隐私锁'),
                       subtitle: Text(store.pinHash.isEmpty ? '未开启' : '已开启'),
                       onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const PinSettingsScreen()),
+                        fastPageRoute<void>(const PinSettingsScreen()),
                       ),
                     ),
                     const Divider(height: 1),
@@ -159,7 +159,7 @@ class ProfileScreen extends StatelessWidget {
                       title: const Text('数据与备份'),
                       subtitle: const Text('数据保存在本机；Excel 导入导出将在下一阶段迁移'),
                       onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const DataBackupScreen()),
+                        fastPageRoute<void>(const DataBackupScreen()),
                       ),
                     ),
                     const Divider(height: 1),
@@ -209,7 +209,7 @@ class ProfileScreen extends StatelessWidget {
   Future<void> _clearData(BuildContext context, AppStore store) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => XkDialog(
         title: const Text('清空所有数据？'),
         content: const Text('所有账本、账单、账户和分类都会被删除，无法恢复。'),
         actions: [

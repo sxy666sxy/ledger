@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models.dart';
 import '../store.dart';
+import '../theme.dart';
 import '../utils.dart';
 
 class RecurringScreen extends StatelessWidget {
@@ -113,7 +114,7 @@ class RecurringScreen extends StatelessWidget {
         builder: (ctx, setDialogState) {
           final cats = store.categoriesFor(type);
           final accts = store.bookkeepingAccounts.isNotEmpty ? store.bookkeepingAccounts : store.accounts;
-          return AlertDialog(
+          return XkDialog(
             title: Text(existing == null ? '新增周期记账' : '编辑周期记账'),
             content: SingleChildScrollView(
               child: Column(

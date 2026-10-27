@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models.dart';
 import '../store.dart';
+import '../theme.dart';
 import '../utils.dart';
 
 class YearHeatmapCard extends StatelessWidget {
@@ -65,8 +66,8 @@ class YearHeatmapCard extends StatelessWidget {
               height: 32,
               child: OutlinedButton.icon(
                 onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => YearHeatmapPage(year: year, initialType: type),
+                  fastPageRoute<void>(
+                    YearHeatmapPage(year: year, initialType: type),
                   ),
                 ),
                 icon: const Icon(Icons.open_in_full, size: 15),

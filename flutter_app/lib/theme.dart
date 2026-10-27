@@ -369,8 +369,9 @@ class ThemeBackground extends StatelessWidget {
 /// 自定义图片主题下，页面切换使用更短的淡入，避免上一页残留造成重影。
 Route<T> fastPageRoute<T>(Widget page) {
   return PageRouteBuilder<T>(
-    transitionDuration: const Duration(milliseconds: 150),
-    reverseTransitionDuration: const Duration(milliseconds: 120),
+    transitionDuration: const Duration(milliseconds: 75),
+    reverseTransitionDuration: const Duration(milliseconds: 60),
+    allowSnapshotting: false,
     pageBuilder: (context, animation, secondaryAnimation) => page,
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
@@ -388,7 +389,7 @@ class XkDialog extends StatelessWidget {
     required this.actions,
   });
 
-  final String title;
+  final Object title;
   final Widget content;
   final List<Widget> actions;
 
@@ -414,7 +415,13 @@ class XkDialog extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+              if (title is String)
+                Text(title as String, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800))
+              else
+                DefaultTextStyle.merge(
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                  child: title as Widget,
+                ),
               const SizedBox(height: 14),
               Flexible(
                 child: SingleChildScrollView(
@@ -449,6 +456,42 @@ class XkDialog extends StatelessWidget {
               ),
             )
           : panel,
+    );
+  }
+}
+
+
+/// 与主题一致的底部弹层，替换默认白色 BottomSheet。
+class XkSheet extends StatelessWidget {
+  const XkSheet({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.fromLTRB(18, 10, 18, 18),
+  });
+
+  final Widget child;
+  final EdgeInsets padding;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final custom = AppStore.instance.themeId == 'custom';
+    final glass = custom || AppStore.instance.cardStyle == 'glass';
+    final panel = Container(
+      decoration: BoxDecoration(
+        color: glass ? scheme.surface.withValues(alpha: custom ? 0.82 : 0.96) : scheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+        border: Border(top: BorderSide(color: Colors.white.withValues(alpha: glass ? 0.5 : 0.0))),
+      ),
+      child: Padding(padding: padding, child: child),
+    );
+    if (!glass) return panel;
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: panel,
+      ),
     );
   }
 }

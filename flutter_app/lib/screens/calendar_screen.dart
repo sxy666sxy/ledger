@@ -3,6 +3,7 @@ import 'package:lunar/lunar.dart';
 
 import '../models.dart';
 import '../store.dart';
+import '../theme.dart';
 import '../utils.dart';
 import 'entry_sheet.dart';
 
@@ -70,11 +71,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final store = AppStore.instance;
     showModalBottomSheet<void>(
       context: context,
-      showDragHandle: true,
+      showDragHandle: false,
+      backgroundColor: Colors.transparent,
       builder: (ctx) => AnimatedBuilder(
         animation: store,
-        builder: (context, _) => SafeArea(
-          child: Column(
+        builder: (context, _) => XkSheet(
+          child: SafeArea(
+            top: false,
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const ListTile(
@@ -89,6 +93,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               ),
               const SizedBox(height: 8),
             ],
+          ),
           ),
         ),
       ),
