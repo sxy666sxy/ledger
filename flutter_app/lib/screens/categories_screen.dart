@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models.dart';
 import '../store.dart';
+import '../theme.dart';
 
 class CategoriesScreen extends StatefulWidget {
   const CategoriesScreen({super.key});
@@ -58,7 +59,19 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                         ),
                         title: Text(c.name, style: const TextStyle(fontWeight: FontWeight.w700)),
                         subtitle: Text(used > 0 ? '已有 $used 笔账单' : '暂无账单'),
-                        trailing: const Icon(Icons.edit_outlined, size: 18),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (used > 0)
+                              IconButton(
+                                tooltip: '转入其他分类账单',
+                                visualDensity: VisualDensity.compact,
+                                onPressed: () => _moveCategory(context, store, c),
+                                icon: const Icon(Icons.swap_horiz, size: 18),
+                              ),
+                            const Icon(Icons.edit_outlined, size: 18),
+                          ],
+                        ),
                         onTap: () => _edit(context, store, c),
                       ),
                     );
@@ -93,55 +106,73 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
       0xFF0E9F6E,
       0xFF94A3B8,
     ];
+    final used = category == null
+        ? 0
+        : store.transactions.where((t) => t.categoryId == category.id).length;
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: Text(category == null ? '新增分类' : '编辑分类'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: icon,
-                  textAlign: TextAlign.center,
-                  maxLength: 4,
-                  decoration: const InputDecoration(labelText: '图标（Emoji）', counterText: ''),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: name,
-                  autofocus: category == null,
-                  decoration: const InputDecoration(labelText: '分类名称'),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 9,
-                  runSpacing: 9,
-                  children: palette.map((c) {
-                    return InkWell(
-                      onTap: () => setDialogState(() => color = c),
-                      borderRadius: BorderRadius.circular(99),
-                      child: Container(
-                        width: 29,
-                        height: 29,
-                        decoration: BoxDecoration(
-                          color: Color(c),
-                          shape: BoxShape.circle,
-                          border: color == c ? Border.all(color: Colors.black54, width: 2.5) : null,
-                        ),
+        builder: (ctx, setDialogState) => XkDialog(
+          title: category == null ? '新增分类' : '编辑分类',
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: icon,
+                textAlign: TextAlign.center,
+                maxLength: 4,
+                decoration: const InputDecoration(labelText: '图标（Emoji）', counterText: ''),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: name,
+                autofocus: category == null,
+                decoration: const InputDecoration(labelText: '分类名称'),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 9,
+                runSpacing: 9,
+                children: palette.map((c) {
+                  return InkWell(
+                    onTap: () => setDialogState(() => color = c),
+                    borderRadius: BorderRadius.circular(99),
+                    child: Container(
+                      width: 29,
+                      height: 29,
+                      decoration: BoxDecoration(
+                        color: Color(c),
+                        shape: BoxShape.circle,
+                        border: color == c ? Border.all(color: Colors.black54, width: 2.5) : null,
                       ),
-                    );
-                  }).toList(),
-                ),
-                if (category != null)
-                  TextButton.icon(
+                    ),
+                  );
+                }).toList(),
+              ),
+              if (category != null) ...[
+                const SizedBox(height: 14),
+                if (used > 0)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () async {
+                        final moved = await _moveCategory(context, store, category);
+                        if (moved && ctx.mounted) Navigator.pop(ctx);
+                      },
+                      icon: const Icon(Icons.swap_horiz, size: 18),
+                      label: const Text('转入其他分类账单'),
+                    ),
+                  ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
                     onPressed: () => _delete(ctx, store, category),
-                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
                     label: const Text('删除分类', style: TextStyle(color: Colors.red)),
                   ),
+                ),
               ],
-            ),
+            ],
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
@@ -154,8 +185,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     final label = name.text.trim();
     if (label.isEmpty) return;
     final order = category?.order ??
-        store.categories.where((c) => c.type == _type).fold<int>(0, (a, c) => c.order > a ? c.order : a) +
-            1;
+        store.categories.where((c) => c.type == _type).fold<int>(0, (a, c) => c.order > a ? c.order : a) + 1;
     if (category == null) {
       store.addCategory(Category(
         id: '',
@@ -173,20 +203,81 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     }
   }
 
+  Future<bool> _moveCategory(BuildContext pageContext, AppStore store, Category category) async {
+    final count = store.transactions.where((t) => t.categoryId == category.id).length;
+    if (count == 0) {
+      ScaffoldMessenger.of(pageContext).showSnackBar(
+        const SnackBar(content: Text('该分类下暂无账单')),
+      );
+      return false;
+    }
+    final targets = store
+        .categoriesFor(category.type)
+        .where((c) => c.id != category.id)
+        .toList(growable: false);
+    if (targets.isEmpty) {
+      ScaffoldMessenger.of(pageContext).showSnackBar(
+        const SnackBar(content: Text('没有其他分类可转入')),
+      );
+      return false;
+    }
+    final targetId = await showDialog<String>(
+      context: pageContext,
+      builder: (ctx) => XkDialog(
+        title: '转入其他分类账单',
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '将「${category.name}」下的 $count 笔账单转入：',
+                style: TextStyle(fontSize: 12.5, color: Colors.grey.shade700),
+              ),
+            ),
+            const SizedBox(height: 8),
+            for (final target in targets)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                leading: Text(target.icon, style: const TextStyle(fontSize: 20)),
+                title: Text(target.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: Text(
+                  '${store.transactions.where((t) => t.categoryId == target.id).length} 笔账单',
+                  style: const TextStyle(fontSize: 10.5),
+                ),
+                onTap: () => Navigator.pop(ctx, target.id),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+        ],
+      ),
+    );
+    if (targetId == null || !pageContext.mounted) return false;
+    final target = store.categoryById(targetId);
+    final moved = store.moveCategoryTransactions(category.id, targetId);
+    ScaffoldMessenger.of(pageContext).showSnackBar(
+      SnackBar(content: Text('已将 $moved 笔账单转入「${target?.name ?? '其他分类'}」')),
+    );
+    return moved > 0;
+  }
+
   Future<void> _delete(BuildContext context, AppStore store, Category category) async {
     final used = store.transactions.where((t) => t.categoryId == category.id).length;
     if (used > 0) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('已有 $used 笔账单使用该分类，不能删除')),
+          SnackBar(content: Text('已有 $used 笔账单使用该分类，可先转入其他分类')),
         );
       }
       return;
     }
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('删除分类？'),
+      builder: (ctx) => XkDialog(
+        title: '删除分类？',
         content: Text('确定删除「${category.name}」？'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),

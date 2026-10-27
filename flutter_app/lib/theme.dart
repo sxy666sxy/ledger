@@ -365,3 +365,90 @@ class ThemeBackground extends StatelessWidget {
     );
   }
 }
+
+/// 自定义图片主题下，页面切换使用更短的淡入，避免上一页残留造成重影。
+Route<T> fastPageRoute<T>(Widget page) {
+  return PageRouteBuilder<T>(
+    transitionDuration: const Duration(milliseconds: 150),
+    reverseTransitionDuration: const Duration(milliseconds: 120),
+    pageBuilder: (context, animation, secondaryAnimation) => page,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+      return FadeTransition(opacity: curved, child: child);
+    },
+  );
+}
+
+/// 与自定义主题/玻璃卡一致的弹窗，替换默认白色 AlertDialog。
+class XkDialog extends StatelessWidget {
+  const XkDialog({
+    super.key,
+    required this.title,
+    required this.content,
+    required this.actions,
+  });
+
+  final String title;
+  final Widget content;
+  final List<Widget> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final custom = AppStore.instance.themeId == 'custom';
+    final glass = custom || AppStore.instance.cardStyle == 'glass';
+    final panel = Container(
+      constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.78),
+      decoration: BoxDecoration(
+        color: glass ? scheme.surface.withValues(alpha: custom ? 0.78 : 0.94) : scheme.surface,
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: Colors.white.withValues(alpha: glass ? 0.42 : 0.0)),
+        boxShadow: const [BoxShadow(color: Color(0x33000000), blurRadius: 24, offset: Offset(0, 10))],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(26),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(22, 22, 22, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 14),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: content,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  for (var i = 0; i < actions.length; i++) ...[
+                    if (i > 0) const SizedBox(width: 8),
+                    actions[i],
+                  ],
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    return Dialog(
+      elevation: 0,
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+      child: glass
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(26),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+                child: panel,
+              ),
+            )
+          : panel,
+    );
+  }
+}

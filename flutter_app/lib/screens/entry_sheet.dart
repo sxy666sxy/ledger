@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models.dart';
 import '../store.dart';
+import '../theme.dart';
 import '../utils.dart';
 
 Future<void> showEntrySheet(
@@ -43,6 +44,7 @@ class _EntrySheetState extends State<EntrySheet> {
   String _toAccountId = '';
   late String _amountText;
   late TextEditingController _noteController;
+  final FocusNode _noteFocus = FocusNode();
 
   @override
   void initState() {
@@ -75,6 +77,7 @@ class _EntrySheetState extends State<EntrySheet> {
   @override
   void dispose() {
     _noteController.dispose();
+    _noteFocus.dispose();
     super.dispose();
   }
 
@@ -159,39 +162,13 @@ class _EntrySheetState extends State<EntrySheet> {
     });
   }
 
-  Future<void> _editNote() async {
-    final controller = TextEditingController(text: _noteController.text);
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('备注'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLines: 3,
-          textInputAction: TextInputAction.done,
-          decoration: const InputDecoration(hintText: '写点什么…'),
-          onSubmitted: (value) => Navigator.of(ctx).pop(value),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('取消')),
-          FilledButton(onPressed: () => Navigator.of(ctx).pop(controller.text), child: const Text('确定')),
-        ],
-      ),
-    );
-    if (result != null && mounted) {
-      setState(() => _noteController.text = result.trim());
-    }
-    controller.dispose();
-  }
-
   Future<void> _addCategory() async {
     final name = TextEditingController();
     final icon = TextEditingController(text: '🏷️');
     final result = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(_type == TxnType.income ? '新增收入分类' : '新增支出分类'),
+      builder: (ctx) => XkDialog(
+        title: _type == TxnType.income ? '新增收入分类' : '新增支出分类',
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -448,14 +425,28 @@ class _EntrySheetState extends State<EntrySheet> {
     final amount = _amountText.isEmpty ? '0.00' : _amountText;
     final existing = widget.existing;
 
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.94,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: panel,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
-      ),
-      child: Column(
+    final media = MediaQuery.of(context);
+    final keyboard = media.viewInsets.bottom;
+    final desiredHeight = media.size.height * 0.94;
+    final availableHeight = media.size.height - media.padding.top - keyboard - 6;
+    final sheetHeight = keyboard > 0
+        ? availableHeight.clamp(360.0, desiredHeight).toDouble()
+        : desiredHeight;
+
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 160),
+      curve: Curves.easeOutCubic,
+      padding: EdgeInsets.only(bottom: keyboard),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOutCubic,
+        height: sheetHeight,
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: panel,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+        ),
+        child: Column(
         children: [
           Container(
             width: 38,
@@ -638,36 +629,32 @@ class _EntrySheetState extends State<EntrySheet> {
               children: [
                 Expanded(
                   flex: 5,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(9),
-                    onTap: _editNote,
-                    child: Container(
-                      height: 38,
-                      padding: const EdgeInsets.symmetric(horizontal: 9),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(9),
-                        border: Border.all(color: theme.dividerTheme.color ?? Colors.black12),
+                  child: TextField(
+                    controller: _noteController,
+                    focusNode: _noteFocus,
+                    maxLines: 1,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => _noteFocus.unfocus(),
+                    onTapOutside: (_) => _noteFocus.unfocus(),
+                    style: TextStyle(fontSize: 11.5, color: theme.colorScheme.onSurface),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      filled: false,
+                      hintText: '添加备注',
+                      prefixIcon: Icon(Icons.edit_note, size: 16, color: theme.colorScheme.primary),
+                      prefixIconConstraints: const BoxConstraints(minWidth: 26, minHeight: 26),
+                      contentPadding: const EdgeInsets.fromLTRB(0, 9, 9, 9),
+                      hintStyle: TextStyle(
+                        fontSize: 11.5,
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.42),
                       ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit_note, size: 16, color: theme.colorScheme.primary),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              _noteController.text.trim().isEmpty
-                                  ? '添加备注'
-                                  : _noteController.text.trim(),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 11.5,
-                                color: _noteController.text.trim().isEmpty
-                                    ? theme.colorScheme.onSurface.withValues(alpha: 0.42)
-                                    : theme.colorScheme.onSurface,
-                              ),
-                            ),
-                          ),
-                        ],
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(9),
+                        borderSide: BorderSide(color: theme.dividerTheme.color ?? Colors.black12),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(9),
+                        borderSide: BorderSide(color: theme.colorScheme.primary, width: 1.2),
                       ),
                     ),
                   ),
@@ -702,6 +689,7 @@ class _EntrySheetState extends State<EntrySheet> {
             saveLabel: existing == null ? '保存' : '更新',
           ),
         ],
+        ),
       ),
     );
   }

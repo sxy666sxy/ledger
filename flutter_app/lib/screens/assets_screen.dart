@@ -74,7 +74,7 @@ class AssetsScreen extends StatelessWidget {
                     tooltip: '完整资产走势',
                     visualDensity: VisualDensity.compact,
                     onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const AssetTrendScreen()),
+                      fastPageRoute<void>(const AssetTrendScreen()),
                     ),
                     icon: const Icon(Icons.show_chart, size: 20),
                   ),
@@ -150,8 +150,8 @@ class AssetsScreen extends StatelessWidget {
     final initial = TextEditingController(text: account?.initial.toStringAsFixed(2) ?? '0.00');
     final result = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(account == null ? '新增账户' : '编辑账户'),
+      builder: (ctx) => XkDialog(
+        title: account == null ? '新增账户' : '编辑账户',
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -167,14 +167,14 @@ class AssetsScreen extends StatelessWidget {
               decoration: const InputDecoration(labelText: '初始余额', prefixText: '¥ '),
             ),
             if (account != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
+              Align(
+                alignment: Alignment.centerLeft,
                 child: TextButton.icon(
                   onPressed: () async {
                     final ok = await showDialog<bool>(
                       context: ctx,
-                      builder: (c) => AlertDialog(
-                        title: const Text('删除账户？'),
+                      builder: (c) => XkDialog(
+                        title: '删除账户？',
                         content: const Text('该账户下的账单也会被删除。'),
                         actions: [
                           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('取消')),
@@ -191,7 +191,7 @@ class AssetsScreen extends StatelessWidget {
                       if (ctx.mounted) Navigator.pop(ctx, false);
                     }
                   },
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
                   label: const Text('删除账户', style: TextStyle(color: Colors.red)),
                 ),
               ),

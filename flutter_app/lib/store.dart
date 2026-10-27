@@ -551,6 +551,23 @@ class AppStore extends ChangeNotifier {
     save();
   }
 
+  int moveCategoryTransactions(String fromId, String toId) {
+    if (fromId == toId) return 0;
+    var moved = 0;
+    for (final txn in transactions) {
+      if (txn.categoryId == fromId) {
+        txn.categoryId = toId;
+        txn.subcategory = '';
+        moved++;
+      }
+    }
+    if (moved > 0) {
+      notifyListeners();
+      save();
+    }
+    return moved;
+  }
+
   void deleteCategory(String id) {
     categories.removeWhere((c) => c.id == id);
     notifyListeners();

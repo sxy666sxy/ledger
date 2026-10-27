@@ -71,20 +71,20 @@ jobs:
       - name: Prepare asset
         run: |
           mkdir -p ../dist_flutter
-          cp build/app/outputs/flutter-apk/app-release.apk "../dist_flutter/星空记账-flutter-v0.14.0.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "../dist_flutter/星空记账-flutter-v0.15.0.apk"
           ls -lh ../dist_flutter
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: xingkong-flutter-v0.14.0
-          path: dist_flutter/星空记账-flutter-v0.14.0.apk
+          name: xingkong-flutter-v0.15.0
+          path: dist_flutter/星空记账-flutter-v0.15.0.apk
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: flutter-v0.14.0
-          name: 星空记账 Flutter v0.14.0（快捷记账/搜索/液态底栏）
+          tag_name: flutter-v0.15.0
+          name: 星空记账 Flutter v0.15.0（键盘备注/主题弹窗/分类转移）
           body: |
             纯 Flutter 原生重写：转账、分类预算、完整 Excel、报表图片/PDF 与资产区间。
             - 修复部分 WPS/Excel 文件导入时报 numFmtId 0 错误
@@ -118,6 +118,10 @@ jobs:
             - 底栏液态玻璃透明度与顶栏一致，月支出金额改为金黄色
             - 明细右上角改为搜索，可搜索备注/分类/账户/金额
             - 长按 + 打开快捷记账小窗，键盘弹出时整体上移
+            - 备注改为直接输入，系统键盘自动顶起记账面板
+            - 自定义图片主题下，搜索/资产走势页面切换更快，避免上一页重影
+            - 新增账户、新增/编辑分类弹窗与主题一致
+            - 分类管理支持把账单转入其他分类
             - 快捷记账自动识别分类/金额/账户，并支持语音转文字后记账
             - 明细 / 记账 / 日历 / 月统计 / 资产 / 我的
             - 分类管理、月预算、账户余额、分类统计
@@ -137,7 +141,7 @@ jobs:
             - 使用固定发布签名，后续版本可直接覆盖升级
             - 与原 WebView 版为不同包名，可并存安装
             后续阶段迁移：更完整的 Excel 字段映射、资产转移、分类预算与高级统计。
-          files: dist_flutter/星空记账-flutter-v0.14.0.apk
+          files: dist_flutter/星空记账-flutter-v0.15.0.apk
           draft: false
           prerelease: true
           allowUpdates: true

@@ -227,7 +227,7 @@ class _RootShellState extends State<RootShell> with SingleTickerProviderStateMix
                         IconButton(
                           tooltip: '搜索',
                           onPressed: () => Navigator.of(context).push(
-                            MaterialPageRoute<void>(builder: (_) => const SearchScreen()),
+                            fastPageRoute<void>(const SearchScreen()),
                           ),
                           icon: const Icon(Icons.search),
                         ),
