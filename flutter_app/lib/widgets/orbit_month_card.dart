@@ -167,7 +167,7 @@ class _OrbitMonthCardState extends State<OrbitMonthCard> {
                         style: const TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.w800,
-                          color: const Color(0xFFF3B63B),
+                          color: const Color(0xFFFF7A85),
                           letterSpacing: -0.8,
                         ),
                       ),
@@ -180,7 +180,7 @@ class _OrbitMonthCardState extends State<OrbitMonthCard> {
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
                           alignment: Alignment.centerLeft,
-                          child: _tiny('收入', formatMoney(widget.totals.income, symbol: false)),
+                          child: _tiny('收入', formatMoney(widget.totals.income, symbol: false), const Color(0xFF7EE2B8)),
                         ),
                       ),
                       const SizedBox(width: 9),
@@ -188,7 +188,11 @@ class _OrbitMonthCardState extends State<OrbitMonthCard> {
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
                           alignment: Alignment.centerLeft,
-                          child: _tiny('结余', formatMoney(widget.totals.balance, symbol: false)),
+                          child: _tiny(
+                            '结余',
+                            formatMoney(widget.totals.balance, symbol: false),
+                            widget.totals.balance < 0 ? const Color(0xFFFF7A85) : const Color(0xFF7EE2B8),
+                          ),
                         ),
                       ),
                     ],
@@ -210,12 +214,12 @@ class _OrbitMonthCardState extends State<OrbitMonthCard> {
     );
   }
 
-  Widget _tiny(String label, String value) {
+  Widget _tiny(String label, String value, Color color) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: TextStyle(fontSize: 8.4, color: Colors.white.withValues(alpha: 0.48))),
-        Text(value, style: const TextStyle(fontSize: 10.8, color: Colors.white, fontWeight: FontWeight.w700)),
+        Text(value, style: TextStyle(fontSize: 10.8, color: color, fontWeight: FontWeight.w700)),
       ],
     );
   }

@@ -95,6 +95,16 @@ Color themeHeroIncome(BuildContext context) => themeHeroIsGlass()
     ? const Color(0xFF0E9F6E)
     : const Color(0xFF8FE3C8);
 
+/// 汇总卡统一金额色：支出红、收入绿，结余按正负取色。
+Color themeHeroExpense(BuildContext context) => themeHeroIsGlass()
+    ? (Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFFFF8A8A)
+        : const Color(0xFFD92D20))
+    : const Color(0xFFFF9AA2);
+
+Color themeHeroBalance(BuildContext context, double value) =>
+    value < 0 ? themeHeroExpense(context) : themeHeroIncome(context);
+
 BoxDecoration themeHeroDecoration(BuildContext context, {double radius = 22}) {
   final colors = themeHeroColors(context);
   final style = AppStore.instance.cardStyle;

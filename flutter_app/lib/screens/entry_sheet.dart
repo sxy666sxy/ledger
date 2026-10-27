@@ -432,6 +432,7 @@ class _EntrySheetState extends State<EntrySheet> {
 
     final media = MediaQuery.of(context);
     final keyboard = media.viewInsets.bottom;
+    final typing = keyboard > 0;
     final desiredHeight = media.size.height * 0.94;
     final availableHeight = media.size.height - media.padding.top - keyboard - 6;
     final sheetHeight = keyboard > 0
@@ -687,12 +688,35 @@ class _EntrySheetState extends State<EntrySheet> {
               ],
             ),
           ),
-          _Keypad(
-            onKey: _pressKey,
-            onSave: _save,
-            onCancel: () => Navigator.of(context).pop(),
-            saveLabel: existing == null ? '保存' : '更新',
-          ),
+          if (typing)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextButton.icon(
+                      onPressed: _noteFocus.unfocus,
+                      icon: const Icon(Icons.keyboard_hide, size: 16),
+                      label: const Text('完成'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: _save,
+                      child: Text(existing == null ? '保存' : '更新'),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            _Keypad(
+              onKey: _pressKey,
+              onSave: _save,
+              onCancel: () => Navigator.of(context).pop(),
+              saveLabel: existing == null ? '保存' : '更新',
+            ),
         ],
         ),
       ),
@@ -794,6 +818,7 @@ class _Keypad extends StatelessWidget {
       ['00', '0', '.', '×'],
     ];
     final bottom = MediaQuery.viewPaddingOf(context).bottom;
+    final keyHeight = (MediaQuery.sizeOf(context).height * 0.057).clamp(44.0, 50.0).toDouble();
     return Container(
       padding: EdgeInsets.fromLTRB(10, 4, 10, bottom + 16),
       child: Column(
@@ -808,6 +833,7 @@ class _Keypad extends StatelessWidget {
                     Expanded(
                       child: _KeyButton(
                         label: row[i],
+                        height: keyHeight,
                         onTap: () => onKey(row[i]),
                       ),
                     ),
@@ -817,13 +843,13 @@ class _Keypad extends StatelessWidget {
             ),
           Row(
             children: [
-              Expanded(child: _KeyButton(label: '+', onTap: () => onKey('+'))),
+              Expanded(child: _KeyButton(label: '+', height: keyHeight, onTap: () => onKey('+'))),
               const SizedBox(width: 5),
-              Expanded(child: _KeyButton(label: '-', onTap: () => onKey('-'))),
+              Expanded(child: _KeyButton(label: '-', height: keyHeight, onTap: () => onKey('-'))),
               const SizedBox(width: 5),
               Expanded(
                 child: SizedBox(
-                  height: 39,
+                  height: keyHeight,
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
                       padding: EdgeInsets.zero,
@@ -837,7 +863,7 @@ class _Keypad extends StatelessWidget {
               const SizedBox(width: 5),
               Expanded(
                 child: SizedBox(
-                  height: 39,
+                  height: keyHeight,
                   child: FilledButton(
                     style: FilledButton.styleFrom(
                       padding: EdgeInsets.zero,
@@ -857,9 +883,10 @@ class _Keypad extends StatelessWidget {
 }
 
 class _KeyButton extends StatelessWidget {
-  const _KeyButton({required this.label, required this.onTap});
+  const _KeyButton({required this.label, required this.height, required this.onTap});
 
   final String label;
+  final double height;
   final VoidCallback onTap;
 
   @override
@@ -872,7 +899,7 @@ class _KeyButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(9),
         onTap: onTap,
         child: SizedBox(
-          height: 38,
+          height: height,
           child: Center(
             child: Text(
               label,

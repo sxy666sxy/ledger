@@ -7,6 +7,7 @@ import '../theme.dart';
 import '../widgets/year_advanced.dart';
 import 'report_export_screen.dart';
 import '../widgets/year_heatmap.dart';
+import 'period_txns_screen.dart';
 
 enum _StatsView { week, month, year, custom }
 
@@ -29,7 +30,8 @@ class _StatsScreenState extends State<StatsScreen>
   int _year = DateTime.now().year;
   bool _yearAll = false;
   TxnType _type = TxnType.expense;
-  _StatsView _view = _StatsView.month;
+  static _StatsView _lastView = _StatsView.month;
+  _StatsView _view = _lastView;
   bool _lineChart = false;
 
   static DateTime _monday(DateTime d) {
@@ -90,7 +92,10 @@ class _StatsScreenState extends State<StatsScreen>
                   ButtonSegment(value: _StatsView.custom, label: Text('自定义')),
                 ],
                 selected: {_view},
-                onSelectionChanged: (set) => setState(() => _view = set.first),
+                onSelectionChanged: (set) => setState(() {
+                  _view = set.first;
+                  _lastView = _view;
+                }),
               ),
             ),
             Expanded(
@@ -130,6 +135,10 @@ class _StatsScreenState extends State<StatsScreen>
           labels: List.generate(values.length, (i) => '${i + 1}'),
           color: _type == TxnType.expense ? const Color(0xFFE5484D) : const Color(0xFF0E9F6E),
           labelEvery: 5,
+          onTapIndex: (i) {
+            final d = DateTime(_month.year, _month.month, i + 1);
+            _openRange('${d.month}月${d.day}日账单', d, d);
+          },
         ),
         const SizedBox(height: 14),
         _categoryCard(cats, _type == TxnType.expense ? totals.expense : totals.income, _type),
@@ -182,7 +191,19 @@ class _StatsScreenState extends State<StatsScreen>
         ),
         _summaryCard(context, '周', totals),
         const SizedBox(height: 14),
-        _chartCard(context, title: '每日趋势', values: daily, labels: labels, color: _type == TxnType.expense ? const Color(0xFFE5484D) : const Color(0xFF0E9F6E), labelEvery: 1, unit: '日'),
+        _chartCard(
+          context,
+          title: '每日趋势',
+          values: daily,
+          labels: labels,
+          color: _type == TxnType.expense ? const Color(0xFFE5484D) : const Color(0xFF0E9F6E),
+          labelEvery: 1,
+          unit: '日',
+          onTapIndex: (i) {
+            final d = start.add(Duration(days: i));
+            _openRange('${d.month}月${d.day}日账单', d, d);
+          },
+        ),
         const SizedBox(height: 14),
         _categoryCard(cats, _type == TxnType.expense ? totals.expense : totals.income, _type),
         const SizedBox(height: 14),
@@ -262,7 +283,24 @@ class _StatsScreenState extends State<StatsScreen>
         const SizedBox(height: 8),
         _summaryCard(context, '区间', totals),
         const SizedBox(height: 14),
-        _chartCard(context, title: '区间趋势', values: values, labels: labels, color: _type == TxnType.expense ? const Color(0xFFE5484D) : const Color(0xFF0E9F6E), labelEvery: values.length > 15 ? (values.length / 5).ceil() : 1, unit: useMonthly ? '月' : '日'),
+        _chartCard(
+          context,
+          title: '区间趋势',
+          values: values,
+          labels: labels,
+          color: _type == TxnType.expense ? const Color(0xFFE5484D) : const Color(0xFF0E9F6E),
+          labelEvery: values.length > 15 ? (values.length / 5).ceil() : 1,
+          unit: useMonthly ? '月' : '日',
+          onTapIndex: (i) {
+            if (useMonthly) {
+              final m = DateTime(from.year, from.month + i, 1);
+              _openRange('${m.year}年${m.month}月账单', m, DateTime(m.year, m.month, daysInMonth(m)));
+            } else {
+              final d = from.add(Duration(days: i));
+              _openRange('${d.month}月${d.day}日账单', d, d);
+            }
+          },
+        ),
         const SizedBox(height: 14),
         _categoryCard(cats, _type == TxnType.expense ? totals.expense : totals.income, _type),
         const SizedBox(height: 14),
@@ -277,6 +315,12 @@ class _StatsScreenState extends State<StatsScreen>
           previousExpense: store.totalsBetween(from.subtract(Duration(days: days)), from.subtract(const Duration(days: 1))).expense,
         ),
       ],
+    );
+  }
+
+  void _openRange(String title, DateTime start, DateTime end) {
+    Navigator.of(context).push(
+      fastPageRoute<void>(PeriodTxnsScreen(title: title, start: start, end: end)),
     );
   }
 
@@ -387,6 +431,15 @@ class _StatsScreenState extends State<StatsScreen>
           labels: labels,
           color: color,
           labelEvery: 1,
+          onTapIndex: (i) {
+            if (_yearAll) {
+              final y = years[i];
+              _openRange('$y年账单', DateTime(y), DateTime(y, 12, 31));
+            } else {
+              final m = DateTime(_year, i + 1, 1);
+              _openRange('${m.year}年${m.month}月账单', m, DateTime(m.year, m.month, daysInMonth(m)));
+            }
+          },
         ),
         if (!_yearAll) ...[
           const SizedBox(height: 14),
@@ -455,14 +508,13 @@ class _StatsScreenState extends State<StatsScreen>
   }
 
   Widget _summaryCard(BuildContext context, String prefix, MoneyTotals totals) {
-    final fg = themeHeroFg(context);
     return ThemeHeroCard(
       radius: 22,
       child: Row(
         children: [
-          _summary(context, '$prefix支出', formatMoney(totals.expense), fg),
+          _summary(context, '$prefix支出', formatMoney(totals.expense), themeHeroExpense(context)),
           _summary(context, '$prefix收入', formatMoney(totals.income), themeHeroIncome(context)),
-          _summary(context, '$prefix结余', formatMoney(totals.balance), fg),
+          _summary(context, '$prefix结余', formatMoney(totals.balance), themeHeroBalance(context, totals.balance)),
         ],
       ),
     );
@@ -494,6 +546,7 @@ class _StatsScreenState extends State<StatsScreen>
     required Color color,
     required int labelEvery,
     String? unit,
+    ValueChanged<int>? onTapIndex,
   }) {
     return Card(
       child: Padding(
@@ -534,26 +587,42 @@ class _StatsScreenState extends State<StatsScreen>
                 return SizedBox(
                   width: constraints.maxWidth,
                   height: 176,
-                  child: AnimatedBuilder(
-                    animation: _growthController,
-                    builder: (context, _) => CustomPaint(
-                      painter: _lineChart
-                          ? _StatsLinePainter(
-                              values: values,
-                              labels: labels,
-                              color: color,
-                              textColor: Colors.grey.shade600,
-                              labelEvery: effectiveLabelEvery,
-                              progress: _growthController.value,
-                            )
-                          : _BarsPainter(
-                              values: values,
-                              labels: labels,
-                              color: color,
-                              textColor: Colors.grey.shade600,
-                              labelEvery: effectiveLabelEvery,
-                              progress: _growthController.value,
-                            ),
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTapUp: onTapIndex == null
+                        ? null
+                        : (details) {
+                            final plotW = constraints.maxWidth - _chartLeftAxis;
+                            if (plotW <= 0 || values.isEmpty) return;
+                            final ratio = (((details.localPosition.dx - _chartLeftAxis) / plotW)
+                                    .clamp(0.0, 1.0))
+                                .toDouble();
+                            final index = _lineChart
+                                ? (values.length == 1 ? 0 : (ratio * (values.length - 1)).round())
+                                : ((ratio * values.length).floor().clamp(0, values.length - 1)).toInt();
+                            onTapIndex(index);
+                          },
+                    child: AnimatedBuilder(
+                      animation: _growthController,
+                      builder: (context, _) => CustomPaint(
+                        painter: _lineChart
+                            ? _StatsLinePainter(
+                                values: values,
+                                labels: labels,
+                                color: color,
+                                textColor: Colors.grey.shade600,
+                                labelEvery: effectiveLabelEvery,
+                                progress: _growthController.value,
+                              )
+                            : _BarsPainter(
+                                values: values,
+                                labels: labels,
+                                color: color,
+                                textColor: Colors.grey.shade600,
+                                labelEvery: effectiveLabelEvery,
+                                progress: _growthController.value,
+                              ),
+                      ),
                     ),
                   ),
                 );
@@ -599,7 +668,7 @@ class _StatsScreenState extends State<StatsScreen>
                     Expanded(flex: 12, child: Text(labels[i], maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10))),
                     Expanded(flex: 20, child: Text(formatMoney(t.income, symbol: false), textAlign: TextAlign.center, style: const TextStyle(fontSize: 9.5, color: Color(0xFF0E9F6E)))),
                     Expanded(flex: 18, child: Text(formatMoney(t.expense, symbol: false), textAlign: TextAlign.center, style: const TextStyle(fontSize: 9.5, color: Color(0xFFE5484D)))),
-                    Expanded(flex: 20, child: Text(formatMoney(t.balance, symbol: false), textAlign: TextAlign.right, style: TextStyle(fontSize: 9.5, color: t.balance < 0 ? const Color(0xFFE5484D) : null))),
+                    Expanded(flex: 20, child: Text(formatMoney(t.balance, symbol: false), textAlign: TextAlign.right, style: TextStyle(fontSize: 9.5, color: t.balance < 0 ? const Color(0xFFE5484D) : const Color(0xFF0E9F6E)))),
                     Expanded(flex: 8, child: Text('${counts[i]}', textAlign: TextAlign.right, style: TextStyle(fontSize: 9.5, color: Colors.grey.shade600))),
                   ],
                 ),
@@ -785,7 +854,7 @@ String _shortAmount(double value) {
   return value.toStringAsFixed(value % 1 == 0 ? 0 : 2);
 }
 
-const double _chartLeftAxis = 42;
+const double _chartLeftAxis = 34;
 const double _chartTopPad = 18;
 const double _chartBottomPad = 22;
 

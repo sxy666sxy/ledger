@@ -27,7 +27,7 @@ class YearHeatmapCard extends StatelessWidget {
     }
     return Card(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -42,37 +42,38 @@ class YearHeatmapCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 10),
-            GridView.count(
-              crossAxisCount: 4,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 9,
-              crossAxisSpacing: 8,
-              childAspectRatio: 1.0,
-              children: months.map((m) {
-                final daily = type == TxnType.expense ? store.dailyExpense(m) : store.dailyIncome(m);
-                return _MiniMonthHeat(
-                  year: year,
-                  month: m.month,
-                  daily: daily,
-                  maxValue: maxValues[m.month] ?? 0,
-                  type: type,
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final cellWidth = (constraints.maxWidth - 24) / 4;
+                final dayWidth = (cellWidth - 12) / 7;
+                final cellHeight = 25 + dayWidth * 5;
+                return GridView.count(
+                  crossAxisCount: 4,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 9,
+                  crossAxisSpacing: 8,
+                  childAspectRatio: cellWidth / cellHeight,
+                  children: months.map((m) {
+                    final daily = type == TxnType.expense ? store.dailyExpense(m) : store.dailyIncome(m);
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () => Navigator.of(context).push(
+                        fastPageRoute<void>(
+                          YearHeatmapPage(year: year, initialType: type, initialMonth: m.month),
+                        ),
+                      ),
+                      child: _MiniMonthHeat(
+                        year: year,
+                        month: m.month,
+                        daily: daily,
+                        maxValue: maxValues[m.month] ?? 0,
+                        type: type,
+                      ),
+                    );
+                  }).toList(),
                 );
-              }).toList(),
-            ),
-            const SizedBox(height: 6),
-            SizedBox(
-              width: double.infinity,
-              height: 32,
-              child: OutlinedButton.icon(
-                onPressed: () => Navigator.of(context).push(
-                  fastPageRoute<void>(
-                    YearHeatmapPage(year: year, initialType: type),
-                  ),
-                ),
-                icon: const Icon(Icons.open_in_full, size: 15),
-                label: const Text('点击放大热力图'),
-              ),
+              },
             ),
           ],
         ),
@@ -136,10 +137,16 @@ class _MiniMonthHeat extends StatelessWidget {
 }
 
 class YearHeatmapPage extends StatefulWidget {
-  const YearHeatmapPage({super.key, required this.year, required this.initialType});
+  const YearHeatmapPage({
+    super.key,
+    required this.year,
+    required this.initialType,
+    this.initialMonth = 1,
+  });
 
   final int year;
   final TxnType initialType;
+  final int initialMonth;
 
   @override
   State<YearHeatmapPage> createState() => _YearHeatmapPageState();
@@ -148,6 +155,27 @@ class YearHeatmapPage extends StatefulWidget {
 class _YearHeatmapPageState extends State<YearHeatmapPage> {
   late TxnType _type = widget.initialType;
   final AppStore store = AppStore.instance;
+  final GlobalKey _targetKey = GlobalKey();
+  late final ScrollController _scrollController = ScrollController(
+    initialScrollOffset: (((widget.initialMonth - 1) * 248.0).clamp(0.0, double.infinity)).toDouble(),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final target = _targetKey.currentContext;
+      if (target != null && mounted) {
+        Scrollable.ensureVisible(target, alignment: 0.08, duration: const Duration(milliseconds: 1));
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -171,6 +199,7 @@ class _YearHeatmapPageState extends State<YearHeatmapPage> {
         ],
       ),
       body: ListView(
+        controller: _scrollController,
         padding: const EdgeInsets.fromLTRB(14, 10, 14, 40),
         children: [
           Text(
@@ -179,13 +208,16 @@ class _YearHeatmapPageState extends State<YearHeatmapPage> {
           ),
           const SizedBox(height: 10),
           for (var m = 1; m <= 12; m++)
-            _FullMonthHeat(
-              year: widget.year,
-              month: m,
-              type: _type,
-              daily: _type == TxnType.expense
-                  ? store.dailyExpense(DateTime(widget.year, m, 1))
-                  : store.dailyIncome(DateTime(widget.year, m, 1)),
+            KeyedSubtree(
+              key: m == widget.initialMonth ? _targetKey : null,
+              child: _FullMonthHeat(
+                year: widget.year,
+                month: m,
+                type: _type,
+                daily: _type == TxnType.expense
+                    ? store.dailyExpense(DateTime(widget.year, m, 1))
+                    : store.dailyIncome(DateTime(widget.year, m, 1)),
+              ),
             ),
         ],
       ),

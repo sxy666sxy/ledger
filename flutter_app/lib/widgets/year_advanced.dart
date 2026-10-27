@@ -256,7 +256,7 @@ class YearAdvancedCards extends StatelessWidget {
                     Expanded(flex: 12, child: Text('${i + 1}月', style: const TextStyle(fontSize: 11))),
                     Expanded(flex: 20, child: Text(formatMoney(m.income, symbol: false), textAlign: TextAlign.center, style: const TextStyle(fontSize: 10.5, color: Color(0xFF0E9F6E)))),
                     Expanded(flex: 18, child: Text(formatMoney(m.expense, symbol: false), textAlign: TextAlign.center, style: const TextStyle(fontSize: 10.5, color: Color(0xFFE5484D)))),
-                    Expanded(flex: 20, child: Text(formatMoney(m.balance, symbol: false), textAlign: TextAlign.right, style: TextStyle(fontSize: 10.5, color: m.balance < 0 ? const Color(0xFFE5484D) : null))),
+                    Expanded(flex: 20, child: Text(formatMoney(m.balance, symbol: false), textAlign: TextAlign.right, style: TextStyle(fontSize: 10.5, color: m.balance < 0 ? const Color(0xFFE5484D) : const Color(0xFF0E9F6E)))),
                     Expanded(flex: 8, child: Text('${counts[i]}', textAlign: TextAlign.right, style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600))),
                   ],
                 ),
