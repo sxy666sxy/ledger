@@ -89,7 +89,7 @@ class SimpleMonthCard extends StatelessWidget {
                 fontSize: 31,
                 fontWeight: FontWeight.w800,
                 letterSpacing: -1,
-                color: glass ? const Color(0xFFFFD98A) : const Color(0xFFB8860B),
+                color: glass ? const Color(0xFFF3B63B) : const Color(0xFFB8860B),
               ),
             ),
           ),

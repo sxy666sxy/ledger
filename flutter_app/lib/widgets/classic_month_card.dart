@@ -74,7 +74,7 @@ class ClassicMonthCard extends StatelessWidget {
                 fit: BoxFit.scaleDown,
                 child: Text(
                   formatMoney(totals.expense),
-                  style: const TextStyle(color: Color(0xFFFFD98A), fontSize: 34, fontWeight: FontWeight.w800, letterSpacing: -1),
+                  style: const TextStyle(color: Color(0xFFF3B63B), fontSize: 34, fontWeight: FontWeight.w800, letterSpacing: -1),
                 ),
               ),
               const SizedBox(height: 16),

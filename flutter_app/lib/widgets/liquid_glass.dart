@@ -44,19 +44,19 @@ class LiquidBottomGlass extends StatelessWidget {
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
+        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
         child: DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
+              begin: Alignment.bottomCenter,
+              end: Alignment.topCenter,
               colors: dark
-                  ? [const Color(0xC70A1120), const Color(0xF20A1120)]
-                  : [Colors.white.withValues(alpha: 0.62), Colors.white.withValues(alpha: 0.92)],
+                  ? [const Color(0xD90A1120), const Color(0x8F0A1120)]
+                  : [Colors.white.withValues(alpha: 0.72), Colors.white.withValues(alpha: 0.36)],
             ),
             border: Border(
               top: BorderSide(
-                color: dark ? Colors.white.withValues(alpha: 0.10) : Colors.white.withValues(alpha: 0.75),
+                color: dark ? Colors.white.withValues(alpha: 0.08) : Colors.white.withValues(alpha: 0.55),
               ),
             ),
           ),

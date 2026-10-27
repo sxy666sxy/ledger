@@ -8,6 +8,8 @@ import 'screens/entry_sheet.dart';
 import 'screens/home_screen.dart';
 import 'screens/pin_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/quick_add_sheet.dart';
+import 'screens/search_screen.dart';
 import 'screens/stats_screen.dart';
 import 'store.dart';
 import 'theme.dart';
@@ -223,9 +225,11 @@ class _RootShellState extends State<RootShell> with SingleTickerProviderStateMix
                         ),
                         const Spacer(),
                         IconButton(
-                          tooltip: '日历',
-                          onPressed: () => _select(1),
-                          icon: const Icon(Icons.calendar_month_outlined),
+                          tooltip: '搜索',
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(builder: (_) => const SearchScreen()),
+                          ),
+                          icon: const Icon(Icons.search),
                         ),
                       ],
                     ),
@@ -299,9 +303,12 @@ class _RootShellState extends State<RootShell> with SingleTickerProviderStateMix
             ],
           ),
           floatingActionButton: _index == 0
-              ? FloatingActionButton(
-                  onPressed: () => showEntrySheet(context),
-                  child: const Icon(Icons.add, size: 28),
+              ? GestureDetector(
+                  onLongPress: () => showQuickAddSheet(context),
+                  child: FloatingActionButton(
+                    onPressed: () => showEntrySheet(context),
+                    child: const Icon(Icons.add, size: 28),
+                  ),
                 )
               : null,
           bottomNavigationBar: LiquidBottomGlass(

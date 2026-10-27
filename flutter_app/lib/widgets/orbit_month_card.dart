@@ -167,7 +167,7 @@ class _OrbitMonthCardState extends State<OrbitMonthCard> {
                         style: const TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.w800,
-                          color: const Color(0xFFFFD98A),
+                          color: const Color(0xFFF3B63B),
                           letterSpacing: -0.8,
                         ),
                       ),

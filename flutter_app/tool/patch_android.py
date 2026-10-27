@@ -7,6 +7,21 @@ root = Path(__file__).resolve().parents[1]
 manifest = root / 'android/app/src/main/AndroidManifest.xml'
 text = manifest.read_text(encoding='utf-8')
 text = text.replace('android:label="xingkong_ledger"', 'android:label="星空记账"')
+if 'android.permission.RECORD_AUDIO' not in text:
+    permissions = (
+        '    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n'
+    )
+    if 'android.permission.INTERNET' not in text:
+        permissions += '    <uses-permission android:name="android.permission.INTERNET" />\n'
+    if 'android.speech.RecognitionService' not in text:
+        permissions += (
+            '    <queries>\n'
+            '        <intent>\n'
+            '            <action android:name="android.speech.RecognitionService" />\n'
+            '        </intent>\n'
+            '    </queries>\n'
+        )
+    text = text.replace('<application', permissions + '\n    <application', 1)
 manifest.write_text(text, encoding='utf-8')
 
 # 2. Previous Xingkong icon
