@@ -64,6 +64,7 @@ class _EntrySheetState extends State<EntrySheet> {
   String _reimburseAccountId = '';
   String _reimburseDetail = '';
   List<String> _attachments = [];
+  bool _refunded = false;
 
   @override
   void initState() {
@@ -77,6 +78,7 @@ class _EntrySheetState extends State<EntrySheet> {
     _reimburseAccountId = existing?.reimburseAccountId ?? '';
     _reimburseDetail = existing?.reimburseDetail ?? '';
     _attachments = List<String>.from(existing?.attachments ?? const []);
+    _refunded = (existing?.refund ?? 0) > 0;
     _noteController = TextEditingController(text: existing?.note ?? '');
     final cats = store.categoriesFor(_type);
     _categoryId = existing?.categoryId ?? (cats.isNotEmpty ? cats.first.id : '');
@@ -390,7 +392,7 @@ class _EntrySheetState extends State<EntrySheet> {
       note: _noteController.text.trim(),
       subcategory: existing?.subcategory ?? '',
       tags: existing?.tags ?? const [],
-      refund: existing?.refund ?? 0,
+      refund: _type != TxnType.transfer && _refunded ? amount : 0,
       discount: existing?.discount ?? 0,
       reimburseAmount: _reimburseAmount,
       reimburseAccountId: _reimburseAccountId,
@@ -570,6 +572,16 @@ class _EntrySheetState extends State<EntrySheet> {
     );
   }
 
+  void _toggleRefund() {
+    setState(() => _refunded = !_refunded);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(_refunded ? '已标记退款，本笔不计入收支' : '已取消退款标记'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   void _delete() {
     final existing = widget.existing;
     if (existing == null) return;
@@ -668,13 +680,25 @@ class _EntrySheetState extends State<EntrySheet> {
                   style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
                 ),
                 const Spacer(),
-                if (existing != null)
+                if (existing != null && _type != TxnType.transfer) ...[
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    tooltip: _refunded ? '取消退款' : '退款',
+                    onPressed: _toggleRefund,
+                    icon: Icon(
+                      _refunded
+                          ? Icons.assignment_return
+                          : Icons.assignment_return_outlined,
+                      color: _refunded ? const Color(0xFFF59E0B) : null,
+                    ),
+                  ),
                   IconButton(
                     visualDensity: VisualDensity.compact,
                     tooltip: '删除',
                     onPressed: _delete,
                     icon: const Icon(Icons.delete_outline, color: Colors.red),
                   ),
+                ],
                 IconButton(
                   visualDensity: VisualDensity.compact,
                   tooltip: '关闭',

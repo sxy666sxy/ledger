@@ -35,6 +35,7 @@ class _StatsScreenState extends State<StatsScreen>
   static _StatsView _lastView = _StatsView.month;
   _StatsView _view = _lastView;
   bool _lineChart = false;
+  bool _summaryExpanded = false;
 
   static DateTime _monday(DateTime d) {
     final day = DateTime(d.year, d.month, d.day);
@@ -128,7 +129,7 @@ class _StatsScreenState extends State<StatsScreen>
       children: [
         _monthHeader(),
         const SizedBox(height: 4),
-        _summaryCard(context, '月', totals),
+        _summaryCard(context, '月', totals, txns: store.txnsForMonth(_month), days: daysInMonth(_month)),
         const SizedBox(height: 14),
         _assetSummaryCard(context, store),
         const SizedBox(height: 14),
@@ -193,7 +194,7 @@ class _StatsScreenState extends State<StatsScreen>
           () => setState(() => _weekStart = _weekStart.subtract(const Duration(days: 7))),
           () => setState(() => _weekStart = _weekStart.add(const Duration(days: 7))),
         ),
-        _summaryCard(context, '周', totals),
+        _summaryCard(context, '周', totals, txns: txns, days: 7),
         const SizedBox(height: 14),
         _breakdownCard(context, cats, _type == TxnType.expense ? totals.expense : totals.income),
         const SizedBox(height: 14),
@@ -287,7 +288,7 @@ class _StatsScreenState extends State<StatsScreen>
           ],
         ),
         const SizedBox(height: 8),
-        _summaryCard(context, '区间', totals),
+        _summaryCard(context, '区间', totals, txns: txns, days: days),
         const SizedBox(height: 14),
         _breakdownCard(context, cats, _type == TxnType.expense ? totals.expense : totals.income),
         const SizedBox(height: 14),
@@ -430,7 +431,7 @@ class _StatsScreenState extends State<StatsScreen>
             ),
           ],
         ),
-        _summaryCard(context, _yearAll ? '全部' : '年', totals),
+        _summaryCard(context, _yearAll ? '全部' : '年', totals, txns: _yearAll ? store.transactions.where((t) => t.bookId == store.activeBookId).toList() : store.txnsForYear(_year), days: _yearAll ? 3650 : DateTime(_year, 12, 31).difference(DateTime(_year, 1, 1)).inDays + 1),
         const SizedBox(height: 14),
         _breakdownCard(context, cats, _type == TxnType.expense ? totals.expense : totals.income),
         const SizedBox(height: 14),
@@ -517,14 +518,76 @@ class _StatsScreenState extends State<StatsScreen>
     );
   }
 
-  Widget _summaryCard(BuildContext context, String prefix, MoneyTotals totals) {
+  Widget _summaryCard(
+    BuildContext context,
+    String prefix,
+    MoneyTotals totals, {
+    required List<Txn> txns,
+    required int days,
+  }) {
+    final divisor = days <= 0 ? 1 : days;
+    final refund = txns.fold<double>(0, (sum, t) => sum + t.refund);
+    final transfer = txns
+        .where((t) => t.type == TxnType.transfer)
+        .fold<double>(0, (sum, t) => sum + t.amount);
+    final reimburse = txns.fold<double>(0, (sum, t) => sum + t.reimburseAmount);
+    final avgIncome = totals.income / divisor;
+    final avgExpense = totals.expense / divisor;
+    final avgBalance = totals.balance / divisor;
     return ThemeHeroCard(
       radius: 22,
-      child: Row(
+      child: Column(
         children: [
-          _summary(context, '$prefix支出', formatMoney(totals.expense), themeHeroExpense(context)),
-          _summary(context, '$prefix收入', formatMoney(totals.income), themeHeroIncome(context)),
-          _summary(context, '$prefix结余', formatMoney(totals.balance), themeHeroBalance(context, totals.balance)),
+          Row(
+            children: [
+              _summary(context, '$prefix支出', formatMoney(totals.expense), themeHeroExpense(context)),
+              _summary(context, '$prefix收入', formatMoney(totals.income), themeHeroIncome(context)),
+              _summary(context, '$prefix结余', formatMoney(totals.balance), themeHeroBalance(context, totals.balance)),
+            ],
+          ),
+          AnimatedCrossFade(
+            duration: const Duration(milliseconds: 180),
+            crossFadeState: _summaryExpanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            firstChild: const SizedBox(width: double.infinity),
+            secondChild: Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Column(
+                children: [
+                  Divider(height: 1, color: themeHeroMuted(context).withValues(alpha: 0.20)),
+                  const SizedBox(height: 9),
+                  Row(
+                    children: [
+                      _summary(context, '均收入', formatMoney(avgIncome), themeHeroIncome(context)),
+                      _summary(context, '均支出', formatMoney(avgExpense), themeHeroExpense(context)),
+                      _summary(context, '均结余', formatMoney(avgBalance), themeHeroBalance(context, avgBalance)),
+                    ],
+                  ),
+                  const SizedBox(height: 9),
+                  Row(
+                    children: [
+                      _summary(context, '退款', formatMoney(refund), const Color(0xFFF59E0B)),
+                      _summary(context, '转账', formatMoney(transfer), const Color(0xFF5B6CFF)),
+                      _summary(context, '报销', formatMoney(reimburse), const Color(0xFF14B8A6)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: () => setState(() => _summaryExpanded = !_summaryExpanded),
+            child: Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Icon(
+                _summaryExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                size: 18,
+                color: themeHeroMuted(context),
+              ),
+            ),
+          ),
         ],
       ),
     );

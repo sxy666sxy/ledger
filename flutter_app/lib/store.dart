@@ -114,6 +114,7 @@ class AppStore extends ChangeNotifier {
     double expense = 0;
     double income = 0;
     for (final t in txnsForMonth(month)) {
+      if (t.isRefunded) continue;
       if (t.type == TxnType.expense) {
         expense += t.amount;
       } else if (t.type == TxnType.income) {
@@ -126,6 +127,7 @@ class AppStore extends ChangeNotifier {
   double accountBalance(Account account) {
     double value = account.initial;
     for (final t in transactions) {
+      if (t.isRefunded) continue;
       if (t.type == TxnType.transfer) {
         if (t.accountId == account.id) value -= t.amount;
         if (t.toAccountId == account.id) value += t.amount;
@@ -145,6 +147,7 @@ class AppStore extends ChangeNotifier {
     final endKey = dateKey(end);
     double value = account.initial;
     for (final t in transactions) {
+      if (t.isRefunded) continue;
       if (t.date.compareTo(endKey) > 0) continue;
       if (t.type == TxnType.transfer) {
         if (t.accountId == account.id) value -= t.amount;
@@ -172,6 +175,7 @@ class AppStore extends ChangeNotifier {
   Map<String, double> dailyExpense(DateTime month) {
     final result = <String, double>{};
     for (final t in txnsForMonth(month)) {
+      if (t.isRefunded) continue;
       if (t.type != TxnType.expense) continue;
       result[t.date] = (result[t.date] ?? 0) + t.amount;
     }
@@ -181,6 +185,7 @@ class AppStore extends ChangeNotifier {
   Map<String, double> dailyIncome(DateTime month) {
     final result = <String, double>{};
     for (final t in txnsForMonth(month)) {
+      if (t.isRefunded) continue;
       if (t.type != TxnType.income) continue;
       result[t.date] = (result[t.date] ?? 0) + t.amount;
     }
@@ -206,6 +211,7 @@ class AppStore extends ChangeNotifier {
     double expense = 0;
     double income = 0;
     for (final t in txnsBetween(start, end)) {
+      if (t.isRefunded) continue;
       if (t.type == TxnType.expense) {
         expense += t.amount;
       } else if (t.type == TxnType.income) {
@@ -218,6 +224,7 @@ class AppStore extends ChangeNotifier {
   List<CategoryTotal> categoryTotalsBetween(DateTime start, DateTime end, TxnType type) {
     final map = <String, CategoryTotal>{};
     for (final t in txnsBetween(start, end)) {
+      if (t.isRefunded) continue;
       if (t.type != type) continue;
       final category = categoryById(t.categoryId) ??
           Category(id: t.categoryId, name: '未分类', type: type);
@@ -245,6 +252,7 @@ class AppStore extends ChangeNotifier {
     double expense = 0;
     double income = 0;
     for (final t in txnsForYear(year)) {
+      if (t.isRefunded) continue;
       if (t.type == TxnType.expense) {
         expense += t.amount;
       } else if (t.type == TxnType.income) {
@@ -258,6 +266,7 @@ class AppStore extends ChangeNotifier {
     double expense = 0;
     double income = 0;
     for (final t in transactions.where((t) => t.bookId == activeBookId)) {
+      if (t.isRefunded) continue;
       if (t.type == TxnType.expense) {
         expense += t.amount;
       } else if (t.type == TxnType.income) {
@@ -272,8 +281,10 @@ class AppStore extends ChangeNotifier {
     final expense = List<double>.filled(12, 0);
     final income = List<double>.filled(12, 0);
     for (final t in txnsForYear(year)) {
+      if (t.isRefunded) continue;
       final month = int.tryParse(t.date.substring(5, 7));
       if (month == null || month < 1 || month > 12) continue;
+      if (t.isRefunded) continue;
       if (t.type == TxnType.expense) {
         expense[month - 1] += t.amount;
       } else if (t.type == TxnType.income) {
@@ -289,6 +300,7 @@ class AppStore extends ChangeNotifier {
   List<CategoryTotal> categoryTotalsForYear(int year, TxnType type) {
     final map = <String, CategoryTotal>{};
     for (final t in txnsForYear(year)) {
+      if (t.isRefunded) continue;
       if (t.type != type) continue;
       final category = categoryById(t.categoryId) ??
           Category(id: t.categoryId, name: '未分类', type: type);
@@ -306,6 +318,7 @@ class AppStore extends ChangeNotifier {
   List<CategoryTotal> categoryTotalsAllYears(TxnType type) {
     final map = <String, CategoryTotal>{};
     for (final t in transactions.where((t) => t.bookId == activeBookId)) {
+      if (t.isRefunded) continue;
       if (t.type != type) continue;
       final category = categoryById(t.categoryId) ??
           Category(id: t.categoryId, name: '未分类', type: type);
@@ -327,6 +340,7 @@ class AppStore extends ChangeNotifier {
       if (a.include) total += a.initial;
     }
     for (final t in transactions) {
+      if (t.isRefunded) continue;
       if (t.bookId != activeBookId || t.date.compareTo(endKey) > 0) continue;
       final account = accountById(t.accountId);
       if (t.type == TxnType.transfer) {
@@ -355,6 +369,7 @@ class AppStore extends ChangeNotifier {
   List<int> monthlyCountsForYear(int year) {
     final counts = List<int>.filled(12, 0);
     for (final t in txnsForYear(year)) {
+      if (t.isRefunded) continue;
       final m = int.tryParse(t.date.substring(5, 7));
       if (m != null && m >= 1 && m <= 12) counts[m - 1]++;
     }
@@ -376,6 +391,7 @@ class AppStore extends ChangeNotifier {
   List<CategoryTotal> categoryTotals(DateTime month, TxnType type) {
     final map = <String, CategoryTotal>{};
     for (final t in txnsForMonth(month)) {
+      if (t.isRefunded) continue;
       if (t.type != type) continue;
       final category = categoryById(t.categoryId) ??
           Category(id: t.categoryId, name: '未分类', type: type);

@@ -99,15 +99,17 @@ class ProfileScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     ListTile(
+                      minTileHeight: 66,
                       leading: const _MenuIcon('🎨'),
                       title: const Text('外观主题'),
-                      trailing: Text('$themeLabel ›', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                      subtitle: Text('当前：$themeLabel'),
                       onTap: () => Navigator.of(context).push(
                         fastPageRoute<void>(const ThemeCenterScreen()),
                       ),
                     ),
                     const Divider(height: 1),
                     ListTile(
+                      minTileHeight: 66,
                       leading: const _MenuIcon('🏷️'),
                       title: const Text('分类管理'),
                       subtitle: Text('${store.categories.length} 个分类'),
@@ -117,6 +119,7 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     const Divider(height: 1),
                     ListTile(
+                      minTileHeight: 66,
                       leading: const _MenuIcon('🎯'),
                       title: const Text('预算设置'),
                       subtitle: Text(store.activeBook.budget > 0
@@ -128,6 +131,7 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     const Divider(height: 1),
                     ListTile(
+                      minTileHeight: 66,
                       leading: const _MenuIcon('🔁'),
                       title: const Text('周期记账'),
                       subtitle: Text('${store.recurringRules.length} 条规则'),
@@ -137,6 +141,7 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     const Divider(height: 1),
                     ListTile(
+                      minTileHeight: 66,
                       leading: const _MenuIcon('🔒'),
                       title: const Text('隐私锁'),
                       subtitle: Text(store.pinHash.isEmpty ? '未开启' : '已开启'),
@@ -146,6 +151,7 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     const Divider(height: 1),
                     ListTile(
+                      minTileHeight: 66,
                       leading: const _MenuIcon('📒'),
                       title: const Text('当前账本'),
                       subtitle: Text(store.activeBook.name),
@@ -160,6 +166,7 @@ class ProfileScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     ListTile(
+                      minTileHeight: 66,
                       leading: const _MenuIcon('🗂️'),
                       title: const Text('数据与备份'),
                       subtitle: const Text('自动备份、JSON / Excel 导入导出、WebDAV'),
@@ -169,8 +176,10 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     const Divider(height: 1),
                     ListTile(
+                      minTileHeight: 66,
                       leading: const _MenuIcon('🧹'),
                       title: const Text('清空所有数据'),
+                      subtitle: const Text('删除所有账单与账户'),
                       textColor: Colors.red,
                       onTap: () => _clearData(context, store),
                     ),
@@ -181,6 +190,7 @@ class ProfileScreen extends StatelessWidget {
               const _SectionTitle('关于'),
               Card(
                 child: ListTile(
+                  minTileHeight: 66,
                   leading: const _MenuIcon('✦'),
                   title: const Text('星空记账 Flutter'),
                   subtitle: Text('核心版 v$appVersion · 纯 Flutter 原生'),

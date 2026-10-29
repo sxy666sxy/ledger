@@ -191,6 +191,8 @@ class Txn {
   List<String> attachments;
   int createdAt;
 
+  bool get isRefunded => refund > 0;
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'date': date,

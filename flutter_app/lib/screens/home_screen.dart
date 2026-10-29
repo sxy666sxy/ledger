@@ -244,7 +244,7 @@ class _HomeScreenState extends State<HomeScreen>
                         Text(
                           isTransfer
                               ? '转账'
-                              : '${cat?.name ?? '未分类'}${t.subcategory.isNotEmpty ? ' · ${t.subcategory}' : ''}',
+                              : '${cat?.name ?? '未分类'}${t.subcategory.isNotEmpty ? ' · ${t.subcategory}' : ''}${t.isRefunded ? ' · 已退款' : ''}',
                           style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 1),
@@ -269,9 +269,12 @@ class _HomeScreenState extends State<HomeScreen>
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
-                      color: isTransfer
-                          ? const Color(0xFF5B6CFF)
-                          : (isExpense ? const Color(0xFFE5484D) : const Color(0xFF0E9F6E)),
+                      color: t.isRefunded
+                          ? Colors.grey
+                          : (isTransfer
+                              ? const Color(0xFF5B6CFF)
+                              : (isExpense ? const Color(0xFFE5484D) : const Color(0xFF0E9F6E))),
+                      decoration: t.isRefunded ? TextDecoration.lineThrough : null,
                     ),
                   ),
                 ],
