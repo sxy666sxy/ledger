@@ -1,4 +1,5 @@
 
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import '../models.dart';
 import '../store.dart';
+import '../theme.dart';
 import '../utils.dart';
 
 class OrbitMonthCard extends StatefulWidget {
@@ -120,14 +122,19 @@ class _OrbitMonthCardState extends State<OrbitMonthCard> {
 
   Widget _smallEllipse(BuildContext context) {
     const radius = BorderRadius.all(Radius.elliptical(999, 999));
+    final imagePath = AppStore.instance.heroCardImagePath;
+    final hasImage = imagePath.isNotEmpty && File(imagePath).existsSync();
     return Container(
       decoration: BoxDecoration(
         borderRadius: radius,
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF283A88), Color(0xFF141B45), Color(0xFF241442)],
-        ),
+        color: hasImage ? Colors.transparent : null,
+        gradient: hasImage
+            ? null
+            : const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF283A88), Color(0xFF141B45), Color(0xFF241442)],
+              ),
         border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
         boxShadow: [
           BoxShadow(color: const Color(0xFF5B6CFF).withValues(alpha: 0.30), blurRadius: 30, spreadRadius: 2),
@@ -137,6 +144,26 @@ class _OrbitMonthCardState extends State<OrbitMonthCard> {
         borderRadius: radius,
         child: Stack(
           children: [
+            if (hasImage)
+              Positioned.fill(
+                child: Image.file(
+                  File(imagePath),
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
+              ),
+            if (hasImage)
+              const Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0x55000000), Color(0x99000000)],
+                    ),
+                  ),
+                ),
+              ),
             Positioned.fill(
               child: IgnorePointer(child: CustomPaint(painter: const _SmallChainPainter())),
             ),
@@ -164,10 +191,10 @@ class _OrbitMonthCardState extends State<OrbitMonthCard> {
                       child: Text(
                         formatMoney(widget.totals.expense),
                         key: ValueKey(widget.totals.expense),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.w800,
-                          color: const Color(0xFFFF7A85),
+                          color: themeHeroExpense(context),
                           letterSpacing: -0.8,
                         ),
                       ),
@@ -180,7 +207,7 @@ class _OrbitMonthCardState extends State<OrbitMonthCard> {
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
                           alignment: Alignment.centerLeft,
-                          child: _tiny('收入', formatMoney(widget.totals.income, symbol: false), const Color(0xFF7EE2B8)),
+                          child: _tiny('收入', formatMoney(widget.totals.income, symbol: false), themeHeroIncome(context)),
                         ),
                       ),
                       const SizedBox(width: 9),
@@ -191,7 +218,7 @@ class _OrbitMonthCardState extends State<OrbitMonthCard> {
                           child: _tiny(
                             '结余',
                             formatMoney(widget.totals.balance, symbol: false),
-                            widget.totals.balance < 0 ? const Color(0xFFFF7A85) : const Color(0xFF7EE2B8),
+                            widget.totals.balance < 0 ? themeHeroExpense(context) : themeHeroIncome(context),
                           ),
                         ),
                       ),

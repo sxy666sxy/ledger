@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../store.dart';
 import '../theme.dart';
+import '../widgets/hero_card_settings.dart';
 import '../utils.dart';
 import 'about_screen.dart';
 import 'budget_screen.dart';
@@ -36,7 +37,9 @@ class ProfileScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 110),
             children: [
-              ThemeHeroCard(
+              GestureDetector(
+                onTap: () => showHeroCardSettings(context),
+                child: ThemeHeroCard(
                 radius: 24,
                 child: Row(
                   children: [
@@ -75,6 +78,7 @@ class ProfileScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
               ),
               const SizedBox(height: 12),
               Card(

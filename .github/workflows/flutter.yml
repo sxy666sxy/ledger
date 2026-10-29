@@ -71,22 +71,26 @@ jobs:
       - name: Prepare asset
         run: |
           mkdir -p ../dist_flutter
-          cp build/app/outputs/flutter-apk/app-release.apk "../dist_flutter/星空记账-flutter-v0.20.0.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "../dist_flutter/星空记账-flutter-v0.21.0.apk"
           ls -lh ../dist_flutter
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: xingkong-flutter-v0.20.0
-          path: dist_flutter/星空记账-flutter-v0.20.0.apk
+          name: xingkong-flutter-v0.21.0
+          path: dist_flutter/星空记账-flutter-v0.21.0.apk
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: flutter-v0.20.0
-          name: 星空记账 Flutter v0.20.0（备注操作/可选账户/附件报销）
+          tag_name: flutter-v0.21.0
+          name: 星空记账 Flutter v0.21.0（账户流水/图表设置/日历汇总）
           body: |
             纯 Flutter 原生重写：转账、分类预算、完整 Excel、报表图片/PDF 与资产区间。
+            - 热力图详细页支持点击某天查看当天账单
+            - 明细/资产/我的顶部卡可设置支出颜色与自定义背景
+            - 日历顶部显示当月支出、收入、结余
+            - 资产账户支持账户账单页、账户统计、转账记录和流水导出
             - 修复部分 WPS/Excel 文件导入时报 numFmtId 0 错误
             - 兼容旧版导出中支出金额为负数的 Excel，并保留原始时间
             - Excel 重复导入自动去重
@@ -141,7 +145,7 @@ jobs:
             - 使用固定发布签名，后续版本可直接覆盖升级
             - 与原 WebView 版为不同包名，可并存安装
             后续阶段迁移：更完整的 Excel 字段映射、资产转移、分类预算与高级统计。
-          files: dist_flutter/星空记账-flutter-v0.20.0.apk
+          files: dist_flutter/星空记账-flutter-v0.21.0.apk
           draft: false
           prerelease: true
           allowUpdates: true

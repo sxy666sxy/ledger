@@ -4,6 +4,8 @@ import '../models.dart';
 import '../store.dart';
 import '../utils.dart';
 import '../theme.dart';
+import '../widgets/hero_card_settings.dart';
+import 'account_detail_screen.dart';
 import 'asset_trend_screen.dart';
 import 'entry_sheet.dart';
 
@@ -30,7 +32,9 @@ class AssetsScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
             children: [
-              ThemeHeroCard(
+              GestureDetector(
+                onTap: () => showHeroCardSettings(context),
+                child: ThemeHeroCard(
                 radius: 24,
                 padding: const EdgeInsets.all(20),
                 child: Column(
@@ -52,6 +56,7 @@ class AssetsScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
               ),
               const SizedBox(height: 8),
               Row(
@@ -117,7 +122,9 @@ class AssetsScreen extends StatelessWidget {
                             color: balance < 0 ? const Color(0xFFE5484D) : null,
                           ),
                         ),
-                        onTap: () => _editAccount(context, store, a),
+                        onTap: () => Navigator.of(context).push(
+                          fastPageRoute<void>(AccountDetailScreen(accountId: a.id)),
+                        ),
                       ),
                     ),
                   );

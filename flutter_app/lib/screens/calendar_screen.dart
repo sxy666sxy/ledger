@@ -113,6 +113,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         final offset = first.weekday % 7;
         final dim = daysInMonth(_month);
         final maxExpense = expenses.values.fold<double>(1, (a, b) => a > b ? a : b);
+        final totals = store.totalsForMonth(_month);
 
         return SafeArea(
           child: Column(
@@ -142,7 +143,25 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                   const Icon(Icons.expand_more, size: 17),
                                 ],
                               ),
-                              Text('左右滑动日历 · 点击年月选择', style: TextStyle(fontSize: 9.5, color: Colors.grey.shade600)),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text.rich(
+                                  TextSpan(
+                                    children: [
+                                      TextSpan(text: '支 ${formatMoney(totals.expense, symbol: false)}', style: const TextStyle(color: Color(0xFFD92D20))),
+                                      const TextSpan(text: '  收 ', style: TextStyle(color: Colors.grey)),
+                                      TextSpan(text: formatMoney(totals.income, symbol: false), style: const TextStyle(color: Color(0xFF0E9F6E))),
+                                      const TextSpan(text: '  结 ', style: TextStyle(color: Colors.grey)),
+                                      TextSpan(
+                                        text: formatMoney(totals.balance, symbol: false),
+                                        style: TextStyle(color: totals.balance < 0 ? const Color(0xFFD92D20) : const Color(0xFF0E9F6E)),
+                                      ),
+                                    ],
+                                  ),
+                                  style: const TextStyle(fontSize: 9.5),
+                                ),
+                              ),
                             ],
                           ),
                         ),

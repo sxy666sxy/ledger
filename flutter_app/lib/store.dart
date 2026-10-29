@@ -39,6 +39,8 @@ class AppStore extends ChangeNotifier {
   String themeId = 'system';
   String customImagePath = '';
   String cardStyle = 'orbit';
+  int heroExpenseColor = 0;
+  String heroCardImagePath = '';
   double billCardAlpha = 1.0;
   bool showLunar = true;
   List<RecurringRule> recurringRules = [];
@@ -440,6 +442,8 @@ class AppStore extends ChangeNotifier {
     themeId = 'system';
     customImagePath = '';
     cardStyle = 'orbit';
+    heroExpenseColor = 0;
+    heroCardImagePath = '';
     billCardAlpha = 1.0;
     showLunar = true;
     pinHash = '';
@@ -480,6 +484,8 @@ class AppStore extends ChangeNotifier {
                 : 'system');
     customImagePath = map['customImagePath'] as String? ?? '';
     cardStyle = map['cardStyle'] as String? ?? 'orbit';
+    heroExpenseColor = (map['heroExpenseColor'] as num?)?.toInt() ?? 0;
+    heroCardImagePath = map['heroCardImagePath'] as String? ?? '';
     billCardAlpha = (((map['billCardAlpha'] as num?)?.toDouble() ?? 1.0).clamp(0.4, 1.0)).toDouble();
     showLunar = map['showLunar'] != false;
     recurringRules = (map['recurringRules'] as List? ?? [])
@@ -500,6 +506,8 @@ class AppStore extends ChangeNotifier {
         'themeId': themeId,
         'customImagePath': customImagePath,
         'cardStyle': cardStyle,
+        'heroExpenseColor': heroExpenseColor,
+        'heroCardImagePath': heroCardImagePath,
         'billCardAlpha': billCardAlpha,
         'showLunar': showLunar,
         'recurringRules': recurringRules.map((e) => e.toJson()).toList(),
@@ -630,6 +638,18 @@ class AppStore extends ChangeNotifier {
 
   void setCardStyle(String style) {
     cardStyle = style;
+    notifyListeners();
+    save();
+  }
+
+  void setHeroExpenseColor(int value) {
+    heroExpenseColor = value;
+    notifyListeners();
+    save();
+  }
+
+  void setHeroCardImagePath(String path) {
+    heroCardImagePath = path;
     notifyListeners();
     save();
   }

@@ -4,6 +4,7 @@ import '../models.dart';
 import '../store.dart';
 import '../theme.dart';
 import '../utils.dart';
+import '../screens/period_txns_screen.dart';
 
 class YearHeatmapCard extends StatelessWidget {
   const YearHeatmapCard({
@@ -267,22 +268,35 @@ class _FullMonthHeat extends StatelessWidget {
               if (day > dim) return const SizedBox.shrink();
               final value = byDay[day] ?? 0;
               final alpha = value <= 0 ? 0.05 : (0.10 + 0.72 * (value / (max <= 0 ? 1 : max))).clamp(0.10, 0.82);
-              return Container(
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: alpha.toDouble()),
-                  borderRadius: BorderRadius.circular(5),
+              final date = DateTime(year, month, day);
+              return InkWell(
+                borderRadius: BorderRadius.circular(5),
+                onTap: () => Navigator.of(context).push(
+                  fastPageRoute<void>(
+                    PeriodTxnsScreen(
+                      title: '$year年$month月$day日账单',
+                      start: date,
+                      end: date,
+                    ),
+                  ),
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text('$day', style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w600)),
-                    if (value > 0)
-                      Text(
-                        type == TxnType.expense ? '-${_short(value)}' : '+${_short(value)}',
-                        style: const TextStyle(fontSize: 7, color: Colors.black54),
-                      ),
-                  ],
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: alpha.toDouble()),
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('$day', style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w600)),
+                      if (value > 0)
+                        Text(
+                          type == TxnType.expense ? '-${_short(value)}' : '+${_short(value)}',
+                          style: const TextStyle(fontSize: 7, color: Colors.black54),
+                        ),
+                    ],
+                  ),
                 ),
               );
             }),

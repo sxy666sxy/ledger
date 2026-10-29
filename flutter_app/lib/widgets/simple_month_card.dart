@@ -1,8 +1,10 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
 import '../store.dart';
+import '../theme.dart';
 import '../utils.dart';
 
 class SimpleMonthCard extends StatelessWidget {
@@ -40,10 +42,14 @@ class SimpleMonthCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final glass = variant == 'glass';
+    final imagePath = AppStore.instance.heroCardImagePath;
+    final hasImage = imagePath.isNotEmpty && File(imagePath).existsSync();
+    final fg = hasImage ? themeHeroFg(context) : scheme.onSurface;
+    final muted = hasImage ? themeHeroMuted(context) : scheme.onSurface.withValues(alpha: 0.55);
     final content = Container(
       padding: const EdgeInsets.fromLTRB(18, 15, 18, 15),
       decoration: BoxDecoration(
-        color: glass ? scheme.surface.withValues(alpha: 0.55) : scheme.surface,
+        color: hasImage ? Colors.transparent : (glass ? scheme.surface.withValues(alpha: 0.55) : scheme.surface),
         borderRadius: BorderRadius.circular(glass ? 22 : 16),
         border: Border.all(
           color: glass
@@ -63,14 +69,14 @@ class SimpleMonthCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text('$bookIcon $bookName', style: TextStyle(fontSize: 11, color: scheme.onSurface.withValues(alpha: 0.55))),
+              Text('$bookIcon $bookName', style: TextStyle(fontSize: 11, color: muted)),
               const Spacer(),
               InkWell(
                 borderRadius: BorderRadius.circular(8),
                 onTap: () => _pickMonth(context),
                 child: Row(
                   children: [
-                    Text(monthTitle(month), style: TextStyle(fontSize: 11, color: scheme.onSurface.withValues(alpha: 0.6))),
+                    Text(monthTitle(month), style: TextStyle(fontSize: 11, color: hasImage ? Colors.white70 : scheme.onSurface.withValues(alpha: 0.6))),
                     const Icon(Icons.expand_more, size: 14),
                   ],
                 ),
@@ -78,7 +84,7 @@ class SimpleMonthCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          Text('本月支出', style: TextStyle(fontSize: 10, color: scheme.onSurface.withValues(alpha: 0.5))),
+          Text('本月支出', style: TextStyle(fontSize: 10, color: muted)),
           const SizedBox(height: 1),
           FittedBox(
             fit: BoxFit.scaleDown,
@@ -89,21 +95,50 @@ class SimpleMonthCard extends StatelessWidget {
                 fontSize: 31,
                 fontWeight: FontWeight.w800,
                 letterSpacing: -1,
-                color: glass ? const Color(0xFFFF7A85) : const Color(0xFFD92D20),
+                color: themeHeroExpense(context),
               ),
             ),
           ),
           const SizedBox(height: 10),
           Row(
             children: [
-              _cell('收入', formatMoney(totals.income), const Color(0xFF0E9F6E)),
-              _cell('结余', formatMoney(totals.balance), totals.balance < 0 ? const Color(0xFFD92D20) : const Color(0xFF0E9F6E)),
-              _cell('笔数', '$count', scheme.onSurface),
+              _cell('收入', formatMoney(totals.income), themeHeroIncome(context)),
+              _cell('结余', formatMoney(totals.balance), totals.balance < 0 ? themeHeroExpense(context) : themeHeroIncome(context)),
+              _cell('笔数', '$count', fg),
             ],
           ),
         ],
       ),
     );
+    Widget card = content;
+    if (hasImage) {
+      card = ClipRRect(
+        borderRadius: BorderRadius.circular(22),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Image.file(
+                File(imagePath),
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
+            ),
+            const Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0x55000000), Color(0x99000000)],
+                  ),
+                ),
+              ),
+            ),
+            content,
+          ],
+        ),
+      );
+    }
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: glass
@@ -111,10 +146,10 @@ class SimpleMonthCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(22),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-                child: content,
+                child: card,
               ),
             )
-          : content,
+          : card,
     );
   }
 

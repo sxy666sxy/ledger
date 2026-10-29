@@ -1,4 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+
+import '../theme.dart';
 
 import '../store.dart';
 import '../utils.dart';
@@ -12,6 +16,7 @@ class ClassicMonthCard extends StatelessWidget {
     required this.bookIcon,
     required this.count,
     required this.onChanged,
+    required this.onSettings,
   });
 
   final DateTime month;
@@ -20,6 +25,7 @@ class ClassicMonthCard extends StatelessWidget {
   final String bookIcon;
   final int count;
   final ValueChanged<DateTime> onChanged;
+  final VoidCallback onSettings;
 
   Future<void> _pickMonth(BuildContext context) async {
     final picked = await showDatePicker(
@@ -34,19 +40,25 @@ class ClassicMonthCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final imagePath = AppStore.instance.heroCardImagePath;
+    final hasImage = imagePath.isNotEmpty && File(imagePath).existsSync();
+    final expenseColor = themeHeroExpense(context);
+    final incomeColor = themeHeroIncome(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: GestureDetector(
-        onTap: () => _pickMonth(context),
+        onTap: onSettings,
         child: Container(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF1A2355), Color(0xFF0A0F2A), Color(0xFF211747)],
-            ),
+            color: hasImage ? Colors.transparent : null,
+            gradient: hasImage
+                ? null
+                : const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF1A2355), Color(0xFF0A0F2A), Color(0xFF211747)],
+                  ),
             boxShadow: [
               BoxShadow(
                 color: const Color(0xFF1A2355).withValues(alpha: 0.25),
@@ -55,37 +67,75 @@ class ClassicMonthCard extends StatelessWidget {
               ),
             ],
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Text('$bookIcon $bookName', style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                  const Spacer(),
-                  Text(monthTitle(month), style: const TextStyle(color: Colors.white54, fontSize: 12)),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.expand_more, color: Colors.white38, size: 16),
-                ],
-              ),
-              const SizedBox(height: 14),
-              const Text('本月支出', style: TextStyle(color: Colors.white60, fontSize: 11)),
-              const SizedBox(height: 3),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  formatMoney(totals.expense),
-                  style: const TextStyle(color: Color(0xFFFF7A85), fontSize: 34, fontWeight: FontWeight.w800, letterSpacing: -1),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Stack(
+              children: [
+                if (hasImage)
+                  Positioned.fill(
+                    child: Image.file(
+                      File(imagePath),
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    ),
+                  ),
+                if (hasImage)
+                  const Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0x55000000), Color(0x99000000)],
+                        ),
+                      ),
+                    ),
+                  ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text('$bookIcon $bookName', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                          const Spacer(),
+                          InkWell(
+                            borderRadius: BorderRadius.circular(8),
+                            onTap: () => _pickMonth(context),
+                            child: Row(
+                              children: [
+                                Text(monthTitle(month), style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                                const SizedBox(width: 4),
+                                const Icon(Icons.expand_more, color: Colors.white38, size: 16),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      const Text('本月支出', style: TextStyle(color: Colors.white60, fontSize: 11)),
+                      const SizedBox(height: 3),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          formatMoney(totals.expense),
+                          style: TextStyle(color: expenseColor, fontSize: 34, fontWeight: FontWeight.w800, letterSpacing: -1),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(child: _sumCell('收入', formatMoney(totals.income), incomeColor)),
+                          Expanded(child: _sumCell('结余', formatMoney(totals.balance), totals.balance < 0 ? expenseColor : incomeColor)),
+                          Expanded(child: _sumCell('笔数', '$count', Colors.white)),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(child: _sumCell('收入', formatMoney(totals.income), const Color(0xFF7EE2B8))),
-                  Expanded(child: _sumCell('结余', formatMoney(totals.balance), totals.balance < 0 ? const Color(0xFFFF7A85) : const Color(0xFF7EE2B8))),
-                  Expanded(child: _sumCell('笔数', '$count', Colors.white)),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

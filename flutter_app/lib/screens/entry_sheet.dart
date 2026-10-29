@@ -15,6 +15,7 @@ Future<void> showEntrySheet(
   Txn? existing,
   String? initialDate,
   TxnType? initialType,
+  String? initialAccountId,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -25,16 +26,24 @@ Future<void> showEntrySheet(
       existing: existing,
       initialDate: initialDate,
       initialType: initialType,
+      initialAccountId: initialAccountId,
     ),
   );
 }
 
 class EntrySheet extends StatefulWidget {
-  const EntrySheet({super.key, this.existing, this.initialDate, this.initialType});
+  const EntrySheet({
+    super.key,
+    this.existing,
+    this.initialDate,
+    this.initialType,
+    this.initialAccountId,
+  });
 
   final Txn? existing;
   final String? initialDate;
   final TxnType? initialType;
+  final String? initialAccountId;
 
   @override
   State<EntrySheet> createState() => _EntrySheetState();
@@ -72,7 +81,10 @@ class _EntrySheetState extends State<EntrySheet> {
     final cats = store.categoriesFor(_type);
     _categoryId = existing?.categoryId ?? (cats.isNotEmpty ? cats.first.id : '');
     final accts = _availableAccounts;
-    _accountId = existing?.accountId ?? (accts.isNotEmpty ? accts.first.id : '');
+    final preferred = existing?.accountId ?? widget.initialAccountId;
+    _accountId = preferred != null && accts.any((a) => a.id == preferred)
+        ? preferred
+        : (accts.isNotEmpty ? accts.first.id : '');
     _toAccountId = existing?.toAccountId ??
         (accts.length > 1
             ? accts.firstWhere((a) => a.id != _accountId, orElse: () => accts.first).id

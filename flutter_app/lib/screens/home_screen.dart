@@ -4,6 +4,7 @@ import '../models.dart';
 import '../store.dart';
 import '../utils.dart';
 import '../widgets/classic_month_card.dart';
+import '../widgets/hero_card_settings.dart';
 import '../widgets/orbit_month_card.dart';
 import '../widgets/simple_month_card.dart';
 import '../widgets/swipe_delete_tile.dart';
@@ -110,12 +111,26 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _monthCard(BuildContext context, AppStore store, MoneyTotals totals, Book book, int count) {
     final onChanged = (DateTime m) => setState(() => _month = monthStart(m));
     if (store.cardStyle == 'classic') {
-      return ClassicMonthCard(month: _month, totals: totals, bookName: book.name, bookIcon: book.icon, count: count, onChanged: onChanged);
+      return ClassicMonthCard(
+        month: _month,
+        totals: totals,
+        bookName: book.name,
+        bookIcon: book.icon,
+        count: count,
+        onChanged: onChanged,
+        onSettings: () => showHeroCardSettings(context),
+      );
     }
     if (store.cardStyle == 'minimal' || store.cardStyle == 'glass') {
-      return SimpleMonthCard(month: _month, totals: totals, bookName: book.name, bookIcon: book.icon, count: count, onChanged: onChanged, variant: store.cardStyle);
+      return GestureDetector(
+        onTap: () => showHeroCardSettings(context),
+        child: SimpleMonthCard(month: _month, totals: totals, bookName: book.name, bookIcon: book.icon, count: count, onChanged: onChanged, variant: store.cardStyle),
+      );
     }
-    return OrbitMonthCard(month: _month, totals: totals, bookName: book.name, bookIcon: book.icon, count: count, onChanged: onChanged);
+    return GestureDetector(
+      onTap: () => showHeroCardSettings(context),
+      child: OrbitMonthCard(month: _month, totals: totals, bookName: book.name, bookIcon: book.icon, count: count, onChanged: onChanged),
+    );
   }
 
   Widget _budgetCard(BuildContext context, double expense, double budget, double ratio) {

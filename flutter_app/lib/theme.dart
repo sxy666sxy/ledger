@@ -83,24 +83,36 @@ double themeHeroRadius(double base) {
 
 bool themeHeroIsGlass() => AppStore.instance.cardStyle == 'glass';
 
+bool themeHeroHasImage() {
+  final path = AppStore.instance.heroCardImagePath;
+  return path.isNotEmpty && File(path).existsSync();
+}
+
 /// 顶部汇总卡在玻璃样式下改用深色/浅色表面字色，保证可读性。
 Color themeHeroFg(BuildContext context) =>
-    themeHeroIsGlass() ? Theme.of(context).colorScheme.onSurface : Colors.white;
+    themeHeroIsGlass() && !themeHeroHasImage()
+        ? Theme.of(context).colorScheme.onSurface
+        : Colors.white;
 
-Color themeHeroMuted(BuildContext context) => themeHeroIsGlass()
+Color themeHeroMuted(BuildContext context) => themeHeroIsGlass() && !themeHeroHasImage()
     ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55)
-    : Colors.white.withValues(alpha: 0.54);
+    : Colors.white.withValues(alpha: 0.62);
 
-Color themeHeroIncome(BuildContext context) => themeHeroIsGlass()
+Color themeHeroIncome(BuildContext context) => themeHeroIsGlass() && !themeHeroHasImage()
     ? const Color(0xFF0E9F6E)
-    : const Color(0xFF8FE3C8);
+    : const Color(0xFF9AF3CF);
 
 /// 汇总卡统一金额色：支出红、收入绿，结余按正负取色。
-Color themeHeroExpense(BuildContext context) => themeHeroIsGlass()
-    ? (Theme.of(context).brightness == Brightness.dark
-        ? const Color(0xFFFF8A8A)
-        : const Color(0xFFD92D20))
-    : const Color(0xFFFF9AA2);
+Color themeHeroExpense(BuildContext context) {
+  final custom = AppStore.instance.heroExpenseColor;
+  if (custom != 0) return Color(custom);
+  if (themeHeroHasImage()) return const Color(0xFFFFA3A3);
+  return themeHeroIsGlass()
+      ? (Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFFFF8A8A)
+          : const Color(0xFFD92D20))
+      : const Color(0xFFFF9AA2);
+}
 
 Color themeHeroBalance(BuildContext context, double value) =>
     value < 0 ? themeHeroExpense(context) : themeHeroIncome(context);
@@ -166,12 +178,43 @@ class ThemeHeroCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final style = AppStore.instance.cardStyle;
     final effectiveRadius = themeHeroRadius(radius);
+    final imagePath = AppStore.instance.heroCardImagePath;
+    final hasImage = imagePath.isNotEmpty && File(imagePath).existsSync();
     final content = Container(
-      decoration: themeHeroDecoration(context, radius: radius),
+      decoration: hasImage
+          ? BoxDecoration(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(effectiveRadius),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.36)),
+            )
+          : themeHeroDecoration(context, radius: radius),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(effectiveRadius),
         child: Stack(
           children: [
+            if (hasImage)
+              Positioned.fill(
+                child: Image.file(
+                  File(imagePath),
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
+              ),
+            if (hasImage)
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.26),
+                        Colors.black.withValues(alpha: 0.52),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             if (style != 'glass')
               Positioned.fill(
                 child: IgnorePointer(

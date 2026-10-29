@@ -1,7 +1,7 @@
 name: xingkong_ledger
 description: 星空记账 Flutter 原生版
 publish_to: 'none'
-version: 0.20.0+24
+version: 0.21.0+25
 
 environment:
   sdk: '>=3.4.0 <4.0.0'
