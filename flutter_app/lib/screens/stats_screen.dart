@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../models.dart';
@@ -128,6 +130,8 @@ class _StatsScreenState extends State<StatsScreen>
         const SizedBox(height: 4),
         _summaryCard(context, '月', totals),
         const SizedBox(height: 14),
+        _assetSummaryCard(context, store),
+        const SizedBox(height: 14),
         _chartCard(
           context,
           title: '每日趋势',
@@ -190,6 +194,8 @@ class _StatsScreenState extends State<StatsScreen>
           () => setState(() => _weekStart = _weekStart.add(const Duration(days: 7))),
         ),
         _summaryCard(context, '周', totals),
+        const SizedBox(height: 14),
+        _breakdownCard(context, cats, _type == TxnType.expense ? totals.expense : totals.income),
         const SizedBox(height: 14),
         _chartCard(
           context,
@@ -282,6 +288,8 @@ class _StatsScreenState extends State<StatsScreen>
         ),
         const SizedBox(height: 8),
         _summaryCard(context, '区间', totals),
+        const SizedBox(height: 14),
+        _breakdownCard(context, cats, _type == TxnType.expense ? totals.expense : totals.income),
         const SizedBox(height: 14),
         _chartCard(
           context,
@@ -424,6 +432,8 @@ class _StatsScreenState extends State<StatsScreen>
         ),
         _summaryCard(context, _yearAll ? '全部' : '年', totals),
         const SizedBox(height: 14),
+        _breakdownCard(context, cats, _type == TxnType.expense ? totals.expense : totals.income),
+        const SizedBox(height: 14),
         _chartCard(
           context,
           title: _yearAll ? '近十年收支' : '$_year年月度收支',
@@ -533,6 +543,260 @@ class _StatsScreenState extends State<StatsScreen>
           Text(label, style: TextStyle(color: themeHeroMuted(context), fontSize: 10)),
           const SizedBox(height: 4),
           Text(value, style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.w800)),
+        ],
+      ),
+    );
+  }
+
+  Widget _assetSummaryCard(BuildContext context, AppStore store) {
+    final entries = <_AssetEntry>[];
+    for (final account in store.accounts) {
+      final balance = store.accountBalance(account);
+      if (balance > 0.005) entries.add(_AssetEntry(account, balance));
+    }
+    entries.sort((a, b) => b.balance.compareTo(a.balance));
+    final total = entries.fold<double>(0, (sum, item) => sum + item.balance);
+    final top = entries.take(5).toList();
+    final slices = <_DonutSlice>[
+      for (var i = 0; i < top.length; i++)
+        _DonutSlice(
+          label: top[i].account.name,
+          value: top[i].balance,
+          color: _donutPalette[i % _donutPalette.length],
+        ),
+    ];
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Text('资产汇总', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+                const Spacer(),
+                Text('${entries.length} 个账户', style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
+              ],
+            ),
+            const SizedBox(height: 10),
+            if (entries.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Center(
+                  child: Text('暂无资产余额', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                ),
+              )
+            else
+              Row(
+                children: [
+                  _donut(
+                    slices: slices,
+                    centerLabel: '总资产',
+                    centerValue: formatMoney(total),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        for (var i = 0; i < top.length; i++)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 7),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: _donutPalette[i % _donutPalette.length],
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    top[i].account.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 10.5),
+                                  ),
+                                ),
+                                Text(
+                                  formatMoney(top[i].balance, symbol: false),
+                                  style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700),
+                                ),
+                                const SizedBox(width: 4),
+                                SizedBox(
+                                  width: 37,
+                                  child: Text(
+                                    '${(top[i].balance / total * 100).toStringAsFixed(1)}%',
+                                    textAlign: TextAlign.right,
+                                    style: TextStyle(fontSize: 9.5, color: Colors.grey.shade600),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _breakdownCard(BuildContext context, List<CategoryTotal> cats, double total) {
+    final top = cats.take(4).toList();
+    final slices = <_DonutSlice>[
+      for (final item in top)
+        _DonutSlice(
+          label: item.category.name,
+          value: item.value,
+          color: Color(item.category.color),
+        ),
+    ];
+    if (cats.length > 4) {
+      final rest = cats.skip(4).fold<double>(0, (sum, item) => sum + item.value);
+      if (rest > 0) {
+        slices.add(_DonutSlice(label: '其他', value: rest, color: const Color(0xFF94A3B8)));
+      }
+    }
+    final isExpense = _type == TxnType.expense;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${isExpense ? '支出' : '收入'}占比',
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                  ),
+                ),
+                SegmentedButton<TxnType>(
+                  showSelectedIcon: false,
+                  style: const ButtonStyle(
+                    visualDensity: VisualDensity.compact,
+                    textStyle: WidgetStatePropertyAll(TextStyle(fontSize: 10)),
+                  ),
+                  segments: const [
+                    ButtonSegment(value: TxnType.expense, label: Text('支出')),
+                    ButtonSegment(value: TxnType.income, label: Text('收入')),
+                  ],
+                  selected: {_type},
+                  onSelectionChanged: (set) => setState(() => _type = set.first),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            if (slices.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Center(
+                  child: Text('这个区间还没有数据', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                ),
+              )
+            else
+              Row(
+                children: [
+                  _donut(
+                    slices: slices,
+                    centerLabel: isExpense ? '总支出' : '总收入',
+                    centerValue: formatMoney(total),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        for (final slice in slices)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 7),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(color: slice.color, shape: BoxShape.circle),
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    slice.label,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 10.5),
+                                  ),
+                                ),
+                                Text(
+                                  formatMoney(slice.value, symbol: false),
+                                  style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700),
+                                ),
+                                SizedBox(
+                                  width: 36,
+                                  child: Text(
+                                    total <= 0 ? '0%' : '${(slice.value / total * 100).toStringAsFixed(1)}%',
+                                    textAlign: TextAlign.right,
+                                    style: TextStyle(fontSize: 9.5, color: Colors.grey.shade600),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _donut({
+    required List<_DonutSlice> slices,
+    required String centerLabel,
+    required String centerValue,
+  }) {
+    return SizedBox(
+      width: 116,
+      height: 116,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          AnimatedBuilder(
+            animation: _growthController,
+            builder: (context, _) => CustomPaint(
+              size: const Size.square(116),
+              painter: _DonutPainter(
+                slices: slices,
+                progress: _growthController.value,
+                trackColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+              ),
+            ),
+          ),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(centerLabel, style: TextStyle(fontSize: 9, color: Colors.grey.shade600)),
+              const SizedBox(height: 2),
+              SizedBox(
+                width: 78,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    centerValue,
+                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -844,6 +1108,72 @@ class _StatsScreenState extends State<StatsScreen>
         ),
       ),
     );
+  }
+}
+
+class _AssetEntry {
+  const _AssetEntry(this.account, this.balance);
+
+  final Account account;
+  final double balance;
+}
+
+class _DonutSlice {
+  const _DonutSlice({required this.label, required this.value, required this.color});
+
+  final String label;
+  final double value;
+  final Color color;
+}
+
+const List<Color> _donutPalette = [
+  Color(0xFF5B6CFF),
+  Color(0xFFF59E0B),
+  Color(0xFF10B981),
+  Color(0xFFEC4899),
+  Color(0xFF8B5CF6),
+  Color(0xFF06B6D4),
+];
+
+class _DonutPainter extends CustomPainter {
+  _DonutPainter({required this.slices, required this.progress, required this.trackColor});
+
+  final List<_DonutSlice> slices;
+  final double progress;
+  final Color trackColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = math.min(size.width, size.height) / 2 - 8;
+    final track = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 12
+      ..color = trackColor;
+    canvas.drawCircle(center, radius, track);
+    final total = slices.fold<double>(0, (sum, item) => sum + item.value);
+    if (total <= 0) return;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+    final p = progress.clamp(0.0, 1.0).toDouble();
+    var start = -math.pi / 2;
+    for (final slice in slices) {
+      final sweep = math.pi * 2 * (slice.value / total) * p;
+      if (sweep <= 0) continue;
+      final paint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 12
+        ..strokeCap = StrokeCap.butt
+        ..color = slice.color;
+      canvas.drawArc(rect, start, sweep, false, paint);
+      start += sweep;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DonutPainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+        oldDelegate.slices != slices ||
+        oldDelegate.trackColor != trackColor;
   }
 }
 

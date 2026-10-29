@@ -2,10 +2,10 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../store.dart';
 import '../theme.dart';
+import 'hero_image_cropper.dart';
 
 const List<int> _expenseColors = [
   0,
@@ -46,11 +46,9 @@ class _HeroCardSettingsSheetState extends State<_HeroCardSettingsSheet> {
       final result = await FilePicker.platform.pickFiles(type: FileType.image);
       final path = result?.files.single.path;
       if (path == null || !mounted) return;
-      final dir = await getApplicationDocumentsDirectory();
-      final ext = path.contains('.') ? path.substring(path.lastIndexOf('.')) : '.jpg';
-      final target = File('${dir.path}/hero_card_${DateTime.now().millisecondsSinceEpoch}$ext');
-      await File(path).copy(target.path);
-      store.setHeroCardImagePath(target.path);
+      final cropped = await pickHeroCardImage(context, path);
+      if (cropped == null || !mounted) return;
+      store.setHeroCardImagePath(cropped);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('选择背景失败：$e')));

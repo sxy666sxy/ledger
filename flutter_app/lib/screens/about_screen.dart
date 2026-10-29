@@ -153,6 +153,13 @@ class ChangelogScreen extends StatelessWidget {
   const ChangelogScreen({super.key});
 
   static const List<_Release> _releases = [
+    _Release('v0.22.0', '2026-10-30', [
+      '自定义卡片背景支持拖动、缩放并裁剪为卡片比例，只保留所选区域。',
+      '语音记账在说完后自动结束识别并转为文字，不再一直录音。',
+      '日历顶部“支/收/结”汉字改为黑色，金额颜色保持不变。',
+      '月统计新增资产汇总环形图；周/年/自定义新增收支占比环形图，可切换并联动排行。',
+      '年统计每月热力图改为紧凑布局，去除上下多余空白。',
+    ]),
     _Release('v0.21.0', '2026-10-29', [
       '热力图详细页支持点击某一天，查看当天账单。',
       '明细、资产、我的顶部汇总卡支持点击设置支出颜色和自定义背景。',
@@ -272,6 +279,7 @@ class ManualScreen extends StatelessWidget {
   static const List<_ManualSection> _sections = [
     _ManualSection(Icons.add_circle_outline_rounded, '快速记账', [
       '点击右下角 + 新建账单；长按 + 可快速输入一句话或语音识别。',
+      '语音记账说完后会自动停止识别并填入文字；识别不准时可直接修改。',
       '账单页顶部可选择支出、收入或转账，分类支持自定义图标和颜色。',
       '备注框直接点击即可用手机键盘输入，内置数字键盘会自动收起。',
       '日期和账户选择在备注框下方；账户可以留空，不关联账户余额。',
@@ -282,6 +290,7 @@ class ManualScreen extends StatelessWidget {
       '日历顶部会显示当月支出、收入、结余，支出红色、收入绿色，结余按正负着色。',
       '点击趋势图中的某一天、某个月或某一年，可查看对应账单明细。',
       '点击年度热力图中的月份，会进入该月附近的热力详情；在详细热力图中点某一天，可查看当天账单。',
+      '月统计提供资产汇总环形图；周/年/自定义可切换收入/支出占比，排行同步切换。',
       '明细、资产、我的顶部汇总卡可点击，设置支出金额颜色和自定义背景。',
     ]),
     _ManualSection(Icons.account_balance_wallet_outlined, '资产', [
@@ -300,6 +309,7 @@ class ManualScreen extends StatelessWidget {
     ]),
     _ManualSection(Icons.palette_outlined, '主题与安全', [
       '在“我的-主题中心”切换主题、卡片样式，或导入自定义背景图。',
+      '顶部卡片的“卡片自定义背景”支持拖动、缩放和裁剪，点完成后只显示所选区域。',
       '可设置隐私密码、分类预算和周期记账规则。',
     ]),
   ];

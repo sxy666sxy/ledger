@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
@@ -31,6 +33,7 @@ class _QuickAddSheetState extends State<QuickAddSheet> {
   final stt.SpeechToText _speech = stt.SpeechToText();
   bool _speechReady = false;
   bool _listening = false;
+  Timer? _voiceStopTimer;
   QuickParseResult? _parsed;
 
   @override
@@ -46,6 +49,7 @@ class _QuickAddSheetState extends State<QuickAddSheet> {
         onStatus: (status) {
           if (!mounted) return;
           if (status == 'done' || status == 'notListening') {
+            _voiceStopTimer?.cancel();
             setState(() => _listening = false);
           }
         },
@@ -62,6 +66,7 @@ class _QuickAddSheetState extends State<QuickAddSheet> {
 
   @override
   void dispose() {
+    _voiceStopTimer?.cancel();
     _speech.stop();
     _controller.dispose();
     super.dispose();
@@ -92,11 +97,22 @@ class _QuickAddSheetState extends State<QuickAddSheet> {
         return;
       }
     }
+    String? localeId;
+    try {
+      final locales = await _speech.locales();
+      final zh = locales
+          .where((locale) => locale.localeId.toLowerCase().startsWith('zh'))
+          .toList();
+      if (zh.isNotEmpty) localeId = zh.first.localeId;
+    } catch (_) {
+      // Keep the device default when locale discovery is unavailable.
+    }
+    if (!mounted) return;
     setState(() => _listening = true);
     await _speech.listen(
-      localeId: 'zh_CN',
-      listenFor: const Duration(seconds: 20),
-      pauseFor: const Duration(seconds: 3),
+      localeId: localeId,
+      listenFor: const Duration(seconds: 15),
+      pauseFor: const Duration(seconds: 2),
       onResult: (result) {
         if (!mounted) return;
         final words = result.recognizedWords.trim();
@@ -105,10 +121,20 @@ class _QuickAddSheetState extends State<QuickAddSheet> {
           text: words,
           selection: TextSelection.collapsed(offset: words.length),
         );
-        setState(() {
-          _parse();
-          if (result.finalResult) _listening = false;
-        });
+        setState(() => _parse());
+        _voiceStopTimer?.cancel();
+        if (result.finalResult) {
+          _speech.stop();
+          if (mounted) setState(() => _listening = false);
+        } else {
+          // Some Android recognisers keep the microphone open after the
+          // sentence is complete. Finish shortly after the last partial
+          // result instead of waiting for the full listenFor timeout.
+          _voiceStopTimer = Timer(const Duration(milliseconds: 1600), () async {
+            await _speech.stop();
+            if (mounted) setState(() => _listening = false);
+          });
+        }
       },
     );
   }

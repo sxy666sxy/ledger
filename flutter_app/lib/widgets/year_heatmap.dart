@@ -28,7 +28,7 @@ class YearHeatmapCard extends StatelessWidget {
     }
     return Card(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -42,34 +42,31 @@ class YearHeatmapCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 9),
             LayoutBuilder(
               builder: (context, constraints) {
                 final cellWidth = (constraints.maxWidth - 24) / 4;
-                final dayWidth = (cellWidth - 12) / 7;
-                final cellHeight = 25 + dayWidth * 5;
-                return GridView.count(
-                  crossAxisCount: 4,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 9,
-                  crossAxisSpacing: 8,
-                  childAspectRatio: cellWidth / cellHeight,
+                return Wrap(
+                  spacing: 8,
+                  runSpacing: 9,
                   children: months.map((m) {
                     final daily = type == TxnType.expense ? store.dailyExpense(m) : store.dailyIncome(m);
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(8),
-                      onTap: () => Navigator.of(context).push(
-                        fastPageRoute<void>(
-                          YearHeatmapPage(year: year, initialType: type, initialMonth: m.month),
+                    return SizedBox(
+                      width: cellWidth,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () => Navigator.of(context).push(
+                          fastPageRoute<void>(
+                            YearHeatmapPage(year: year, initialType: type, initialMonth: m.month),
+                          ),
                         ),
-                      ),
-                      child: _MiniMonthHeat(
-                        year: year,
-                        month: m.month,
-                        daily: daily,
-                        maxValue: maxValues[m.month] ?? 0,
-                        type: type,
+                        child: _MiniMonthHeat(
+                          year: year,
+                          month: m.month,
+                          daily: daily,
+                          maxValue: maxValues[m.month] ?? 0,
+                          type: type,
+                        ),
                       ),
                     );
                   }).toList(),
@@ -107,32 +104,47 @@ class _MiniMonthHeat extends StatelessWidget {
       if (d != null) byDay[d] = e.value;
     }
     final max = maxValue <= 0 ? 1.0 : maxValue;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('$month月', style: TextStyle(fontSize: 9.5, color: Colors.grey.shade600)),
-        const SizedBox(height: 3),
-        GridView.count(
-          crossAxisCount: 7,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 2,
-          crossAxisSpacing: 2,
-          children: List.generate(35, (i) {
-            final day = i + 1;
-            if (day > dim) return const SizedBox.shrink();
-            final value = byDay[day] ?? 0;
-            final alpha = value <= 0 ? 0.06 : (0.10 + 0.72 * (value / max)).clamp(0.10, 0.82);
-            final color = type == TxnType.expense ? const Color(0xFFE5484D) : const Color(0xFF0E9F6E);
-            return Container(
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: alpha.toDouble()),
-                borderRadius: BorderRadius.circular(2),
+    final color = type == TxnType.expense ? const Color(0xFFE5484D) : const Color(0xFF0E9F6E);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const gap = 2.0;
+        final square = ((constraints.maxWidth - gap * 6) / 7).clamp(6.0, 13.0);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('$month月', style: TextStyle(fontSize: 9.5, color: Colors.grey.shade600)),
+            const SizedBox(height: 3),
+            for (var row = 0; row < 6; row++)
+              Padding(
+                padding: EdgeInsets.only(bottom: row == 5 ? 0.0 : gap),
+                child: Row(
+                  children: List.generate(7, (col) {
+                    final day = row * 7 + col + 1;
+                    final value = day <= dim ? (byDay[day] ?? 0) : 0;
+                    final alpha = value <= 0
+                        ? 0.06
+                        : (0.10 + 0.72 * (value / max)).clamp(0.10, 0.82);
+                    return Padding(
+                      padding: EdgeInsets.only(right: col == 6 ? 0.0 : gap),
+                      child: SizedBox(
+                        width: square.toDouble(),
+                        height: square.toDouble(),
+                        child: day > dim
+                            ? const SizedBox.shrink()
+                            : DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: color.withValues(alpha: alpha.toDouble()),
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                      ),
+                    );
+                  }),
+                ),
               ),
-            );
-          }),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 }

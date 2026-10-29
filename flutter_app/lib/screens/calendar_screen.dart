@@ -114,6 +114,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
         final dim = daysInMonth(_month);
         final maxExpense = expenses.values.fold<double>(1, (a, b) => a > b ? a : b);
         final totals = store.totalsForMonth(_month);
+        final labelColor = Theme.of(context).brightness == Brightness.dark
+            ? Theme.of(context).colorScheme.onSurface
+            : Colors.black87;
 
         return SafeArea(
           child: Column(
@@ -149,10 +152,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                 child: Text.rich(
                                   TextSpan(
                                     children: [
-                                      TextSpan(text: '支 ${formatMoney(totals.expense, symbol: false)}', style: const TextStyle(color: Color(0xFFD92D20))),
-                                      const TextSpan(text: '  收 ', style: TextStyle(color: Colors.grey)),
+                                      TextSpan(text: '支 ', style: TextStyle(color: labelColor)),
+                                      TextSpan(text: formatMoney(totals.expense, symbol: false), style: const TextStyle(color: Color(0xFFD92D20))),
+                                      TextSpan(text: '  收 ', style: TextStyle(color: labelColor)),
                                       TextSpan(text: formatMoney(totals.income, symbol: false), style: const TextStyle(color: Color(0xFF0E9F6E))),
-                                      const TextSpan(text: '  结 ', style: TextStyle(color: Colors.grey)),
+                                      TextSpan(text: '  结 ', style: TextStyle(color: labelColor)),
                                       TextSpan(
                                         text: formatMoney(totals.balance, symbol: false),
                                         style: TextStyle(color: totals.balance < 0 ? const Color(0xFFD92D20) : const Color(0xFF0E9F6E)),
